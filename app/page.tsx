@@ -12,11 +12,12 @@ import {DEFAULT_CONFIG,DEFAULT_DISPLAY,normalizeConfig,normalizeDisplay,GAME_MOD
 import {MatchConfiguration,DisplayConfiguration} from './game-ui/configuration';
 
 type Mode='selection'|'browse'|'lobby'|'playing'|'paused'|'results';
+const defaultNetUrl=typeof window!=='undefined'&&!['localhost','127.0.0.1'].includes(window.location.hostname)?`${window.location.protocol==='https:'?'wss':'ws'}://${window.location.host}/ws`:DEFAULT_SERVER_URL;
 const powerIcon=(id:string,size=22)=>id==='openclaw'?<Sparkles size={size}/>:id==='hermes'?<Zap size={size}/>:id==='opencode'?<Terminal size={size}/>:id==='codex'?<RotateCcw size={size}/>:id==='cline'?<SkipForward size={size}/>:id==='roo'?<AudioLines size={size}/>:<Shield size={size}/>;
 const clock=(t:number)=>`${Math.floor(Math.max(0,t)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(0,t)%60).toString().padStart(2,'0')}`;
 export default function Home(){
  const canvas=useRef<HTMLCanvasElement>(null),runtime=useRef<any>(null),modeRef=useRef<Mode>('selection');
- const [mode,setMode]=useState<Mode>('selection'),[character,setCharacter]=useState('chatgpt'),[harness,setHarness]=useState('openclaw'),[mapId,setMapId]=useState('exchange'),[ready,setReady]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[hud,setHud]=useState<any>(null),[scores,setScores]=useState(false),[sensitivity,setSensitivity]=useState(1),[muted,setMuted]=useState(false),[settings,setSettings]=useState(false),[pointerHint,setPointerHint]=useState(false),[netUrl,setNetUrl]=useState(DEFAULT_SERVER_URL),[netPlayers,setNetPlayers]=useState<any[]>([]),[netError,setNetError]=useState('');
+ const [mode,setMode]=useState<Mode>('selection'),[character,setCharacter]=useState('chatgpt'),[harness,setHarness]=useState('openclaw'),[mapId,setMapId]=useState('exchange'),[ready,setReady]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[hud,setHud]=useState<any>(null),[scores,setScores]=useState(false),[sensitivity,setSensitivity]=useState(1),[muted,setMuted]=useState(false),[settings,setSettings]=useState(false),[pointerHint,setPointerHint]=useState(false),[netUrl,setNetUrl]=useState(defaultNetUrl),[netPlayers,setNetPlayers]=useState<any[]>([]),[netError,setNetError]=useState('');
  const [config,setConfig]=useState<any>({...DEFAULT_CONFIG}),[display,setDisplay]=useState<any>({...DEFAULT_DISPLAY}),[rooms,setRooms]=useState<any[]>([]),[matches,setMatches]=useState<any[]>([]),[roomName,setRoomName]=useState(''),[netRoomId,setNetRoomId]=useState('');
  const selectedMode=GAME_MODES.find(m=>m.id===config.mode)!;
  const selectedMap=getMap(mapId);
