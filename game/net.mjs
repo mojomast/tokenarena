@@ -13,6 +13,7 @@ export class NetClient {
   this.url = url;
   this.storage = options.storage ?? (typeof localStorage !== 'undefined' ? localStorage : null);
   this.storageKey = `token-arena-net:${url}`;
+  this.roomKey = `token-arena-room:${url}`;
   this.reset();
  }
  reset() {
@@ -22,13 +23,17 @@ export class NetClient {
   this.peerId = null;
   this.hostId = null;
   this.isHost = false;
+  this.spectate = false;
   this.players = [];
+  this.rooms = [];
+  this.matches = [];
   this.config = null;
   this.mapId = 'exchange';
   this.started = false;
   this.roundOver = true;
   this.actorId = null;
   this.token = this.storage ? this.storage.getItem(this.storageKey) : null;
+  this.roomId = this.storage ? this.storage.getItem(this.roomKey) : null;
   this.buffer = [];
   this.events = [];
   this.state = null;
@@ -38,6 +43,8 @@ export class NetClient {
   this.onStart = null;
   this.onResults = null;
   this.onLobby = null;
+  this.onRooms = null;
+  this.onHistory = null;
   this.onError = null;
   this.onClose = null;
  }
@@ -57,13 +64,17 @@ export class NetClient {
  }
  close() { this.closedByUser = true; try { this.ws?.close(); } catch {} this.ws = null; this.connected = false; }
  send(msg) { if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg)); }
- join(name, character, harness) { this.send({ type: 'join', name, character, harness, token: this.token ?? '' }); }
+ join(name, character, harness, opts = {}) { this.send({ type: 'join', name, character, harness, token: this.token ?? '', roomId: opts.roomId || this.roomId || 'local', spectate: opts.spectate === true }); }
+ create(name, character, harness, playerName = '') { this.send({ type: 'create', name, playerName, character, harness, token: this.token ?? '', roomId: this.roomId ?? '' }); }
+ list() { this.send({ type: 'list' }); }
+ history() { this.send({ type: 'history' }); }
  host(config, mapId) { this.send({ type: 'host', config, mapId }); }
  start() { this.send({ type: 'start' }); }
  leave() {
   this.send({ type: 'leave' });
   this.token = null;
-  if (this.storage) this.storage.removeItem(this.storageKey);
+  this.roomId = null;
+  if (this.storage) { this.storage.removeItem(this.storageKey); this.storage.removeItem(this.roomKey); }
  }
  input(input) { this.send({ type: 'input', input }); }
  onMessage(data) {
@@ -73,6 +84,8 @@ export class NetClient {
    case 'welcome':
     this.peerId = msg.peerId;
     this.isHost = msg.host;
+    this.spectate = msg.spectate === true;
+    if (msg.roomId) { this.roomId = msg.roomId; if (this.storage) this.storage.setItem(this.roomKey, msg.roomId); }
     if (msg.token) { this.token = msg.token; if (this.storage) this.storage.setItem(this.storageKey, msg.token); }
     break;
    case 'lobby':
@@ -82,9 +95,12 @@ export class NetClient {
     this.config = msg.config;
     this.mapId = msg.mapId;
     this.started = msg.started;
+    this.spectate = this.players.find(p => p.peerId === this.peerId)?.spectate === true;
     this.actorId = this.players.find(p => p.peerId === this.peerId)?.actorId ?? null;
     this.onLobby?.(msg);
     break;
+   case 'rooms': this.rooms = msg.rooms ?? []; this.onRooms?.(msg); break;
+   case 'history': this.matches = msg.matches ?? []; this.onHistory?.(msg); break;
    case 'start':
     this.started = true;
     this.roundOver = false;

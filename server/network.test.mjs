@@ -53,6 +53,10 @@ const collect = (ws, type, count, timeout = 30000) => new Promise((resolve, reje
  const onMessage = m => { if (m.type === type) { items.push(m); if (items.length >= count) { done = true; clearTimeout(timer); resolve(items); } } };
  q.waiters.push({ type: null, onMessage, done: () => done });
 });
+// Instagib helper: one-shot rail kills make a frag-limit match end in about
+// two seconds of accelerated sim time. Bots do the fighting — nav-mesh roaming
+// keeps kills flowing regardless of spawn geometry.
+const FAST_MATCH = { mode: 'instagib', botCount: 2, fragLimit: 5, timeLimit: 60, respawn: 1, difficulty: 'easy' };
 
 test('two real WebSocket clients join, play and receive results end-to-end', async () => {
  const { server, close } = createGameServer({ tickDt: 1 / 6 });
@@ -203,5 +207,128 @@ test('NetClient wrapper joins, interpolates snapshots and reaches results', asyn
  } finally {
   c.close();
   close();
+ }
+});
+test('two rooms play simultaneously and the browser lists both', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a, b, c, d;
+ try {
+  a = await connect(url); b = await connect(url); c = await connect(url); d = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  send(b, { type: 'join', name: 'Bob', character: 'claude', harness: 'hermes' });
+  const welcomeA = await until(a, 'welcome');
+  assert.equal(welcomeA.roomId, 'local');
+  assert.equal(welcomeA.host, true);
+  send(c, { type: 'create', name: 'Rival Room', playerName: 'Carla', character: 'gemini', harness: 'cline' });
+  const welcomeC = await until(c, 'welcome');
+  assert.equal(welcomeC.host, true);
+  assert.match(welcomeC.roomId, /^[A-Z0-9]{4}$/);
+  assert.notEqual(welcomeC.roomId, 'local');
+  send(d, { type: 'join', name: 'Dennis', character: 'gemini', harness: 'cline', roomId: welcomeC.roomId });
+  const welcomeD = await until(d, 'welcome');
+  assert.equal(welcomeD.roomId, welcomeC.roomId);
+  assert.equal(welcomeD.host, false);
+  const lobbyD = await latest(d, 'lobby');
+  assert.equal(lobbyD.roomId, welcomeC.roomId);
+  assert.deepEqual(lobbyD.players.map(p => p.name), ['Carla', 'Dennis']);
+  send(a, { type: 'list' });
+  const rooms = await until(a, 'rooms');
+  assert.equal(rooms.rooms.length, 2, 'both rooms listed');
+  assert.ok(rooms.rooms.some(r => r.roomId === 'local'));
+  const created = rooms.rooms.find(r => r.roomId === welcomeC.roomId);
+  assert.equal(created.name, 'Rival Room');
+  assert.equal(created.players, 2);
+  assert.equal(created.started, false);
+  send(a, { type: 'host', config: FAST_MATCH, mapId: 'crosswire' });
+  send(c, { type: 'host', config: FAST_MATCH, mapId: 'crosswire' });
+  send(a, { type: 'start' });
+  send(c, { type: 'start' });
+  await Promise.all([until(b, 'start'), until(d, 'start')]);
+  const results = await Promise.all([until(a, 'results', 45000), until(b, 'results', 45000), until(c, 'results', 45000), until(d, 'results', 45000)]);
+  for (const r of results) assert.equal(r.state.over, true);
+  assert.equal(results[0].state.actors.length, 4);
+  assert.equal(results[1].state.actors[0].name, 'Alice');
+  assert.equal(results[2].state.actors[0].name, 'Carla');
+  assert.ok(results[0].state.actors.some(a => a.frags >= 5), 'local room finished on frags');
+  assert.ok(results[2].state.actors.some(a => a.frags >= 5), 'created room finished on frags');
+  assert.ok(results[3].state.actors.some(a => a.frags >= 5), 'created room results reached its own players');
+ } finally {
+  a?.close(); b?.close(); c?.close(); d?.close(); close();
+ }
+});
+
+test('a spectator receives snapshots and results without a seat', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a, b, s;
+ try {
+  a = await connect(url); b = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  send(b, { type: 'join', name: 'Bob', character: 'claude', harness: 'hermes' });
+  await until(a, 'welcome');
+  await until(b, 'welcome');
+  s = await connect(url);
+  send(s, { type: 'join', name: 'Snoop', character: 'gemini', harness: 'cline', spectate: true });
+  const welcomeS = await until(s, 'welcome');
+  assert.equal(welcomeS.spectate, true);
+  assert.equal(welcomeS.host, false);
+  const lobbyS = await latest(s, 'lobby');
+  assert.equal(lobbyS.players[2].spectate, true);
+  assert.equal(lobbyS.players[2].actorId, null);
+  send(a, { type: 'host', config: FAST_MATCH, mapId: 'crosswire' });
+  send(a, { type: 'start' });
+  await until(s, 'start', 15000);
+  const snap = await until(s, 'snapshot', 45000);
+  assert.equal(snap.state.actors.length, 4, 'spectator snapshot carries all actors');
+  assert.equal(snap.state.actors[0].name, 'Alice');
+  const events = await collect(s, 'events', 1, 45000);
+  assert.ok(events.some(m => m.items.some(e => e.type === 'spawn')), 'spectator receives event deltas');
+  const results = await until(s, 'results', 45000);
+  assert.equal(results.state.over, true);
+  assert.equal(results.state.actors.length, 4);
+ } finally {
+  a?.close(); b?.close(); s?.close(); close();
+ }
+});
+
+test('history query returns the completed match entry', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a, b;
+ try {
+  a = await connect(url); b = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  send(b, { type: 'join', name: 'Bob', character: 'claude', harness: 'hermes' });
+  await until(a, 'welcome');
+  await until(b, 'welcome');
+  send(a, { type: 'host', config: FAST_MATCH, mapId: 'crosswire' });
+  send(a, { type: 'start' });
+  await until(b, 'start');
+  const results = await until(a, 'results', 45000);
+  assert.ok(results.state.over);
+  send(a, { type: 'history' });
+  const history = await until(a, 'history', 15000);
+  assert.equal(history.matches.length, 1);
+  const [m] = history.matches;
+  assert.equal(m.roomId, 'local');
+  assert.equal(m.mapId, 'crosswire');
+  assert.equal(m.mode, 'instagib');
+  assert.equal(m.fragLimit, 5);
+  assert.equal(m.endedBy, 'frag');
+  assert.ok(m.duration > 0 && m.duration < 60);
+  assert.equal(m.players.length, 4);
+  assert.deepEqual(m.players.map(p => p.name).sort().slice(0, 2), ['Alice', 'Bob']);
+  assert.ok(m.players.some(p => p.frags >= 5), 'someone reached the frag limit');
+  assert.ok(m.players.some(p => p.name === m.leader), 'leader is one of the recorded players');
+  assert.ok(m.players.every(p => Number.isInteger(p.frags) && Number.isInteger(p.deaths)));
+  send(b, { type: 'history' });
+  const history2 = await until(b, 'history', 15000);
+  assert.equal(history2.matches.length, 1, 'history is per server and visible to all');
+ } finally {
+  a?.close(); b?.close(); close();
  }
 });

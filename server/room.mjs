@@ -10,8 +10,10 @@ const clean = name => String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').t
 export class Room {
  constructor(id = 'local', random = Math.random, options = {}) {
   this.id = id;
+  this.name = String(options.name ?? id);
   this.random = random;
   this.graceMs = Math.max(1000, options.graceMs ?? 20000);
+  this.history = options.history ?? null;
   this.peers = new Map();
   this.nextPeerId = 1;
   this.hostId = null;
@@ -28,13 +30,16 @@ export class Room {
  send(peerId, msg) { this.out.push({ to: peerId, msg }); }
  broadcast(msg) { this.out.push({ to: null, msg }); }
  drain() { const msgs = this.out; this.out = []; return msgs; }
- lobby() {
-  return { type: 'lobby', roomId: this.id, hostId: this.hostId, started: this.started,
-   config: this.config ? { ...this.config } : null, mapId: this.mapId,
-   players: [...this.peers.values()].map(p => ({ peerId: p.id, name: p.name, character: p.character, harness: p.harness, actorId: p.actorId, ready: p.ready, connected: p.disconnectedAt === null })) };
+ summary() {
+  return { roomId: this.id, name: this.name, players: [...this.peers.values()].filter(p => p.disconnectedAt === null).length, started: this.started, mapId: this.mapId, config: this.config ? { ...this.config } : null };
  }
- nextConnectedHost() { for (const p of this.peers.values()) if (p.disconnectedAt === null) return p.id; return null; }
- join(peerId, name = '', character = 'chatgpt', harness = 'openclaw', token = '') {
+ lobby() {
+  return { type: 'lobby', roomId: this.id, name: this.name, hostId: this.hostId, started: this.started,
+   config: this.config ? { ...this.config } : null, mapId: this.mapId,
+   players: [...this.peers.values()].map(p => ({ peerId: p.id, name: p.name, character: p.character, harness: p.harness, actorId: p.actorId, ready: p.ready, connected: p.disconnectedAt === null, spectate: p.spectate === true })) };
+ }
+ nextConnectedHost() { for (const p of this.peers.values()) if (p.spectate !== true && p.disconnectedAt === null) return p.id; return null; }
+ join(peerId, name = '', character = 'chatgpt', harness = 'openclaw', token = '', spectate = false) {
   if (this.peers.has(peerId)) return;
   if (token) {
    const existing = [...this.peers.values()].find(p => p.token === token);
@@ -50,21 +55,23 @@ export class Room {
     this.peers.set(peerId, existing);
     if (this.hostId === oldId) this.hostId = peerId;
     else if (!this.hostId) this.hostId = peerId;
-    this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, reconnected: true, token: existing.token });
+    this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, reconnected: true, token: existing.token, spectate: existing.spectate === true });
     if (this.started && !this.roundOver && this.match) this.send(peerId, { type: 'start', config: { ...this.config }, mapId: this.mapId });
     this.broadcast(this.lobby());
     return;
    }
   }
-  if (this.peers.size >= PLAYER_LIMIT) { this.send(peerId, { type: 'error', message: 'room is full' }); return; }
+  const isSpectator = spectate === true;
+  const playerCount = [...this.peers.values()].filter(p => p.spectate !== true).length;
+  if (!isSpectator && playerCount >= PLAYER_LIMIT) { this.send(peerId, { type: 'error', message: 'room is full' }); return; }
   const l = resolveLoadout(character, harness) || { character: 'chatgpt', harness: 'openclaw' };
   const peer = { id: peerId, name: clean(name) || CHARACTERS.find(c => c.id === l.character).name,
    character: l.character, harness: l.harness, actorId: null, ready: false, latest: null, lastSerial: 0,
    lastJump: false, lastPower: false, edgeJump: false, edgePower: false,
-   token: randomUUID(), disconnectedAt: null };
+   token: randomUUID(), disconnectedAt: null, spectate: isSpectator };
   this.peers.set(peerId, peer);
-  if (!this.hostId) this.hostId = peerId;
-  this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, token: peer.token });
+  if (!this.hostId && !isSpectator) this.hostId = peerId;
+  this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, token: peer.token, spectate: isSpectator });
   this.broadcast(this.lobby());
  }
  disconnect(peerId) {
@@ -80,20 +87,27 @@ export class Room {
   for (const [id, peer] of this.peers) if (peer.disconnectedAt && now - peer.disconnectedAt > this.graceMs) this.leave(id);
  }
  host(peerId, config, mapId) {
-  if (!this.peers.has(peerId)) return;
+  const peer = this.peers.get(peerId);
+  if (!peer) return;
+  if (peer.spectate) { this.send(peerId, { type: 'error', message: 'spectators cannot change match settings' }); return; }
   if (peerId !== this.hostId) { this.send(peerId, { type: 'error', message: 'only the host can change match settings' }); return; }
   this.config = normalizeConfig(config);
   this.mapId = getMap(mapId).id;
   this.broadcast(this.lobby());
  }
  start(peerId) {
-  if (!this.peers.has(peerId)) return;
+  const peer = this.peers.get(peerId);
+  if (!peer) return;
+  if (peer.spectate) { this.send(peerId, { type: 'error', message: 'spectators cannot start the match' }); return; }
   if (peerId !== this.hostId) { this.send(peerId, { type: 'error', message: 'only the host can start' }); return; }
   if (this.peers.size === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
-  const humanCount = Math.min(PLAYER_LIMIT, this.peers.size);
+  const players = [...this.peers.values()].filter(p => p.spectate !== true);
+  if (players.length === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
+  const humanCount = Math.min(PLAYER_LIMIT, players.length);
   this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount });
   let i = 0;
-  for (const p of this.peers.values()) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
+  for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
+  for (const p of this.peers.values()) if (p.spectate) p.lastSerial = 0;
   this.started = true;
   this.roundOver = false;
   this.tickAcc = 0;
@@ -103,7 +117,7 @@ export class Room {
  }
  input(peerId, input) {
   const peer = this.peers.get(peerId);
-  if (!peer || peer.actorId === null || !this.match || this.roundOver) return;
+  if (!peer || peer.spectate || peer.actorId === null || !this.match || this.roundOver) return;
   const i = input && typeof input === 'object' ? input : {};
   const ext = { x: Number(i.x) || 0, z: Number(i.z) || 0, fire: i.fire === true };
   if (Number.isFinite(i.yaw)) ext.yaw = i.yaw;
@@ -146,13 +160,17 @@ export class Room {
    this.match.step(RULES.dt, { inputs });
    this.tickAcc -= RULES.dt;
    steps++;
-   for (const p of this.peers.values()) if (p.actorId !== null) {
-    const items = this.match.events.filter(e => e.id > p.lastSerial);
-    if (items.length) { p.lastSerial = items[items.length - 1].id; this.send(p.id, { type: 'events', items }); }
-   }
-   this.broadcastAt += RULES.dt;
-   if (this.broadcastAt >= .05) { this.broadcastAt = 0; this.broadcast({ type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() }); }
-   if (this.match.over) { this.roundOver = true; this.broadcast({ type: 'results', state: this.match.snapshot() }); break; }
+    for (const p of this.peers.values()) if (p.actorId !== null || p.spectate) {
+     const items = this.match.events.filter(e => e.id > p.lastSerial);
+     if (items.length) { p.lastSerial = items[items.length - 1].id; this.send(p.id, { type: 'events', items }); }
+    }
+    this.broadcastAt += RULES.dt;
+    if (this.broadcastAt >= .05) { this.broadcastAt = 0; this.broadcast({ type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() }); }
+    if (this.match.over) {
+     this.roundOver = true;
+     this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: this.match.actors });
+     this.broadcast({ type: 'results', state: this.match.snapshot() }); break;
+    }
   }
  }
 }

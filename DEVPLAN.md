@@ -57,12 +57,16 @@ First authorized step toward the separately scoped P5 multiplayer, hosted from t
 | Per-actor inputs | `Match.step(dt, {inputs: {id: ...}})` drives any actor; legacy `step(dt, input)` still drives actor 0 | 34 game tests pass |
 | Human slots | `humanCount` 1–8; humans have `bot: null` and never run bot AI; difficulty fire delay applies to bots only | Creation and idle tests pass |
 | Determinism | Mixed human/bot matches reproduce exactly under identical input traces | deepEqual snapshot test passes |
-| Room logic | `server/room.mjs`: host rules, config normalization, per-peer actor slots, 60Hz authoritative tick, one-shot jump/power edges, event deltas, 20Hz snapshots, results, rematch, disconnect idle | 8 room tests pass |
-| Transport | `server/game-server.mjs` HTTP+WebSocket on this machine (`npm run server`, port 4000); `tickDt` acceleration for tests | 3 real-socket E2E tests pass |
+| Room logic | `server/room.mjs`: host rules, config normalization, per-peer actor slots, 60Hz authoritative tick, one-shot jump/power edges, event deltas, 20Hz snapshots, results, rematch, disconnect idle | 12 room tests pass |
+| Transport | `server/game-server.mjs` HTTP+WebSocket on this machine (`npm run server`, port 4000); `tickDt` acceleration for tests; multi-room dispatch with per-room broadcast scoping | 6 real-socket E2E tests pass |
 | Browser client | `game/net.mjs`: 60Hz inputs, snapshot interpolation at 120ms delay, event/audio pipeline; `app/page.tsx` lobby, host controls, net HUD/scoreboard/kill feed/results; `ArenaView` keyed by actor id | NetClient E2E test passes; typecheck/build green |
 | Prediction + reconciliation | Local shadow `Match` stepped with sent inputs renders your own actor instantly; every snapshot reconciles it to server truth; remote actors stay interpolated | 3 shadow tests pass; live lead measured ~0.11u on localhost; NetClient E2E asserts predicted own actor |
 | Reconnect + host migration | Session tokens persisted per server URL; dropped seats held for a 20s grace; token reattach restores identity, seat and inputs mid-match (server re-sends `start`); grace expiry or explicit leave hands the seat to a `· BOT` and migrates host duties; reconnected hosts keep host inside grace | 4 room tests + token storage test + drop-and-reconnect E2E pass |
+| Room registry | `server/rooms.mjs`: one default `local` room plus on-demand rooms with collision-checked 4-letter codes; `list` summaries for the browser; tick/grace/drain across all rooms; empty on-demand rooms retired | 6 registry tests pass |
+| Spectator mode | Peers join with `spectate: true`; no actor slot, excluded from `humanCount` and player limit, cannot host/start, inputs ignored, but receive event deltas, snapshots and results; lobby tags spectators | 7 spectator tests + spectator E2E pass |
+| Match history | Completed matches recorded as `{id, roomId, mapId, mode, fragLimit, timeLimit, endedBy, duration, leader, players}`; persisted atomically to a JSON file (default `server/history.json`, capped at 50, path injectable, loaded at boot) | 6 history tests + history E2E pass |
+| Room browser UI | `NetClient.list()/create()`, room code in the lobby header, browse screen with join/WATCH/create and a recent-matches panel reusing scoreboard styling | Typecheck/build green; browser flow compile-tested |
 | Demo | `npm run demo` headless client joins, hosts and plays to results | Observed on this machine |
-| Local verification | test:game 38/38, test:server 15/15, typecheck, production build, rendered response test | Complete |
+| Local verification | test:game 38/38, test:server 37/37, typecheck, production build, rendered response test | Complete |
 
-Remaining for fully polished multiplayer: matchmaking, multiple concurrent rooms/room codes, and accounts/persistence.
+Remaining for fully polished multiplayer: matchmaking, accounts/persistence, and manually playtested spectator camera switching.

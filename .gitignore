@@ -42,3 +42,6 @@ next-env.d.ts
 /work/
 
 *.tsbuildinfo
+
+# server runtime state
+/server/history.json

@@ -59,6 +59,8 @@ OpenClaw: close pulse and knockback. Hermes: temporary speed boost and trail. Op
 - `game/core.test.mjs`: consequential pure-logic checks and deterministic bot match.
 - `game/net.mjs`: browser-side NetClient — WebSocket protocol, 60Hz input send, a shadow `Match` that predicts your own actor between snapshots with per-snapshot reconciliation, 20Hz snapshot buffer with 120ms interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
 - `server/room.mjs`: socket-agnostic multiplayer room; joins, host control, per-peer input with one-shot edges, 60Hz authoritative tick, event deltas and 20Hz snapshot broadcast.
+- `server/rooms.mjs`: room registry — one default `local` room plus rooms created on demand with a collision-checked 4-letter code; drives tick/grace/drain across every room and retires empty on-demand rooms.
+- `server/history.mjs`: per-server match history — every completed match recorded as `{id, roomId, mapId, mode, fragLimit, timeLimit, endedBy, duration, leader, players}` and persisted atomically to a JSON file (default `server/history.json`, capped at 50 entries, path injectable).
 - `server/game-server.mjs`: Node HTTP/WebSocket entry point for this machine.
 - `SPEC.md`: complete intended design, with MVP and POST-MVP labels.
 - `DEVPLAN.md`: implementation and verification status.
@@ -70,11 +72,13 @@ For read-only debugging, `window.tokenArenaSnapshot()` reports state and renderi
 
 ## Verify
 
-`npm run test:game` runs the 38 simulation, expansion, configuration, multi-human, prediction and session tests; `npm run test:server` runs the 15 room and network tests. `npx tsc --noEmit` checks TypeScript. `npm run build` verifies the production bundle. See VERIFICATION.md for browser evidence and gaps; do not equate a passing simulated match with GPU performance verification.
+`npm run test:game` runs the 38 simulation, expansion, configuration, multi-human, prediction and session tests; `npm run test:server` runs the 37 room, registry, spectator, history and network tests. `npx tsc --noEmit` checks TypeScript. `npm run build` verifies the production bundle. See VERIFICATION.md for browser evidence and gaps; do not equate a passing simulated match with GPU performance verification.
 
 ## Scope boundary
 
-Version 0.4 adds playable local-network multiplayer: per-actor human inputs in `Match`, a Node game server (`server/`) authoritative over rooms, a browser client (`game/net.mjs` + lobby UI) with client-side prediction and reconciliation, and session-based reconnection with bot handoff and host migration. Matchmaking and accounts remain future scope. SPEC.md preserves the baseline and documents the authorized expansions.
+Version 0.4 adds playable local-network multiplayer: per-actor human inputs in `Match`, a Node game server (`server/`) authoritative over rooms, a browser client (`game/net.mjs` + lobby UI) with client-side prediction and reconciliation, and session-based reconnection with bot handoff and host migration.
+
+Version 0.5 adds a room browser over concurrent rooms (join or create a 4-letter-coded room from the selection screen), spectator mode (no seat, no inputs, full snapshot/results feed, WATCH from the browser), and per-server match history persisted to `server/history.json` and rendered as a recent-matches panel. Matchmaking and accounts remain future scope. SPEC.md preserves the baseline and documents the authorized expansions.
 
 ## Source ZIPs
 

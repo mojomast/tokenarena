@@ -1,0 +1,77 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {RoomRegistry} from './rooms.mjs';
+import {Room} from './room.mjs';
+function rng(){let n=11;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
+const find=(msgs,type,to)=>msgs.find(m=>m.msg.type===type&&(to===undefined||m.to===to))?.msg;
+test('registry boots with the local room and lists summaries',()=>{
+ const r=new RoomRegistry({random:rng()});
+ assert.ok(r.get('local'),'default room exists');
+ assert.equal(r.get('local'),r.defaultRoom);
+ const list=r.list();
+ assert.equal(list.length,1);
+ assert.equal(list[0].roomId,'local');
+ assert.equal(list[0].name,'Local');
+ assert.equal(list[0].players,0);
+ assert.equal(list[0].started,false);
+ assert.equal(list[0].mapId,'exchange');
+});
+test('create assigns a 4-letter code and the creator becomes host',()=>{
+ const reg=new RoomRegistry({random:rng()});
+ const room=reg.create('Friday Night');
+ assert.match(room.id,/^[A-Z0-9]{4}$/);
+ assert.equal(room.name,'Friday Night');
+ room.join(1,'Alice');
+ const msgs=room.drain();
+ assert.equal(find(msgs,'welcome',1).host,true);
+ assert.equal(find(msgs,'welcome',1).roomId,room.id);
+ assert.equal(reg.get(room.id),room);
+ assert.equal(reg.list().length,2);
+});
+test('code generation avoids collisions',()=>{
+ let value=0;
+ const fakeRandom=()=>{const r=[.01,.01,.01,.01,.05,.05,.05,.05,.5,.5,.5,.5][value++%12];return r;};
+ const reg=new RoomRegistry({random:fakeRandom});
+ reg.add(new Room('AAAA',fakeRandom));
+ const room=reg.create('Collision');
+ assert.notEqual(room.id,'AAAA');
+ assert.match(room.id,/^[A-Z0-9]{4}$/);
+});
+test('unknown rooms return null and join errors at the transport layer',()=>{
+ const reg=new RoomRegistry({random:rng()});
+ assert.equal(reg.get('NOPE'),null);
+ assert.equal(reg.has('NOPE'),false);
+ assert.ok(reg.has('local'));
+});
+test('empty on-demand rooms are removed but local persists',()=>{
+ const reg=new RoomRegistry({random:rng()});
+ const room=reg.create('Temp');
+ room.join(1,'A');
+ assert.equal(reg.removeIfEmpty(room),false,'occupied rooms stay');
+ room.leave(1);
+ assert.equal(reg.removeIfEmpty(room),true,'empty on-demand room is removed');
+ assert.equal(reg.get(room.id),null);
+ assert.equal(reg.removeIfEmpty(reg.defaultRoom),false,'local room never removed');
+});
+test('tick, expire and drain drivers iterate every room',()=>{
+ const reg=new RoomRegistry({random:rng(),graceMs:1000});
+ const a=reg.create('A');
+ const b=reg.create('B');
+ a.join(1,'A1');b.join(2,'B1');
+ a.host(1,{botCount:0,timeLimit:30},'crosswire');
+ b.host(2,{botCount:0,timeLimit:30},'crosswire');
+ a.start(1);b.start(2);
+ reg.drainAll();
+ reg.tickAll(1/6);
+ const msgs=reg.drainAll();
+ assert.ok(msgs.some(m=>m.msg.type==='snapshot'),'snapshots flowed from both rooms');
+ const snapshots=msgs.filter(m=>m.msg.type==='snapshot');
+ assert.equal(snapshots.length,2,'one snapshot per running room');
+ const before={a:a.match.time,b:b.match.time};
+ reg.tickAll(1/6);
+ assert.ok(a.match.time>before.a&&b.match.time>before.b,'both rooms advance');
+ a.disconnect(1);b.disconnect(2);
+ reg.expireAll(Date.now()+5000);
+ assert.equal(a.peers.size,0,'expired seats leave room A');
+ assert.equal(b.peers.size,0,'expired seats leave room B');
+});
