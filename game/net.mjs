@@ -40,11 +40,13 @@ export class NetClient {
   this.shadow = null;
   this.resynced = false;
   this.lastError = '';
+  this.chatLog = [];
   this.onStart = null;
   this.onResults = null;
   this.onLobby = null;
   this.onRooms = null;
   this.onHistory = null;
+  this.onChat = null;
   this.onError = null;
   this.onClose = null;
  }
@@ -65,7 +67,7 @@ export class NetClient {
  close() { this.closedByUser = true; try { this.ws?.close(); } catch {} this.ws = null; this.connected = false; }
  send(msg) { if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg)); }
  join(name, character, harness, opts = {}) { this.send({ type: 'join', name, character, harness, token: this.token ?? '', roomId: opts.roomId || this.roomId || 'local', spectate: opts.spectate === true }); }
- create(name, character, harness, playerName = '') { this.send({ type: 'create', name, playerName, character, harness, token: this.token ?? '', roomId: this.roomId ?? '' }); }
+  create(name, character, harness, playerName = '') { this.send({ type: 'create', name, playerName, character, harness, token: this.token ?? '', roomId: '' }); }
  list() { this.send({ type: 'list' }); }
  history() { this.send({ type: 'history' }); }
  host(config, mapId) { this.send({ type: 'host', config, mapId }); }
@@ -76,7 +78,8 @@ export class NetClient {
   this.roomId = null;
   if (this.storage) { this.storage.removeItem(this.storageKey); this.storage.removeItem(this.roomKey); }
  }
- input(input) { this.send({ type: 'input', input }); }
+  input(input) { this.send({ type: 'input', input }); }
+  chat(text) { this.send({ type: 'chat', text }); }
  onMessage(data) {
   let msg;
   try { msg = JSON.parse(data); } catch { return; }
@@ -115,7 +118,12 @@ export class NetClient {
     if (this.events.length > 300) this.events.splice(0, this.events.length - 300);
     break;
    case 'snapshot': this.push(msg); break;
-   case 'results': this.roundOver = true; this.state = msg.state; this.onResults?.(msg); break;
+    case 'results': this.roundOver = true; this.state = msg.state; this.onResults?.(msg); break;
+    case 'chat':
+     this.chatLog.push(msg);
+     if (this.chatLog.length > 100) this.chatLog.splice(0, this.chatLog.length - 100);
+     this.onChat?.(msg);
+     break;
    case 'error': this.lastError = msg.message; this.onError?.(msg); break;
   }
  }

@@ -36,6 +36,7 @@ export class RoomRegistry {
  }
  expireAll(now = Date.now()) {
   for (const room of this.rooms.values()) room.expireGrace(now);
+  for (const room of [...this.rooms.values()]) this.removeIfEmpty(room);
  }
  drainAll() {
   const messages = [];

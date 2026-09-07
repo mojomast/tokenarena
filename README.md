@@ -72,13 +72,15 @@ For read-only debugging, `window.tokenArenaSnapshot()` reports state and renderi
 
 ## Verify
 
-`npm run test:game` runs the 38 simulation, expansion, configuration, multi-human, prediction and session tests; `npm run test:server` runs the 37 room, registry, spectator, history and network tests. `npx tsc --noEmit` checks TypeScript. `npm run build` verifies the production bundle. See VERIFICATION.md for browser evidence and gaps; do not equate a passing simulated match with GPU performance verification.
+`npm run test:game` runs the 38 simulation, expansion, configuration, multi-human, prediction and session tests; `npm run test:server` runs the 47 room, registry, spectator, history, chat and network tests. `npx tsc --noEmit` checks TypeScript. `npm run build` verifies the production bundle. See VERIFICATION.md for browser evidence and gaps; do not equate a passing simulated match with GPU performance verification.
 
 ## Scope boundary
 
 Version 0.4 adds playable local-network multiplayer: per-actor human inputs in `Match`, a Node game server (`server/`) authoritative over rooms, a browser client (`game/net.mjs` + lobby UI) with client-side prediction and reconciliation, and session-based reconnection with bot handoff and host migration.
 
 Version 0.5 adds a room browser over concurrent rooms (join or create a 4-letter-coded room from the selection screen), spectator mode (no seat, no inputs, full snapshot/results feed, WATCH from the browser), and per-server match history persisted to `server/history.json` and rendered as a recent-matches panel. Matchmaking and accounts remain future scope. SPEC.md preserves the baseline and documents the authorized expansions.
+
+Version 0.6 fixes two multiplayer bugs and adds room chat. `create` always mints a fresh 4-letter room — it can no longer silently route into a previously persisted room — and abandoned on-demand rooms are retired after their grace period so the browser list stays honest. `{type:'chat', text}` broadcasts room-scoped messages (control chars stripped, trimmed, capped at 200 characters, rate-limited to one per 300ms per peer) to players and spectators alike, rendered as a lobby panel and a bottom-left in-game overlay (`T`/`Enter` opens the input, `Enter` sends, `Escape` closes; solo play is untouched).
 
 ## Source ZIPs
 

@@ -29,8 +29,6 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   peerRoom.set(peerId, room);
  }
  function createRoom(peerId, msg) {
-  const known = typeof msg.roomId === 'string' && msg.roomId ? registry.get(msg.roomId) : null;
-  if (known) { joinPeer(peerId, msg); return; }
   const room = registry.create(msg.name);
   room.join(peerId, msg.playerName ?? msg.name, msg.character, msg.harness, msg.token, false);
   peerRoom.set(peerId, room);
@@ -43,7 +41,13 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
    case 'history': sendTo(peerId, { type: 'history', matches: history.all() }); break;
    case 'host': peerRoom.get(peerId)?.host(peerId, msg.config, msg.mapId); break;
    case 'start': peerRoom.get(peerId)?.start(peerId); break;
-   case 'input': peerRoom.get(peerId)?.input(peerId, msg.input ?? msg); break;
+    case 'input': peerRoom.get(peerId)?.input(peerId, msg.input ?? msg); break;
+    case 'chat': {
+     const room = peerRoom.get(peerId);
+     if (room) room.chat(peerId, msg.text);
+     else sendTo(peerId, { type: 'error', message: 'not in a room' });
+     break;
+    }
    case 'leave': {
     const room = peerRoom.get(peerId);
     if (room) { room.leave(peerId); peerRoom.delete(peerId); registry.removeIfEmpty(room); }

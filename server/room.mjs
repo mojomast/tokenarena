@@ -129,6 +129,15 @@ export class Room {
   if (i.power === true && !peer.lastPower) peer.edgePower = true;
   peer.lastPower = i.power === true;
  }
+ chat(peerId, text, now = Date.now()) {
+  const peer = this.peers.get(peerId);
+  if (!peer) return;
+  const clean = String(text ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 200);
+  if (!clean) return;
+  if (peer.lastChatAt && now - peer.lastChatAt < 300) return;
+  peer.lastChatAt = now;
+  this.broadcast({ type: 'chat', peerId, name: peer.name, text: clean, time: now });
+ }
  leave(peerId) {
   const peer = this.peers.get(peerId);
   if (!peer) return;

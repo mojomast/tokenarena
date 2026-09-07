@@ -53,6 +53,18 @@ test('empty on-demand rooms are removed but local persists',()=>{
  assert.equal(reg.get(room.id),null);
  assert.equal(reg.removeIfEmpty(reg.defaultRoom),false,'local room never removed');
 });
+test('expireAll retires abandoned on-demand rooms but never the local room',()=>{
+ const reg=new RoomRegistry({random:rng(),graceMs:1000});
+ const room=reg.create('Zombie');
+ room.join(1,'A');
+ assert.equal(reg.list().length,2);
+ room.disconnect(1);
+ reg.expireAll(Date.now()+5000);
+ assert.equal(room.peers.size,0,'expired seat left the room');
+ assert.equal(reg.get(room.id),null,'abandoned on-demand room retired after grace');
+ assert.ok(reg.has('local'),'local room never retired');
+ assert.equal(reg.list().length,1);
+});
 test('tick, expire and drain drivers iterate every room',()=>{
  const reg=new RoomRegistry({random:rng(),graceMs:1000});
  const a=reg.create('A');

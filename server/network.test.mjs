@@ -332,3 +332,150 @@ test('history query returns the completed match entry', async () => {
   a?.close(); b?.close(); close();
  }
 });
+
+test('create always mints a fresh room and a fresh socket sees every room', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a, b;
+ try {
+  a = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  const welcome = await until(a, 'welcome');
+  assert.equal(welcome.roomId, 'local');
+  send(a, { type: 'create', name: 'Fresh One', playerName: 'Alice', character: 'chatgpt', harness: 'openclaw', roomId: 'local' });
+  const created1 = await until(a, 'welcome');
+  assert.match(created1.roomId, /^[A-Z0-9]{4}$/);
+  assert.notEqual(created1.roomId, 'local', 'create must not route to the stored room');
+  send(a, { type: 'create', name: 'Fresh Two', playerName: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  const created2 = await until(a, 'welcome');
+  assert.notEqual(created2.roomId, created1.roomId, 'every create mints a new room');
+  send(a, { type: 'list' });
+  const rooms = await until(a, 'rooms');
+  assert.equal(rooms.rooms.length, 3, 'local plus both created rooms listed');
+  assert.deepEqual(rooms.rooms.map(r => r.roomId).sort(), ['local', created1.roomId, created2.roomId].sort());
+  b = await connect(url);
+  send(b, { type: 'list' });
+  const roomsB = await until(b, 'rooms');
+  assert.equal(roomsB.rooms.length, 3, 'a fresh socket sees the created rooms');
+ } finally {
+  a?.close(); b?.close(); close();
+ }
+});
+
+test('a reconnecting NetClient reattaches to its created room via stored token and chats', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6, graceMs: 60000 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ const store = new Map();
+ const storage = { getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, v), removeItem: k => store.delete(k) };
+ const c = new NetClient(url, { storage });
+ let c2 = null;
+ try {
+  await c.connect();
+  const created = new Promise(resolve => { c.onLobby = () => resolve(); });
+  c.create('Fresh', 'chatgpt', 'openclaw', 'Alice');
+  await created;
+  const roomId = c.roomId;
+  assert.match(roomId, /^[A-Z0-9]{4}$/);
+  assert.ok(c.token, 'session token issued');
+  c.ws.close();
+  await new Promise(resolve => setTimeout(resolve, 200));
+  c2 = new NetClient(url, { storage });
+  await c2.connect();
+  const rejoin = new Promise(resolve => { c2.onLobby = m => resolve(m); });
+  c2.join('ignored', 'chatgpt', 'openclaw');
+  const lobby = await rejoin;
+  assert.equal(lobby.roomId, roomId, 'reattached to the created room');
+  assert.equal(lobby.players.length, 1);
+  assert.equal(lobby.players[0].name, 'Alice');
+  const chat = new Promise(resolve => { c2.onChat = m => resolve(m); });
+  c2.chat('hello again');
+  const msg = await chat;
+  assert.equal(msg.name, 'Alice');
+  assert.equal(msg.text, 'hello again');
+  assert.equal(c2.chatLog.length, 1, 'chat appended to the bounded log');
+ } finally {
+  c.close(); c2?.close(); close();
+ }
+});
+
+test('abruptly abandoned rooms are retired after grace and local persists', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6, graceMs: 1000 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a, b;
+ try {
+  a = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  await until(a, 'welcome');
+  b = await connect(url);
+  send(b, { type: 'create', name: 'Doomed', playerName: 'Bob', character: 'gemini', harness: 'cline' });
+  const welcomeB = await until(b, 'welcome');
+  b.close();
+  b = null;
+  await new Promise(resolve => setTimeout(resolve, 1600));
+  send(a, { type: 'list' });
+  const rooms = await until(a, 'rooms');
+  assert.ok(!rooms.rooms.some(r => r.roomId === welcomeB.roomId), 'abandoned room retired after grace');
+  assert.ok(rooms.rooms.some(r => r.roomId === 'local'), 'local room persists');
+  assert.equal(rooms.rooms.length, 1);
+ } finally {
+  a?.close(); b?.close(); close();
+ }
+});
+
+test('chat is room-scoped, reaches every peer and spectator, and errors outside a room', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a, b, c, d, e, s;
+ try {
+  a = await connect(url); b = await connect(url); c = await connect(url); d = await connect(url); e = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  send(b, { type: 'join', name: 'Bob', character: 'claude', harness: 'hermes' });
+  await until(a, 'welcome'); await until(b, 'welcome');
+  send(c, { type: 'create', name: 'Rival', playerName: 'Carla', character: 'gemini', harness: 'cline' });
+  const welcomeC = await until(c, 'welcome');
+  send(d, { type: 'join', name: 'Dennis', character: 'gemini', harness: 'cline', roomId: welcomeC.roomId });
+  await until(d, 'welcome');
+  const getChat = ws => collect(ws, 'chat', 1, 3000);
+  send(a, { type: 'chat', text: 'hello' });
+  const [msgA] = await getChat(a);
+  const [msgB] = await getChat(b);
+  assert.equal(msgA.text, 'hello');
+  assert.equal(msgA.name, 'Alice');
+  assert.equal(msgB.name, 'Alice', 'chat reaches the other peer in the room');
+  await new Promise(resolve => setTimeout(resolve, 250));
+  const qC = queues.get(c) ?? { items: [] };
+  const qD = queues.get(d) ?? { items: [] };
+  assert.ok(!qC.items.some(m => m.type === 'chat'), 'other room receives nothing');
+  assert.ok(!qD.items.some(m => m.type === 'chat'), 'other room receives nothing');
+  send(c, { type: 'chat', text: 'rival' });
+  const [msgC] = await getChat(c);
+  const [msgD] = await getChat(d);
+  assert.equal(msgC.name, 'Carla');
+  assert.equal(msgD.text, 'rival', 'created room gets its own chat');
+  send(e, { type: 'chat', text: 'anyone?' });
+  const err = await until(e, 'error', 3000);
+  assert.equal(err.message, 'not in a room');
+  s = await connect(url);
+  send(s, { type: 'join', name: 'Snoop', character: 'gemini', harness: 'cline', spectate: true });
+  await until(s, 'welcome');
+  send(s, { type: 'chat', text: 'watching' });
+  const [msgS] = await getChat(s);
+  assert.equal(msgS.name, 'Snoop', 'spectator chat is delivered');
+  const [chatA2] = await getChat(a);
+  assert.equal(chatA2.text, 'watching', 'spectator chat reaches the first player');
+  const [chatB2] = await getChat(b);
+  assert.equal(chatB2.text, 'watching', 'spectator chat reaches the second player');
+  send(a, { type: 'host', config: FAST_MATCH, mapId: 'crosswire' });
+  send(a, { type: 'start' });
+  await until(b, 'start');
+  send(b, { type: 'chat', text: 'live' });
+  const [live] = await getChat(a);
+  assert.equal(live.text, 'live', 'chat flows during a live match');
+ } finally {
+  a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); s?.close(); close();
+ }
+});
