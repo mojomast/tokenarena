@@ -1,0 +1,15 @@
+[Unit]
+Description=Token Arena game server (WebSocket+HTTP :4000)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/mojo/projects/tokenarena
+ExecStart=/usr/bin/env node server/game-server.mjs
+Restart=on-failure
+RestartSec=2
+Environment=PORT=4000
+Environment=HOME=/home/mojo
+
+[Install]
+WantedBy=default.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Token Arena web app (vinext production server :3000)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/mojo/projects/tokenarena
+ExecStart=/home/mojo/.local/bin/node /home/mojo/projects/tokenarena/node_modules/vinext/dist/cli.js start
+Restart=on-failure
+RestartSec=2
+Environment=PORT=3000
+Environment=WRANGLER_LOG_PATH=.wrangler/wrangler.log
+
+[Install]
+WantedBy=default.target
