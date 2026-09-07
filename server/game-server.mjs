@@ -21,16 +21,24 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   const ws = sockets.get(peerId);
   if (ws && ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
  }
+ function releaseSeat(peerId) {
+  const old = peerRoom.get(peerId);
+  if (old) { old.leave(peerId); registry.removeIfEmpty(old); }
+ }
  function joinPeer(peerId, msg) {
   const roomId = typeof msg.roomId === 'string' && msg.roomId ? msg.roomId : 'local';
   const room = registry.get(roomId);
   if (!room) { sendTo(peerId, { type: 'error', message: `room not found: ${roomId}` }); return; }
   room.join(peerId, msg.name, msg.character, msg.harness, msg.token, msg.spectate === true);
+  if (!room.peers.has(peerId)) return;
+  if (peerRoom.get(peerId) !== room) releaseSeat(peerId);
   peerRoom.set(peerId, room);
  }
  function createRoom(peerId, msg) {
   const room = registry.create(msg.name);
   room.join(peerId, msg.playerName ?? msg.name, msg.character, msg.harness, msg.token, false);
+  if (!room.peers.has(peerId)) return;
+  releaseSeat(peerId);
   peerRoom.set(peerId, room);
  }
  function dispatch(peerId, msg) {

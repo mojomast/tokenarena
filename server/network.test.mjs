@@ -352,12 +352,13 @@ test('create always mints a fresh room and a fresh socket sees every room', asyn
   assert.notEqual(created2.roomId, created1.roomId, 'every create mints a new room');
   send(a, { type: 'list' });
   const rooms = await until(a, 'rooms');
-  assert.equal(rooms.rooms.length, 3, 'local plus both created rooms listed');
-  assert.deepEqual(rooms.rooms.map(r => r.roomId).sort(), ['local', created1.roomId, created2.roomId].sort());
+  assert.equal(rooms.rooms.length, 2, 'local plus the latest created room');
+  assert.deepEqual(rooms.rooms.map(r => r.roomId).sort(), ['local', created2.roomId].sort());
+  assert.ok(!rooms.rooms.some(r => r.roomId === created1.roomId), 'the vacated room was retired when the creator moved on');
   b = await connect(url);
   send(b, { type: 'list' });
   const roomsB = await until(b, 'rooms');
-  assert.equal(roomsB.rooms.length, 3, 'a fresh socket sees the created rooms');
+  assert.equal(roomsB.rooms.length, 2, 'a fresh socket sees the created room');
  } finally {
   a?.close(); b?.close(); close();
  }
@@ -422,6 +423,36 @@ test('abruptly abandoned rooms are retired after grace and local persists', asyn
   assert.equal(rooms.rooms.length, 1);
  } finally {
   a?.close(); b?.close(); close();
+ }
+});
+
+test('create releases the previous room seat so no zombie peers linger', async () => {
+ const { server, close } = createGameServer({ tickDt: 1 / 6, graceMs: 1000 });
+ await new Promise(resolve => server.listen(0, resolve));
+ const url = `ws://127.0.0.1:${server.address().port}`;
+ let a;
+ try {
+  a = await connect(url);
+  send(a, { type: 'join', name: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  const welcome = await until(a, 'welcome');
+  assert.equal(welcome.roomId, 'local');
+  send(a, { type: 'create', name: 'Moved', playerName: 'Alice', character: 'chatgpt', harness: 'openclaw' });
+  const created = await until(a, 'welcome');
+  send(a, { type: 'list' });
+  const rooms = await until(a, 'rooms');
+  assert.equal(rooms.rooms.find(r => r.roomId === 'local').players, 0, 'create vacated the old room seat');
+  assert.equal(rooms.rooms.find(r => r.roomId === created.roomId).players, 1);
+  a.close();
+  a = null;
+  await new Promise(resolve => setTimeout(resolve, 1600));
+  const b = await connect(url);
+  send(b, { type: 'list' });
+  const rooms2 = await until(b, 'rooms');
+  assert.ok(!rooms2.rooms.some(r => r.roomId === created.roomId), 'created room retired after the drop');
+  assert.equal(rooms2.rooms.find(r => r.roomId === 'local').players, 0, 'local never accumulated a zombie peer');
+  b.close();
+ } finally {
+  a?.close(); close();
  }
 });
 
