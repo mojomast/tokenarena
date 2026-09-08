@@ -17,20 +17,39 @@ export class MatchHistory {
    if (Array.isArray(raw)) this.matches = raw.filter(m => m && typeof m === 'object').slice(0, this.max);
   } catch { this.matches = []; }
  }
- record({ roomId = 'local', mapId = 'exchange', config = {}, time = 0, actors = [] } = {}) {
-  const fragLimit = Number.isFinite(config.fragLimit) ? config.fragLimit : 0;
-  const entry = {
+ record({ roomId = 'local', mapId = 'exchange', config = {}, time = 0, actors = [], teamScores = null, winner = null, endingReason = null, result = null } = {}) {
+   const fragLimit = Number.isFinite(config.fragLimit) ? config.fragLimit : 0;
+   const mode = config.mode ?? 'deathmatch';
+   const teamMode = ['ctf', 'teamdeathmatch', 'koth', 'domination'].includes(mode);
+   const scores = teamScores ?? result?.teamScores;
+   let normalizedScores = scores && typeof scores === 'object' ? { 0: Number(scores[0]), 1: Number(scores[1]) } : null;
+   if (normalizedScores && !Number.isFinite(normalizedScores[0]) && !Number.isFinite(normalizedScores[1])) normalizedScores = null;
+   if (teamMode && !normalizedScores && mode === 'teamdeathmatch') {
+    normalizedScores = { 0: 0, 1: 0 };
+    for (const actor of actors) if (actor.team === 0 || actor.team === 1) normalizedScores[actor.team] += Number(actor.frags) || 0;
+   }
+   const scoreWinner = normalizedScores && normalizedScores[0] !== normalizedScores[1]
+    ? (normalizedScores[0] > normalizedScores[1] ? 0 : 1) : null;
+   const scoreReached = normalizedScores && fragLimit > 0 && [0, 1].some(team => normalizedScores[team] >= fragLimit);
+   const reason = endingReason ?? result?.endingReason ?? (teamMode
+    ? (scoreReached ? (mode === 'ctf' ? 'capture' : mode === 'teamdeathmatch' ? 'frag' : 'objective') : 'time')
+    : (fragLimit > 0 && actors.some(a => a.frags >= fragLimit) ? 'frag' : 'time'));
+   const entry = {
    id: randomUUID(),
    roomId,
    mapId,
-   mode: config.mode ?? 'deathmatch',
+    mode,
    fragLimit,
    timeLimit: Number.isFinite(config.timeLimit) ? config.timeLimit : 0,
-   endedBy: fragLimit > 0 && actors.some(a => a.frags >= fragLimit) ? 'frag' : 'time',
+    endedBy: reason,
    duration: Math.round(time * 10) / 10,
    leader: actors.filter(a => a.frags === Math.max(0, ...actors.map(a => a.frags))).map(a => a.name).join(' & ') || 'Arena',
    players: actors.map(a => ({ name: a.name, character: a.character, harness: a.harness, frags: a.frags, deaths: a.deaths }))
-  };
+   };
+   if (teamMode && normalizedScores) {
+    entry.teamScores = normalizedScores;
+    entry.winner = winner ?? result?.winner ?? scoreWinner;
+   }
   this.matches.unshift(entry);
   this.matches = this.matches.slice(0, this.max);
   this.persist();

@@ -96,7 +96,21 @@ test('traversal and flags tolerate metadata variants and clean shared resources'
  view.addTraversal(scene,arena,new T.MeshBasicMaterial({color:arena.color}));assert.equal(scene.children.filter(x=>x.userData.traversal).length,2);
  view.updateFlags({time:1,flags:[{team:'alpha',x:1,y:0,z:2,state:'dropped'},{team:'beta',x:-1,y:0,z:2,carrierId:9}]},arena);assert.equal(view.flagModels.size,2);assert.equal(view.flagModels.get('alpha').visible,true);assert.equal(view.flagModels.get('beta').visible,false);
  view.updateFlags({flags:undefined},arena);assert.ok([...view.flagModels.values()].every(flag=>!flag.visible));view.disposeObject(scene);for(const resource of view.renderResources)resource.dispose();
- });
+  });
+
+test('KOTH and Domination objective markers show state and clean stale zones',()=>{
+  const view=Object.create(ArenaView.prototype),scene=new T.Scene(),world=new T.Group();scene.add(world);
+  view.scene=scene;view.worldGroup=world;view.objectiveModels=new Map();view.motionQuery={matches:true};
+  const arena={id:'crosswire',color:'#55ddcc'};
+  view.updateObjectives({time:2,objectives:{kind:'koth',zones:[{id:'hill',x:2,y:1,z:-3,radius:4,owner:0,captureTeam:0,progress:40}]}},arena);
+  const hill=view.objectiveModels.get('hill');
+  assert.ok(hill&&hill.userData.objective);assert.equal(hill.position.y,1);assert.equal(hill.scale.y,1);
+  assert.equal(hill.userData.progress.visible,true);assert.equal(hill.userData.baseMat.color.getHexString(),'55ddcc');
+  view.updateObjectives({time:2,objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:null,progress:0,contested:true},{id:'bravo',x:5,z:0,owner:1,progress:75}]}},arena);
+  assert.equal(view.objectiveModels.size,2);assert.equal(view.objectiveModels.get('alpha').userData.baseMat.color.getHexString(),'ffd166');
+  assert.equal(view.objectiveModels.get('bravo').userData.baseMat.color.getHexString(),'ff789d');
+  view.updateObjectives({objectives:{kind:'ctf',zones:[]}},arena);assert.equal(view.objectiveModels.size,0);assert.equal(world.children.length,0);
+});
 
 test('unknown weapons produce typed models and effects do not index past weapon data',t=>{
  const model=weaponModel(7);assert.equal(model.userData.type,7);assert.ok(model.userData.flash);

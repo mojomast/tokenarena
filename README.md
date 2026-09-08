@@ -51,6 +51,14 @@ Not yet included: accounts/matchmaking.
   walkable slopes, cliff walls, central cover, and two neutral Puma Warthog-style
   vehicles. Each Puma has paired side-mounted chainguns; press **E** near one to
   enter or exit. Flag carriers cannot enter a Puma.
+- **Expansion maps:** Sunscar Canyon, Ironfall Megastructure, and Longreach Plateau
+  add large authored CTF routes with high shelves, broken industrial decks, wide
+  causeways, launch links, and control-point-ready layouts.
+- **King of the Hill:** capture the central hill, then hold it to earn one point per
+  second. Contesting freezes the score; first team to the target wins.
+- **Domination:** capture three control zones, neutralize enemy-held zones, and earn
+  one point per second for every zone your team owns. Objective state is authoritative
+  and visible in the HUD, world markers, snapshots, and match history.
 - Easy and Normal bots now react and turn more slowly, fire less frequently, and
   aim less accurately. Breaking line of sight gives a fresh reaction delay.
   Existing saved difficulty choices are retained; select Casual Skirmish for the
@@ -104,11 +112,12 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 - `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
 - `game/harness-profiles.mjs`: bounded harness passives, ability parameters, weapon affinities and bot hints.
 - `game/operator-profiles.mjs`: operator combat identities and bot weapon preferences.
-  - `game/maps.mjs`: arena templates, CTF bases, polygon terrain, collision geometry, traversal routes, vehicles, spawns and supplies.
+  - `game/maps.mjs`: canonical arena registry, CTF bases, polygon terrain, collision geometry, traversal routes, vehicles, spawns, supplies and expansion maps.
+  - `game/expansion-maps.mjs`: three large outdoor/industrial arenas with authored routes and control-point coordinates.
   - `game/terrain.mjs`: deterministic triangle support, ray hits, cliff wall segments and terrain bounds.
   - `game/vehicles.mjs`: bounded Puma arcade handling, paired-chaingun heat, enter/exit and respawn primitives.
-  - `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; terrain, Puma vehicles, armor, powers, pickups, scoring, respawn and bot utility/navigation.
-  - `game/view.mjs`: Three.js procedural arena, polygon terrain, Puma models, first-person weapons, effects and synthesized Web Audio.
+  - `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; terrain, Puma vehicles, armor, powers, pickups, CTF/KOTH/Domination scoring, respawn and bot utility/navigation.
+  - `game/view.mjs`: Three.js procedural arena, polygon terrain, Puma models, control-zone markers, first-person weapons, effects and synthesized Web Audio.
 - `game/software.mjs`: CPU renderer of the same scene for browsers where WebGL2 is unavailable. This fallback is approximate and slower; hardware WebGL2 is the preferred path.
 - `game/core.test.mjs`: consequential pure-logic checks and deterministic bot match.
 - `game/net.mjs`: browser-side NetClient — WebSocket protocol, sequenced 60Hz inputs, a shadow `Match` that predicts your own actor and replays unacknowledged inputs after authoritative snapshots, 20Hz server-time interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
@@ -146,6 +155,8 @@ Version 1.0 tunes launcher traversal from authored source-to-target ballistic li
 
 Version 1.1 adds Blood Gulch: immutable triangulated terrain supports interpolated valley floors, hills, walkable slopes and analytic cliff ray hits while preserving legacy box maps. Two neutral Puma vehicles spawn near the opposing bases; one driver can use forward/reverse arcade handling and paired side-mounted chainguns with authoritative heat, damage, destruction and respawn. Puma state is included in snapshots and local prediction, and `E` is a one-shot enter/exit input in multiplayer.
 
+Version 1.2 adds three large expansion maps, King of the Hill, Domination, authoritative control-point snapshots/events, world-space objective markers, objective-aware bots, objective-aware history, and a tactical HUD command layer that calls out the current team, score target, zone/flag state, route, and next action.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.
@@ -159,12 +170,14 @@ Use **Mode & bot settings** on the loadout screen to jump to match setup. Settin
 |---|---|
 | Deathmatch | Start with your chosen weapon; collect the rest. |
 | Capture the Flag | Steal the enemy flag and return it while your flag is home; three captures wins by default. |
+| King of the Hill | Capture the central hill, then hold it for one point per second; first to the hill-time target wins. |
+| Domination | Capture and hold three zones; each owned zone scores one point per second. |
 | Team Deathmatch | Shared team frag score; friendly fire is disabled. |
 | Instagib | Unlimited Rail Lance only; one unprotected hit kills. No supplies or powers. |
 | Rocket Arena | Unlimited rockets only; health and armor pickups remain. |
 | Full Arsenal | All eight weapons unlocked with unlimited ammo on every spawn. |
 
-Set 0–8 bots (zero is solo practice), Easy/Normal/Hard/Nightmare difficulty, 1–50 capture/team-frag limit, 1–15 minute timer, and 1–5 second respawns. Difficulty changes reaction delay, aim error, turning speed, decision interval, and firing cadence. Bots use their operator stats and the same match modifiers as players; difficulty does not grant extra health.
+Set 0–8 bots (zero is solo practice), Easy/Normal/Hard/Nightmare difficulty, capture/team-frag limits or 30–300 second objective targets, 1–15 minute timer, and 1–5 second respawns. Difficulty changes reaction delay, aim error, turning speed, decision interval, and firing cadence. Bots use their operator stats and the same match modifiers as players; difficulty does not grant extra health. During play, the Live Command panel identifies the current objective and recommended next move.
 
 Modifiers: 0.75–1.5× movement speed, normal/light/moon gravity, 0.5–2× damage, unlimited ammo for unlocked weapons, half ability cooldowns, and 25% life steal based on health damage actually dealt. Self-damage never heals. Instagib overrides damage and disables powers. Weapon-locked modes override the starting weapon and ammo controls.
 

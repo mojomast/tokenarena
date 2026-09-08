@@ -339,3 +339,34 @@
 @media (max-height: 550px) and (min-width: 1001px) {
   .mode-selection .action-summary { display: none; }
 }
+
+/* Live command layer keeps the current order distinct from the game telemetry. */
+.match-top { z-index: 2; }
+.match-context { display: grid; gap: 4px; align-content: start; }
+.match-context .phase-label { color: #8ba99d; font: 11px monospace; letter-spacing: 1.4px; margin-top: 5px; }
+.match-context .team-label { color: #ffc489; font: 11px monospace; letter-spacing: 1.2px; }
+.match-clock strong { display: block; color: #edfff7; font: inherit; font-weight: 700; letter-spacing: .04em; }
+.command-panel { position: absolute; z-index: 1; top: 104px; left: 50%; width: min(680px, calc(100% - 32px)); transform: translateX(-50%); padding: 14px 18px 15px; border: 1px solid #83f4d566; border-left: 3px solid #83f4d5; background: linear-gradient(110deg, #081a1bee, #10221fd9 65%, #101a1ddd); box-shadow: 0 12px 36px #0008; text-shadow: 0 1px 3px #000; }
+.command-kicker { display: flex; align-items: center; gap: 8px; color: #9fc4b5; font: 10px monospace; letter-spacing: 1.8px; }
+.command-kicker .accent-line { width: 12px; }
+.command-kicker b { margin-left: auto; color: #ffc489; font-weight: 400; }
+.command-copy { margin-top: 7px; }
+.command-copy h2 { margin: 0; color: #e4fff2; font-size: clamp(18px, 2vw, 25px); line-height: 1.1; letter-spacing: .04em; }
+.command-copy p { margin: 5px 0 0; color: #b5d2c5; font: 13px/1.45 Arial, sans-serif; }
+.command-meta { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-top: 13px; padding-top: 10px; border-top: 1px solid #ffffff1c; }
+.command-meta span { display: grid; gap: 4px; min-width: 0; }
+.command-meta small { color: #78988c; font: 10px monospace; letter-spacing: 1px; }
+.command-meta strong { overflow: hidden; color: #d1ede0; font: 11px monospace; line-height: 1.35; text-overflow: ellipsis; white-space: nowrap; }
+.command-alert { display: block; margin-top: 10px; color: #ffe0a8; font: 11px monospace; letter-spacing: .7px; }
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.command-panel + .ctf-objective { top: 254px; }
+.ctf-objective { z-index: 1; }
+@media (max-width: 600px) {
+  .command-panel { top: 92px; width: calc(100% - 24px); padding: 11px 12px 12px; }
+  .command-copy h2 { font-size: 17px; }
+  .command-copy p { font-size: 12px; }
+  .command-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }
+  .command-meta span:last-child { grid-column: 1 / -1; }
+  .command-meta strong { white-space: normal; }
+  .command-panel + .ctf-objective { top: 242px; max-width: calc(100% - 24px); }
+}

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {MAPS} from './maps.mjs';
+import {getMap,MAPS} from './maps.mjs';
+import {EXPANSION_MAPS} from './expansion-maps.mjs';
+import {nextArenaSelection} from './replay.mjs';
 
 const launchpad=MAPS.find(map=>map.id==='launchpad');
 const citadel=MAPS.find(map=>map.id==='citadel');
@@ -12,6 +14,16 @@ test('map IDs are unique and new maps are immutable',()=>{
   assert.ok(Object.isFrozen(MAPS));
   assert.ok(Object.isFrozen(launchpad.blocks));
   assert.ok(Object.isFrozen(citadel.pickups));
+});
+
+test('expansion maps are canonical, deeply frozen and included in replay rotation',()=>{
+  assert.deepEqual(EXPANSION_MAPS.map(map=>map.id),['sunscar-canyon','ironfall-megastructure','longreach-plateau']);
+  for(const map of EXPANSION_MAPS){
+    const index=MAPS.indexOf(map);
+    assert.equal(getMap(map.id),map);
+    assert.ok(Object.isFrozen(map)&&Object.isFrozen(map.blocks)&&Object.isFrozen(map.traversal));
+    assert.equal(nextArenaSelection(map.id,()=>0).mapId,MAPS[(index+1)%MAPS.length].id);
+  }
 });
 
 test('bounds are valid and Launchpad is significantly larger',()=>{

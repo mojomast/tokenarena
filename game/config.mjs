@@ -1,6 +1,8 @@
 export const GAME_MODES = [
  {id:'deathmatch',name:'Deathmatch',description:'Start with a Pulse Rifle. Collect weapons and supplies.',rules:{team:false,score:'frags',fragLimit:15}},
-  {id:'ctf',name:'Capture the Flag',description:'Steal the enemy flag and bring it home while your flag is safe.',rules:{team:true,score:'captures',fragLimit:3}},
+   {id:'ctf',name:'Capture the Flag',description:'Steal the enemy flag and bring it home while your flag is safe.',rules:{team:true,score:'captures',fragLimit:3}},
+  {id:'koth',name:'King of the Hill',description:'Hold the central hill to build control, then score while your team owns it.',rules:{team:true,score:'hillTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'koth',captureSeconds:5}}},
+  {id:'domination',name:'Domination',description:'Capture three control zones and score for every second your team holds them.',rules:{team:true,score:'zoneTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'domination',captureSeconds:5}}},
  {id:'teamdeathmatch',name:'Team Deathmatch',description:'Fight as a team until your side reaches the frag limit.',rules:{team:true,score:'teamFrags',fragLimit:30}},
  {id:'instagib',name:'Instagib',description:'Rail only, unlimited ammo. One unprotected hit eliminates. No supplies or harness powers.'},
  {id:'rockets',name:'Rocket Arena',description:'Unlimited rockets for everyone. Health and armor remain available.'},
@@ -16,12 +18,13 @@ export const DEFAULT_CONFIG = Object.freeze({mode:'deathmatch',botCount:2,diffic
 export const DEFAULT_DISPLAY = Object.freeze({fov:82,crosshair:'cross',color:'#c2ffea',size:1,showFps:false,showWeapon:true,resolutionScale:1});
 const number=(v,fallback,min,max)=>typeof v==='number'&&Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 const choice=(v,values,fallback)=>values.includes(v)?v:fallback;
+export const modeRule=mode=>GAME_MODES.find(m=>m.id===mode)?.rules||GAME_MODES[0].rules;
+export const teamMode=modeOrConfig=>Boolean(modeRule(typeof modeOrConfig==='string'?modeOrConfig:modeOrConfig?.mode).team);
 export function normalizeConfig(value={}){
  const c=value&&typeof value==='object'?value:{};
   const mode=choice(c.mode,GAME_MODES.map(m=>m.id),'deathmatch');
-  const modeRule=GAME_MODES.find(m=>m.id===mode).rules;
-   const minGoal=mode==='ctf'?1:5;
-   return {mode,botCount:Math.round(number(c.botCount,DEFAULT_CONFIG.botCount,0,8)),difficulty:choice(c.difficulty,DIFFICULTIES.map(d=>d.id),DEFAULT_CONFIG.difficulty),fragLimit:Math.round(number(c.fragLimit,modeRule?.fragLimit??15,minGoal,50)),timeLimit:Math.round(number(c.timeLimit,300,60,900)),respawn:number(c.respawn,2,1,5),speed:choice(c.speed,[.75,1,1.25,1.5],1),gravity:choice(c.gravity,[.4,.7,1],1),damage:choice(c.damage,[.5,1,1.5,2],1),fastPowers:c.fastPowers===true,lifeSteal:c.lifeSteal===true,unlimitedAmmo:c.unlimitedAmmo===true,startingWeapon:Math.round(number(c.startingWeapon,0,0,7)),playerName:typeof c.playerName==='string'?c.playerName.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,20):''};
+    const rules=modeRule(mode),minGoal=rules.minFragLimit??(mode==='ctf'?1:5),maxGoal=rules.maxFragLimit??50;
+    return {mode,botCount:Math.round(number(c.botCount,DEFAULT_CONFIG.botCount,0,8)),difficulty:choice(c.difficulty,DIFFICULTIES.map(d=>d.id),DEFAULT_CONFIG.difficulty),fragLimit:Math.round(number(c.fragLimit,rules.fragLimit??15,minGoal,maxGoal)),timeLimit:Math.round(number(c.timeLimit,300,60,900)),respawn:number(c.respawn,2,1,5),speed:choice(c.speed,[.75,1,1.25,1.5],1),gravity:choice(c.gravity,[.4,.7,1],1),damage:choice(c.damage,[.5,1,1.5,2],1),fastPowers:c.fastPowers===true,lifeSteal:c.lifeSteal===true,unlimitedAmmo:c.unlimitedAmmo===true,startingWeapon:Math.round(number(c.startingWeapon,0,0,7)),playerName:typeof c.playerName==='string'?c.playerName.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,20):''};
 }
 export function normalizeDisplay(value={}){
  const c=value&&typeof value==='object'?value:{};

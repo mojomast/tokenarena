@@ -1,5 +1,29 @@
 # TOKEN ARENA verification report
 
+## Large map and objective modes pass - 2026-09-08
+
+- Added three large arenas: **Sunscar Canyon**, **Ironfall Megastructure**, and
+  **Longreach Plateau**. They are registered in the canonical map list, replay
+  rotation, solo setup, multiplayer lobby, navigation, renderer, and tests.
+- Added **King of the Hill** and **Domination**. Control points use authoritative
+  fixed-step scoring, contest/neutralization rules, objective win state, bot routes,
+  server events, snapshots, reconnect recovery, and persisted team outcomes.
+- Added world-space control rings, progress arcs, beacons, and ownership/contest
+  colors. Progress geometry is rebuilt only when progress changes, avoiding a
+  per-frame allocation path.
+- Reworked the in-match command layer so the player sees their team, match phase,
+  score target, map route, current flag/control state, and a mode-specific next
+  action. The semantic live region announces objective changes without making the
+  full telemetry panel noisy for assistive technology.
+- Added objective-aware setup labels, target ranges, map objective coordinates,
+  history fields, and regression coverage for all new rules and geometry.
+- After the production restart, public browser entry passed on Sunscar Canyon / CTF,
+  Ironfall Megastructure / KOTH, and Longreach Plateau / Domination with WebGL and
+  nonzero draw/triangle counters. Fresh-room public WSS checks also delivered the
+  expected map, mode, flags, and control-zone snapshots.
+- Full verification passes: **182 game tests**, **57 server tests**, TypeScript,
+  production build, and rendered HTML (**240 automated checks total**).
+
 ## Polygon terrain renderer follow-up - 2026-09-08
 
 - Added **Blood Gulch**, a semi-symmetric outdoor CTF canyon with a triangulated

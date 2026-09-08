@@ -191,10 +191,13 @@ export class Room {
     }
     this.broadcastAt += RULES.dt;
      if (this.broadcastAt >= .05) { this.broadcastAt = 0; const acks = {}; for (const p of this.peers.values()) if (p.actorId !== null) acks[p.actorId] = p.appliedSeq; this.broadcast({ type: 'snapshot', seq: ++this.seq, acks, state: this.match.snapshot() }); }
-    if (this.match.over) {
-     this.roundOver = true;
-     this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: this.match.actors });
-     this.broadcast({ type: 'results', state: this.match.snapshot() }); break;
+     if (this.match.over) {
+      this.roundOver = true;
+      const result = this.match.snapshot();
+      const mode = this.match.config.mode;
+      const objectiveEnded = mode === 'ctf' ? 'capture' : mode === 'teamdeathmatch' ? 'frag' : mode === 'koth' || mode === 'domination' ? 'objective' : null;
+      this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: this.match.actors, teamScores: result.teamScores, winner: result.winner, endingReason: result.winner === null ? null : objectiveEnded });
+      this.broadcast({ type: 'results', state: result }); break;
     }
   }
  }

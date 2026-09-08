@@ -29,6 +29,22 @@ test('a match ending on the clock is recorded as time and leader ties join',()=>
  const [e]=h.all();
  assert.equal(e.endedBy,'time');
  assert.equal(e.leader,'A & B');
+ });
+test('objective history records the winning team, scores, and objective ending reason',()=>{
+ const h=new MatchHistory();
+ const entry=h.record({config:{mode:'koth',fragLimit:100,timeLimit:60},time:25,teamScores:{0:100,1:72.5},actors:[]});
+ assert.equal(entry.winner,0);
+ assert.deepEqual(entry.teamScores,{0:100,1:72.5});
+ assert.equal(entry.endedBy,'objective');
+});
+test('team deathmatch derives team scores without changing deathmatch entries',()=>{
+ const h=new MatchHistory();
+ const entry=h.record({config:{mode:'teamdeathmatch',fragLimit:5,timeLimit:60},time:12,actors:[
+  {name:'A',team:0,frags:5,deaths:1},{name:'B',team:1,frags:2,deaths:3}
+ ]});
+ assert.equal(entry.winner,0);
+ assert.deepEqual(entry.teamScores,{0:5,1:2});
+ assert.equal(entry.endedBy,'frag');
 });
 test('file round-trip loads matches at boot and persists atomically',()=>{
  const dir=tmpDir();
