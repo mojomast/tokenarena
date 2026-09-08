@@ -341,6 +341,9 @@ test('ICE failure and rejected signaling are handled and visible', async t => {
   pc.iceConnectionState = 'connected';
   pc.oniceconnectionstatechange();
   assert.equal(h.voice.state.peers, 1);
+  pc.onicecandidateerror({errorText: 'TURN allocate request timed out'});
+  assert.equal(h.voice.state.error, '', 'transient candidate errors stay quiet while connected');
+  assert.equal(h.voice.state.status, 'connected');
   pc.iceConnectionState = 'disconnected';
   pc.oniceconnectionstatechange();
   assert.match(h.voice.state.error, /disconnected/);
@@ -349,6 +352,7 @@ test('ICE failure and rejected signaling are handled and visible', async t => {
   assert.equal(pc.closed, true);
   assert.equal(h.voice.state.peers, 0);
   assert.match(h.voice.state.error, /failed/);
+  assert.match(h.voice.state.error, /TURN allocate request timed out/, 'failed connection keeps relay context');
   h.voice.updateLobby({players: h.net.players});
   h.net.voiceSignal = async () => { throw new Error('Signal failed'); };
   await h.signal({description: {type: 'offer', sdp: 'offer'}});

@@ -281,14 +281,17 @@ export class VoiceChat {
         if (!this.validPeer(peer)) return;
         const states = [pc.connectionState, pc.iceConnectionState];
         if (states.includes('failed') || states.includes('closed')) {
+          const ice = peer.iceError ? ` (${peer.iceError})` : '';
           this.closePeer(peer);
-          this.fail(new Error(`Voice connection to peer ${peer.id} failed. Disable and enable voice to retry.`));
+          this.fail(new Error(`Voice connection to peer ${peer.id} failed${ice}. Disable and enable voice to retry.`));
         } else if (states.includes('disconnected')) {
           this.fail(new Error(`Voice connection to peer ${peer.id} disconnected.`));
         } else this.peerStatus();
       };
       pc.onicecandidateerror = event => {
-        if (this.validPeer(peer)) this.fail(new Error(`Voice ICE: ${event.errorText || event.errorCode || 'server unreachable'}`));
+        // Transient candidate failures (for example a UDP TURN allocate timeout
+        // while a TCP relay candidate succeeds) must not appear as a hard error.
+        if (this.validPeer(peer)) peer.iceError = event?.errorText || `ICE error ${event?.errorCode ?? 'unknown'}`;
       };
       this.peerStatus();
       return peer;
@@ -392,6 +395,7 @@ export class VoiceChat {
     peer.sink = null;
     stop(peer.stream);
     peer.candidates.length = 0;
+    peer.iceError = null;
     this.peerStatus();
   }
 

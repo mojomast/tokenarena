@@ -8,3 +8,10 @@ export function vehicleHud(player, vehicles = [], flags = [], spectate = false) 
 }
 
 export const escapeHint = online => online ? 'ESC / LOBBY (MATCH CONTINUES)' : 'ESC / PAUSE';
+
+export const voiceHint = (enabled, mode) => {
+  if (!enabled) return null;
+  if (mode === 'ptt') return 'V / TALK';
+  if (mode === 'auto') return 'VOICE / AUTO TALK';
+  return 'VOICE ON';
+};

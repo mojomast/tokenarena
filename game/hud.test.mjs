@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint} from './hud.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
 const ride = {id:0, health:200, maxHealth:300, x:2, z:0, driver:null, respawnTimer:0, heat:.8, overheated:true};
@@ -26,4 +26,12 @@ test('driver receives authoritative vehicle telemetry and exit prompt, including
 test('Escape distinguishes local pause from the live online lobby', () => {
   assert.equal(escapeHint(false), 'ESC / PAUSE');
   assert.equal(escapeHint(true), 'ESC / LOBBY (MATCH CONTINUES)');
+});
+
+test('voice hint exposes PTT and voice activation without implying a silent mic', () => {
+  assert.equal(voiceHint(false, 'ptt'), null);
+  assert.equal(voiceHint(false, 'auto'), null);
+  assert.equal(voiceHint(true, 'ptt'), 'V / TALK');
+  assert.equal(voiceHint(true, 'auto'), 'VOICE / AUTO TALK');
+  assert.equal(voiceHint(true, 'unknown'), 'VOICE ON');
 });

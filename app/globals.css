@@ -386,7 +386,13 @@
 .voice-hold { touch-action: none; user-select: none; }
 .game-voice { position: absolute; z-index: 4; right: var(--safe-right); top: 31%; width: min(290px, calc(100% - var(--safe-left) - var(--safe-right))); max-height: 32dvh; overflow-y: auto; scrollbar-width: thin; }
 .game-voice .voice-panel { margin: 0; padding: 8px; }
-@media (max-width: 600px) { .game-voice { top: auto; bottom: calc(var(--safe-bottom) + 40px); width: min(250px, 65vw); max-height: 25dvh; } }
+.voice-docked { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.voice-minimize { display: grid; place-items: center; width: 26px; height: 26px; border: 1px solid #83f4d544; background: #081818e6; color: #a6e5c9; }
+.voice-pill { display: inline-flex; align-items: center; gap: 7px; padding: 7px 11px; border: 1px solid #83f4d544; background: #081818e6; color: #9fc4b5; font: 11px monospace; letter-spacing: 1.2px; cursor: pointer; max-width: 100%; }
+.voice-pill.enabled { color: #caffeb; border-color: #83f4d566; }
+.voice-pill.talking { color: #d9ffef; border-color: #83f4d5; background: #17362ee6; }
+.voice-pill span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 600px) { .game-voice { top: 44dvh; bottom: auto; width: min(250px, 70vw); max-height: 26dvh; } .game-voice.voice-open { top: 38dvh; max-height: 24dvh; } }
 .match-top { z-index: 2; }
 .match-context { display: grid; gap: 4px; align-content: start; }
 .match-context .phase-label { color: #8ba99d; font: 11px monospace; letter-spacing: 1.4px; margin-top: 5px; }

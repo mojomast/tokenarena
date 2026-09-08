@@ -1,5 +1,31 @@
 # TOKEN ARENA verification report
 
+## Voice HUD ergonomics and relay reliability - 2026-09-08
+
+- The in-match voice panel now collapses to a compact status pill (`VOICE · MIC
+  OFF`, enabled status, or `TRANSMITTING`) so it no longer covers the arena on
+  desktop or overlaps the bottom HUD on mobile. Clicking the pill opens the full
+  controls with a minimize button. PTT mode shows a `V / TALK` hint in the bottom
+  HUD, and the settings dialog documents the push-to-talk binding.
+- Transient ICE candidate failures (for example a UDP TURN allocate timeout while
+  a TCP relay candidate succeeds) no longer surface as a hard voice error while
+  the connection is still establishing. Real connection failures keep their
+  message and now include the last candidate error for context.
+- The Coturn relay port range was widened from 41 to 201 UDP ports
+  (`49160-49360`) to reduce allocation contention for concurrent rooms, and the
+  relay was restarted with that configuration.
+- Verification: 31 voice controller tests and 4 HUD tests pass, including a new
+  test that a `TURN allocate request timed out` candidate error stays quiet while
+  connected and appears only as context after a real failure. TypeScript,
+  production build, and rendered HTML pass. Both production services and the TURN
+  container are active; all public assets load without failures.
+- Public browser checks at `1440x900` and `390x844` pass all 15 checks: pill by
+  default, open/minimize, voice ready, `V` hold transmitting and release,
+  `V / TALK` hint, and no overlaps or horizontal overflow for the pill and the
+  open panel. Pointer-locked matches capture mouse events by design, so in-match
+  HUD buttons are used in the unlocked fallback state or the lobby.
+- Cross-network relay reliability with real restrictive NATs remains unverified.
+
 ## HUD layering and responsive scoreboard - 2026-09-08
 
 - Live standings now render in an explicit high-priority centered layer above the
