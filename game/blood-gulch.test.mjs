@@ -18,15 +18,15 @@ test('Blood Gulch is deeply frozen and has valid bounds',()=>{
 
 test('terrain expands polygon fans and keeps hills walkable',()=>{
   const triangles=terrainTriangles(BLOOD_GULCH.terrain);
-  assert.equal(triangles.length,10);
+  assert.equal(triangles.length,12);
   assert.equal(triangles.filter(t=>t.surfaceId.includes('hill')).length,4);
-  assert.ok(terrainSupportAt(0,-13,BLOOD_GULCH.terrain));
-  assert.ok(terrainSupportAt(0,-13,BLOOD_GULCH.terrain).normal[1]>.8);
+  assert.ok(terrainSupportAt(0,-19,BLOOD_GULCH.terrain));
+  assert.ok(terrainSupportAt(0,-19,BLOOD_GULCH.terrain).normal[1]>=.8);
 });
 
 test('terrain includes readable vertical cliff walls',()=>{
-  assert.equal(BLOOD_GULCH.terrain.walls.length,2);
-  const hit=terrainRayHit([0,3,-20],[0,0,-1],10,BLOOD_GULCH.terrain);
+  assert.equal(BLOOD_GULCH.terrain.walls.length,4);
+  const hit=terrainRayHit([0,3,-22],[0,0,-1],10,BLOOD_GULCH.terrain);
   assert.equal(hit.material,'cliff');
   assert.equal(hit.distance,3);
 });
@@ -34,7 +34,7 @@ test('terrain includes readable vertical cliff walls',()=>{
 test('CTF flags, team spawns, and authored spawns are distinct and bounded',()=>{
   assert.equal(BLOOD_GULCH.teamSpawns[0].length,2);
   assert.equal(BLOOD_GULCH.teamSpawns[1].length,2);
-  assert.deepEqual(BLOOD_GULCH.flagSpawns,{0:{x:-39,z:0},1:{x:39,z:0}});
+  assert.deepEqual(BLOOD_GULCH.flagSpawns,{0:{x:-34,z:0},1:{x:34,z:0}});
   const points=[...BLOOD_GULCH.teamSpawns[0],...BLOOD_GULCH.teamSpawns[1],...BLOOD_GULCH.spawns];
   const keys=points.map(([x,z])=>`${x},${z}`);
   assert.equal(new Set(keys).size,keys.length);

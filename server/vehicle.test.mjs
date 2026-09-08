@@ -8,7 +8,7 @@ test('Room forwards Puma interaction as a one-shot authoritative edge',()=>{
   room.host('peer',{mode:'ctf',botCount:0,respawn:1},'blood-gulch');
   room.start('peer');
   const actor=room.match.actors[0];
-  Object.assign(actor,{x:-27,y:0,z:0,yaw:Math.PI/2,protection:0});
+  Object.assign(actor,{x:-28.5,y:0,z:0,yaw:Math.PI/2,protection:0});
   room.input('peer',{seq:1,x:0,z:0,interact:true});
   room.tick(1/60);
   assert.ok(actor.vehicleId);

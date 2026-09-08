@@ -1,5 +1,18 @@
 # TOKEN ARENA verification report
 
+## Blood Gulch map fidelity pass - 2026-09-08
+
+- Rebuilt **Blood Gulch** into a wider, more recognisable canyon arena while keeping it compact enough for bot matches.
+- Expanded bounds to `{-42,42,-25,25}` with four-sided cliff walls, sloped north/south hills, and high sniper shelves.
+- Added a contested **central mound** with a rocket launcher, plus landmark rock pieces for cover and bot channeling.
+- Replaced simple base blocks with **U-shaped fortress bases**: a central keep, rear wall, and side wings framing each flag courtyard.
+- Added **rear teleporter boost pads** behind each base that fling players to the opposing side shelves for flanking routes.
+- Repositioned the two neutral **Puma** Warthogs and strategic pickups (sniper rifles on shelves, health/armor near bases, etc.).
+- Updated focused tests in `game/blood-gulch.test.mjs`, `game/view.test.mjs`, `game/vehicle-gameplay.test.mjs`, and `server/vehicle.test.mjs` for the new layout.
+- Full verification passes: **196 game tests**, **64 server tests**, TypeScript, production build, and rendered HTML (**261 automated checks total**).
+- Deterministic 5-minute Blood Gulch simulation produced **13 kills, 231 shots, 24 pickups, 25 powers, and 16 respawns** with no falls, confirming bot connectivity on the new terrain.
+- Public browser checks passed linked assets, responsive layouts, and Blood Gulch CTF hosting with two flags and two Pumas visible in snapshots. Both production services were restarted and remain active.
+
 ## Gameplay modes and leaderboards pass - 2026-09-08
 
 - Added authoritative per-player `scoreStats` for CTF flag pickups, returns, drops,

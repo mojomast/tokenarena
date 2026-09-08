@@ -149,7 +149,7 @@ test('Blood Gulch builds polygon terrain and cliff geometry without platform ass
   view.buildArena(BLOOD_GULCH);
   const meshes=view.worldGroup.children.filter(child=>child.userData.terrain);
   assert.equal(meshes.length,3);
-  assert.equal(meshes.reduce((count,mesh)=>count+mesh.geometry.attributes.position.count/3,0),14);
+  assert.equal(meshes.reduce((count,mesh)=>count+mesh.geometry.attributes.position.count/3,0),20);
   assert.ok(meshes.some(mesh=>mesh.material.side===T.DoubleSide));
  view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();
  });

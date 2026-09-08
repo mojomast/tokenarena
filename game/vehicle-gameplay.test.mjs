@@ -9,20 +9,20 @@ test('Blood Gulch matches clone supported polygon terrain and both Pumas',()=>{
   const a=match(),b=match();
   assert.equal(a.vehicles.length,2);
   assert.notEqual(a.vehicles,b.vehicles);
-  assert.equal(floorAt(0,0,a.arena),0);
-  assert.equal(floorAt(0,-13,a.arena),2.5);
+  assert.ok(floorAt(0,0,a.arena)>0&&floorAt(0,0,a.arena)<2);
+  assert.ok(floorAt(0,-19,a.arena)>2&&floorAt(0,-19,a.arena)<4);
   assert.equal(a.vehicles[0].position.y,0);
   a.vehicles[0].position.x=-20;
-  assert.equal(b.vehicles[0].position.x,-29);
+  assert.equal(b.vehicles[0].position.x,-30);
 });
 
 test('Puma enter, drive, paired chainguns, and exit remain authoritative',()=>{
   const m=match(),a=m.actors[0];
-  Object.assign(a,{x:-27,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
+  Object.assign(a,{x:-28,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
   m.step(1/60,{inputs:{0:{interact:true}}});
   assert.equal(a.vehicleId,m.vehicles[0].id);
   for(let i=0;i<60;i++)m.step(1/60,{inputs:{0:{x:-1,z:0,yaw:Math.PI/2,pitch:0,fire:true}}});
-  assert.ok(a.x>-29);
+  assert.ok(a.x>-25);
   assert.ok(m.vehicles[0].heat>0);
   assert.equal(m.events.filter(e=>e.type==='vehicle-shot').length,16);
   m.step(1/60,{inputs:{0:{interact:true}}});
@@ -33,8 +33,8 @@ test('Puma enter, drive, paired chainguns, and exit remain authoritative',()=>{
 test('Puma chainguns resolve an actor hit through the authoritative ray path',()=>{
   const m=new Match('chatgpt','openclaw',()=>.5,'blood-gulch',{mode:'ctf',botCount:1});
   const [a,target]=m.actors;
-  Object.assign(a,{x:-27,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
-  Object.assign(target,{x:-31,y:0,z:0,health:100,armor:0,protection:0,grounded:true});
+  Object.assign(a,{x:-28,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
+  Object.assign(target,{x:-34,y:0,z:0.82,health:100,armor:0,protection:0,grounded:true});
   m.step(1/60,{inputs:{0:{interact:true}}});
   for(let i=0;i<12;i++)m.step(1/60,{inputs:{0:{x:0,z:0,yaw:Math.PI/2,pitch:0,fire:true}}});
   assert.ok(target.health<100);
@@ -43,7 +43,7 @@ test('Puma chainguns resolve an actor hit through the authoritative ray path',()
 
 test('Puma damage releases its driver and respawns from its authored slot',()=>{
   const m=match(),a=m.actors[0],vehicle=m.vehicles[0];
-  Object.assign(a,{x:-27,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
+  Object.assign(a,{x:-28,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
   m.step(1/60,{inputs:{0:{interact:true}}});
   assert.equal(vehicle.driver,a.id);
   m.damageVehicle(vehicle,vehicle.maxHealth,a);
