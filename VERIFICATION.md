@@ -1,5 +1,22 @@
 # TOKEN ARENA verification report
 
+## Polish pass - 2026-09-08
+
+- Added keyboard-accessible focus entry and Tab wrapping for setup, pause, and
+  results dialogs. Escape closes setup predictably and returns focus to Match Setup;
+  reduced motion now disables crosshair hit rotation.
+- Objective progress rings reuse indexed WebGL geometry and update draw ranges rather
+  than allocating a new ring every progress tick. The software fallback retains its
+  existing geometry rebuild path for compatibility.
+- Room input rejects non-finite movement values, reconnecting players and spectators
+  receive completed-round results, partial team scores normalize to finite values,
+  and malformed persisted history records are ignored.
+- Full verification passes: **182 game tests**, **61 server tests**, TypeScript,
+  production build, and rendered HTML (**244 automated checks total**).
+- Public checks pass for linked assets, responsive selection/settings/HUD layouts,
+  CTF setup and Resume, modal keyboard focus/Tab wrapping, and no browser runtime or
+  resource errors. Both production services were restarted and remain active.
+
 ## Large map and objective modes pass - 2026-09-08
 
 - Added three large arenas: **Sunscar Canyon**, **Ironfall Megastructure**, and

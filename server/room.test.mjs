@@ -270,3 +270,19 @@ test('start can rematch after a completed round; inputs ignored while round over
  assert.equal(room.match.actors[0].frags,0);
  assert.ok(find(room.drain(),'start'));
 });
+test('non-finite movement input is ignored rather than poisoning the actor state',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);room.drain();
+ room.input(1,{x:Infinity,z:-Infinity,yaw:0});room.tick(1/60);
+ const actor=room.match.actors[0];
+ assert.ok([actor.x,actor.y,actor.z,actor.vx,actor.vy,actor.vz].every(Number.isFinite));
+});
+test('reconnecting after a completed round receives the final result',()=>{
+ const room=new Room('r',rng(),{graceMs:60000});
+ room.join(1,'A');const token=find(room.drain(),'welcome',1).token;
+ room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);room.drain();
+ room.match.over=true;room.tick(1/60);room.drain();room.disconnect(1);room.drain();
+ room.join(2,'ignored','','',token);const result=find(room.drain(),'results',2);
+ assert.equal(result.state.over,true);
+ assert.equal(result.state.time,room.match.time);
+});

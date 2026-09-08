@@ -158,9 +158,10 @@ test('spectator joins outside an active round do not receive start or snapshot',
  const room=new Room('r',rng());
  room.join(1,'Host');
  for(const id of [2,3]){
-  room.drain();
-  room.join(id,'Watcher','chatgpt','openclaw','',true);
-  assert.deepEqual(room.drain().map(m=>m.msg.type),['welcome','lobby']);
+   room.drain();
+   room.join(id,'Watcher','chatgpt','openclaw','',true);
+   const joinTypes=room.drain().map(m=>m.msg.type);
+   assert.deepEqual(joinTypes,id===2?['welcome','lobby']:['welcome','lobby','results']);
   room.start(1);
   room.match.over=true;
   room.tick(1/60);

@@ -14,6 +14,7 @@
 @media(max-width:1050px){.loadout-grid{grid-template-columns:225px 1fr 280px;gap:16px}.controls-brief>span{display:none}.operator-name{font-size:15px}.roster-panel .section-label>span:last-child{display:none}.bottom-hud{left:18px;right:18px;gap:10px}.vitals{min-width:200px;gap:15px;padding:15px}.ability-hud{padding:12px}.weapon-hud{padding:12px}.wordmark small{display:none}}
 @media(max-width:760px){.selection-heading h1{font-size:28px}.operator-caption h2{font-size:32px}.operator-card{padding:8px;gap:6px}.operator-name{font-size:14px}.operator-name small{font-size:12px;letter-spacing:.3px}.harness-card{padding:9px;gap:8px}.harness-icon svg{width:19px}.selection-footer{flex-wrap:wrap;padding:15px 0}.map-info{flex:1}.desktop-note{display:block;color:#b3c5b7;font-size:12px;text-align:center;margin:8px 0 24px}.selection-screen{background:linear-gradient(#080f1355,#080f13bb 40%,#080f13 55%)}.game-modal h2{font-size:28px}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+@media(prefers-reduced-motion:reduce){.crosshair.hit{transform:translate(-50%,-50%)}}
 
 .ability-detail footer{flex-wrap:wrap;row-gap:5px}.operator-card,.harness-card{flex-shrink:0}.harness-panel{padding-bottom:8px}.controls-brief{flex-wrap:wrap;justify-content:flex-end}.selection-heading>p:last-child,.roster-note,.ability-detail p{font-size:14px}.operator-name small{letter-spacing:.4px}.operator-number,.harness-key{font-size:12px}.operator-caption .eyebrow{font-size:12px}.operator-caption>p:last-child{font-size:14px}
 

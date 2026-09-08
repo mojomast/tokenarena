@@ -45,6 +45,18 @@ test('team deathmatch derives team scores without changing deathmatch entries',(
  assert.equal(entry.winner,0);
  assert.deepEqual(entry.teamScores,{0:5,1:2});
  assert.equal(entry.endedBy,'frag');
+ });
+test('partial team scores are normalized to finite values',()=>{
+ const h=new MatchHistory();
+ const entry=h.record({config:{mode:'ctf',fragLimit:5,timeLimit:60},teamScores:{0:5},actors:[]});
+ assert.deepEqual(entry.teamScores,{0:5,1:0});
+ assert.equal(entry.winner,0);
+});
+test('malformed persisted history entries are ignored',()=>{
+ const dir=tmpDir(),file=path.join(dir,'history.json');
+ fs.writeFileSync(file,JSON.stringify([{id:'bad'}, {id:'good',players:[]}])) ;
+ const h=new MatchHistory(file);
+ assert.deepEqual(h.all().map(entry=>entry.id),['good']);
 });
 test('file round-trip loads matches at boot and persists atomically',()=>{
  const dir=tmpDir();

@@ -14,7 +14,7 @@ export class MatchHistory {
  load() {
   try {
    const raw = JSON.parse(fs.readFileSync(this.file, 'utf8'));
-   if (Array.isArray(raw)) this.matches = raw.filter(m => m && typeof m === 'object').slice(0, this.max);
+    if (Array.isArray(raw)) this.matches = raw.filter(m => m && typeof m === 'object' && Array.isArray(m.players)).slice(0, this.max);
   } catch { this.matches = []; }
  }
  record({ roomId = 'local', mapId = 'exchange', config = {}, time = 0, actors = [], teamScores = null, winner = null, endingReason = null, result = null } = {}) {
@@ -22,8 +22,11 @@ export class MatchHistory {
    const mode = config.mode ?? 'deathmatch';
    const teamMode = ['ctf', 'teamdeathmatch', 'koth', 'domination'].includes(mode);
    const scores = teamScores ?? result?.teamScores;
-   let normalizedScores = scores && typeof scores === 'object' ? { 0: Number(scores[0]), 1: Number(scores[1]) } : null;
-   if (normalizedScores && !Number.isFinite(normalizedScores[0]) && !Number.isFinite(normalizedScores[1])) normalizedScores = null;
+    let normalizedScores = scores && typeof scores === 'object' ? { 0: Number(scores[0]), 1: Number(scores[1]) } : null;
+    if (normalizedScores) {
+     normalizedScores[0] = Number.isFinite(normalizedScores[0]) ? normalizedScores[0] : 0;
+     normalizedScores[1] = Number.isFinite(normalizedScores[1]) ? normalizedScores[1] : 0;
+    }
    if (teamMode && !normalizedScores && mode === 'teamdeathmatch') {
     normalizedScores = { 0: 0, 1: 0 };
     for (const actor of actors) if (actor.team === 0 || actor.team === 1) normalizedScores[actor.team] += Number(actor.frags) || 0;

@@ -60,8 +60,10 @@ export class Room {
     this.broadcast(this.lobby());
     if (this.started && !this.roundOver && this.match) {
      this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
-      this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [existing.actorId]: existing.appliedSeq }, state: this.match.snapshot() });
-    }
+     this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [existing.actorId]: existing.appliedSeq }, state: this.match.snapshot() });
+     } else if (this.match?.over) {
+      this.send(peerId, { type: 'results', state: this.match.snapshot() });
+     }
     return;
    }
   }
@@ -79,8 +81,10 @@ export class Room {
   this.broadcast(this.lobby());
   if (isSpectator && this.started && !this.roundOver && this.match) {
    this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
-    this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [this.peers.get(peerId)?.actorId ?? -1]: 0 }, state: this.match.snapshot() });
-  }
+     this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [this.peers.get(peerId)?.actorId ?? -1]: 0 }, state: this.match.snapshot() });
+   } else if (isSpectator && this.match?.over) {
+    this.send(peerId, { type: 'results', state: this.match.snapshot() });
+   }
  }
  disconnect(peerId) {
   const peer = this.peers.get(peerId);
@@ -130,7 +134,8 @@ export class Room {
    const seq = Number.isInteger(i.seq) && i.seq > 0 ? i.seq : peer.receivedSeq + 1;
    if (seq <= peer.receivedSeq) return;
    peer.receivedSeq = seq;
-   const ext = { x: Number(i.x) || 0, z: Number(i.z) || 0, fire: i.fire === true };
+    const x = Number(i.x), z = Number(i.z);
+    const ext = { x: Number.isFinite(x) ? x : 0, z: Number.isFinite(z) ? z : 0, fire: i.fire === true };
   if (Number.isFinite(i.yaw)) ext.yaw = i.yaw;
   if (Number.isFinite(i.pitch)) ext.pitch = Math.max(-1.45, Math.min(1.45, i.pitch));
   if (Number.isInteger(i.weapon)) ext.weapon = i.weapon;

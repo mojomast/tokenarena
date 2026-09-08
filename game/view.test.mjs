@@ -104,9 +104,14 @@ test('KOTH and Domination objective markers show state and clean stale zones',()
   const arena={id:'crosswire',color:'#55ddcc'};
   view.updateObjectives({time:2,objectives:{kind:'koth',zones:[{id:'hill',x:2,y:1,z:-3,radius:4,owner:0,captureTeam:0,progress:40}]}},arena);
   const hill=view.objectiveModels.get('hill');
-  assert.ok(hill&&hill.userData.objective);assert.equal(hill.position.y,1);assert.equal(hill.scale.y,1);
-  assert.equal(hill.userData.progress.visible,true);assert.equal(hill.userData.baseMat.color.getHexString(),'55ddcc');
-  view.updateObjectives({time:2,objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:null,progress:0,contested:true},{id:'bravo',x:5,z:0,owner:1,progress:75}]}},arena);
+   assert.ok(hill&&hill.userData.objective);assert.equal(hill.position.y,1);assert.equal(hill.scale.y,1);
+   assert.equal(hill.userData.progress.visible,true);assert.equal(hill.userData.baseMat.color.getHexString(),'55ddcc');
+   const progressGeometry=hill.userData.progress.geometry;
+   assert.equal(progressGeometry.drawRange.count,78);
+   view.updateObjectives({time:2,objectives:{kind:'koth',zones:[{id:'hill',x:2,y:1,z:-3,radius:4,owner:0,captureTeam:0,progress:41}]}},arena);
+   assert.equal(hill.userData.progress.geometry,progressGeometry);
+   assert.equal(progressGeometry.drawRange.count,84);
+   view.updateObjectives({time:2,objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:null,progress:0,contested:true},{id:'bravo',x:5,z:0,owner:1,progress:75}]}},arena);
   assert.equal(view.objectiveModels.size,2);assert.equal(view.objectiveModels.get('alpha').userData.baseMat.color.getHexString(),'ffd166');
   assert.equal(view.objectiveModels.get('bravo').userData.baseMat.color.getHexString(),'ff789d');
   view.updateObjectives({objectives:{kind:'ctf',zones:[]}},arena);assert.equal(view.objectiveModels.size,0);assert.equal(world.children.length,0);
