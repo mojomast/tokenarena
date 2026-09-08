@@ -33,7 +33,8 @@ test('audio uses passed player identity, distinct reports and one report per pel
   audio.event({type:'shot',actor:0,weapon:0,time:8,from:{x:100,z:100}},player);assert.equal(calls.length,8);
   audio.event({type:'pickup',actor:0},player);assert.equal(calls.length,8);audio.event({type:'pickup',actor:7},player);assert.equal(calls.length,9);
   audio.event({type:'shot',actor:0,weapon:0,time:9,from:{x:0,z:0},pos:{x:100,z:100}},player);assert.equal(calls.length,10);assert.ok(calls.at(-1)[3]<.032);
-});
+  audio.event({type:'dryfire',actor:7,weapon:2},player);assert.equal(calls.length,11);
+ });
 test('actual local damage and adjacent lethal damage produce hit/kill feedback, not hit flags',()=>{
  const {audio}=audioFixture(),calls=[];audio.tone=(...args)=>calls.push(args);
  audio.event({type:'shot',actor:0,weapon:0,hit:{id:1},from:{x:100,z:100}},player);assert.equal(calls.length,0);

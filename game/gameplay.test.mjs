@@ -5,7 +5,7 @@ import {MAPS} from './maps.mjs';
 import {RULES} from './data.mjs';
 import {DEFAULT_CONFIG,normalizeConfig} from './config.mjs';
 const rng=()=>{let n=42;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);};
-const actor=(arena,values={})=>Object.assign(new Match('chatgpt','hermes',rng(),arena.id,{botCount:0}).actors[0],{vx:0,vy:0,vz:0,active:0,grounded:false},values);
+const actor=(arena,values={})=>Object.assign(new Match('chatgpt','openclaw',rng(),arena.id,{botCount:0}).actors[0],{vx:0,vy:0,vz:0,active:0,grounded:false},values);
 const clear=(a,arena)=>assert.equal(obstructed(a.x,a.y,a.z,RULES.radius,arena),false,`${arena.id}: ${JSON.stringify({x:a.x,y:a.y,z:a.z})}`);
 
 test('casual defaults preserve explicit saved difficulty and roster',()=>{
@@ -16,7 +16,7 @@ test('casual defaults preserve explicit saved difficulty and roster',()=>{
  assert.equal(saved.botCount,4);assert.equal(saved.difficulty,'normal');
 });
 
-for(const arena of MAPS)for(const gravity of [1,.4])test(`${arena.id} gravity ${gravity}: solid landings, edges, recovery and turbo collision`,()=>{
+ for(const arena of MAPS.filter(arena=>!arena.platforms))for(const gravity of [1,.4])test(`${arena.id} gravity ${gravity}: solid landings, edges, recovery and turbo collision`,()=>{
  const config={speed:1.5,gravity};
  for(const b of arena.blocks.filter(b=>b.kind==='cover')){
   for(const offset of [0,b.w/2+RULES.radius-.01]){
@@ -30,7 +30,7 @@ for(const arena of MAPS)for(const gravity of [1,.4])test(`${arena.id} gravity ${
   Object.assign(a,{x:b.x,z:b.z,y:0});moveActor(a,{},1/60,arena,config);clear(a,arena);assert.equal(a.y,0);
   Object.assign(a,{x:b.x,z:b.z+b.d/2+RULES.radius+.05,y:b.h-.05,vz:-60,vy:0,active:3});
   moveActor(a,{z:-1},1/30,arena,config);clear(a,arena);assert.ok(a.z>=b.z+b.d/2+RULES.radius);
-  Object.assign(a,{x:b.x,z:b.z,y:b.h,vx:0,vy:0,vz:0,grounded:true});
+   Object.assign(a,{x:b.x,z:b.z,y:b.h,vx:0,vy:0,vz:0,grounded:true,traversalCooldown:10});
   for(let i=0;i<90;i++){moveActor(a,{z:1},1/60,arena,config);clear(a,arena);}
   assert.ok(a.y<b.h);assert.equal(a.y,floorAt(a.x,a.z,arena));
  }

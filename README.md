@@ -1,6 +1,6 @@
 # TOKEN ARENA
 
-A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from five arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from seven arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
 
 ## Run locally
 
@@ -18,7 +18,7 @@ The game server runs on this machine, not on a cloud platform:
 | `npm run demo` | Headless client that joins, hosts a match and reports snapshots |
 | `npm run dev` | Start the web app, then use **04 / MULTIPLAYER → CONNECT & JOIN** |
 
-The web client connects over WebSocket, joins with your current operator/harness/callsign, and the first joiner becomes host. The lobby shows connected players and host controls (mode, bots, rules, arena). The server is authoritative: it runs `Match` at 60Hz, applies each peer's latest input every tick, converts `jump`/`power` presses into one-shot edges, streams `events` deltas per client and broadcasts full snapshots at 20Hz (including the kill feed and rocket positions). The client **predicts your own actor** by running the same `Match` engine locally against your inputs (instant movement, aim and fire feel), reconciles it to every server snapshot, and interpolates remote actors and rockets at a 120ms render delay.
+The web client connects over WebSocket, joins with your current operator/harness/callsign, and the first joiner becomes host. The lobby shows connected players and host controls (mode, bots, rules, arena). The server is authoritative: it runs `Match` at 60Hz, applies each peer's latest input every tick, converts `jump`/`power` presses into one-shot edges, streams `events` deltas per client and broadcasts full snapshots at 20Hz (including the kill feed and rocket positions). The client **predicts your own actor** by running the same `Match` engine locally against your inputs (instant movement, aim and fire feel), reconciles it to every server snapshot, and interpolates remote actors and rockets at a 160ms render delay.
 
 **Disconnects are survivable.** The server issues each join a session token (kept in localStorage, so even a page reload can rejoin). A dropped socket's seat is held for a 20-second grace period: the actor idles, the player shows `DISCONNECTED · SEAT HELD` in the lobby, and reconnecting with the token reattaches the same seat mid-match and resumes play automatically. If grace expires (or you leave explicitly), the seat is handed to a bot named `· BOT` and host duties migrate to the next connected player. Room logic is socket-agnostic (`server/room.mjs`) and fully tested without sockets; `server/network.test.mjs` proves the same flow over real WebSockets with two clients, including the browser-side `NetClient` (`game/net.mjs`).
 
@@ -44,14 +44,18 @@ Not yet included: accounts/matchmaking.
   red/blue bases, steal-and-return flags, trampolines, and boost launchers that
   throw you across the field. Team Deathmatch adds shared team scoring without
   friendly fire.
+- **Outdoor CTF arenas:** Skybreak Isles is a wide three-route skyway; Aether Ring
+  is a diagonal island loop. Both have separated platforms, huge authored jumps,
+  readable safe/risky routes, and a lethal void that drops carriers on recovery.
 - Easy and Normal bots now react and turn more slowly, fire less frequently, and
   aim less accurately. Breaking line of sight gives a fresh reaction delay.
   Existing saved difficulty choices are retained; select Casual Skirmish for the
   new beginner-friendly setup.
-- Jumping now supports landing on cover rather than falling into it. Movement
-  checks vertical and horizontal substeps, ramp/deck seams, and embedded states.
-- Weapons have distinct visual kick/recovery, restrained movement and landing
-  feedback, impact effects, and synthesized firing sounds. These visuals do not
+- Jumping now supports landing on cover and separated island platforms rather than
+  falling into them. Movement checks vertical and horizontal substeps, ramp/deck
+  seams, authored boost arcs, embedded states, and deterministic void recovery.
+- Weapons have distinct data-driven kick/recovery, tracer/muzzle/impact behavior,
+  firing/launch/impact sounds, and dry-fire feedback. These visuals do not
   displace the aiming camera. System reduced-motion preferences disable weapon
   motion and flashes. Hit/kill sounds use confirmed damage events and local-player
   identity, including non-host multiplayer players.
@@ -71,7 +75,7 @@ Not yet included: accounts/matchmaking.
 
 Choose an operator, harness and arena, then Enter Arena. All operators are in an uncropped grid; on small screens, scroll the menu to reach further sections. Graphics & settings includes resolution scale, field of view, crosshair controls, mouse sensitivity and audio mute, saved on this device. If mouse capture is denied, hold left mouse to aim and fire, or use Capture mouse. Keyboard and mouse are required; there are no touch gameplay controls.
 
-Pulse Rifle has unlimited ammo. Collect orange Rocket Launchers, violet Rail Lances, gold Scatterguns, blue Plasma Drivers, red Grenade Launchers, cyan Shock Beams, and gold Flak Cannons to unlock them with limited ammo. Green crosses restore health and blue diamonds grant armor. Haste, Overcharge, and Overshield pickups temporarily modify movement/fire cadence, damage, or shielding. The Exchange and The Foundry have ramps to a north deck; Crosswire and Citadel use ground-level cross lanes; Launchpad uses trampoline and boost-launcher routes. Pickups respawn. Death respawns you automatically after two seconds with brief protection; firing or Q ends that protection.
+ Pulse Rifle has unlimited ammo. Collect orange Rocket Launchers, violet Rail Lances, gold Scatterguns, blue Plasma Drivers, red Grenade Launchers, cyan Shock Beams, and gold Flak Cannons to unlock them with limited ammo. Green crosses restore health and blue diamonds grant armor. Haste, Overcharge, and Overshield pickups temporarily modify movement/fire cadence, damage, or shielding. The Exchange and The Foundry have ramps to a north deck; Crosswire and Citadel use ground-level cross lanes; Launchpad uses trampoline and boost-launcher routes; Skybreak Isles and Aether Ring use disconnected platforms and authored void jumps. Pickups respawn. Death respawns you automatically after two seconds with brief protection; firing or Q ends that protection. Falling on an outdoor island drops a carried flag before respawn.
 
 OpenClaw: close pulse and knockback. Hermes: temporary speed boost and trail. OpenCode: temporary faster firing. Claude Code: temporary 50% damage reduction. Codex: instant health repair. Cline: collision-safe forward dash. Roo Code: a line-of-sight slowing pulse. AI names represent fictional robots, not factual product comparisons.
 
@@ -87,19 +91,21 @@ OpenClaw: close pulse and knockback. Hermes: temporary speed boost and trail. Op
 | Kimi | 90 | 15 | 8.7 |
 | Qwen | 100 | 5 | 8.4 |
 
-Claude receives a modest stat bonus because its harness is locked to Claude Code. Every respawn restores the operator's health and starting armor. Health pickups, Codex repair and life steal cap at that operator's maximum health; armor pickups still cap at 100. Base speed multiplies the match speed setting, Hermes rush (1.6x) and Roo slow (0.55x). Weapon damage is shared, and Instagib remains lethal to every unprotected operator. Multiplayer assigns loadouts before spawning and snapshots carry `maxHealth` and `moveSpeed` for local prediction.
+Claude receives a modest stat bonus because its harness is locked to Claude Code. Every respawn restores the operator's health and starting armor. Health pickups, Codex repair and life steal cap at that operator's maximum health; armor pickups still cap at 100. Base speed multiplies the match speed setting, the operator/harness passive, Hermes rush (1.6x) and Roo slow (0.55x). Harness profiles also affect resistance, favored-weapon handling and bot decision style; operator profiles affect bot weapon preference and strafing. Weapon damage is shared except for small favored-weapon affinity bonuses, and Instagib remains lethal to every unprotected operator. Multiplayer assigns loadouts before spawning and snapshots carry `maxHealth` and `moveSpeed` for local prediction.
 
 ## Architecture
 
 - `app/page.tsx`: game state menus, HUD, input, audio events and fixed-step accumulator. Rendering is RAF-driven; simulation advances at 60Hz with five-step catch-up bound.
-- `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, loadout validation.
-- `game/maps.mjs`: five arena templates, CTF bases, collision geometry, traversal routes, spawns and supplies.
+- `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
+- `game/harness-profiles.mjs`: bounded harness passives, ability parameters, weapon affinities and bot hints.
+- `game/operator-profiles.mjs`: operator combat identities and bot weapon preferences.
+- `game/maps.mjs`: seven arena templates, CTF bases, collision geometry, traversal routes, island surfaces, spawns and supplies.
 - `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; armor, powers, pickups, scoring, respawn and bot utility/navigation.
 - `game/view.mjs`: Three.js procedural arena, models, first-person weapons, effects and synthesized Web Audio.
 - `game/software.mjs`: CPU renderer of the same scene for browsers where WebGL2 is unavailable. This fallback is approximate and slower; hardware WebGL2 is the preferred path.
 - `game/core.test.mjs`: consequential pure-logic checks and deterministic bot match.
-- `game/net.mjs`: browser-side NetClient — WebSocket protocol, 60Hz input send, a shadow `Match` that predicts your own actor between snapshots with per-snapshot reconciliation, 20Hz snapshot buffer with 120ms interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
-- `server/room.mjs`: socket-agnostic multiplayer room; joins, host control, per-peer input with one-shot edges, 60Hz authoritative tick, event deltas and 20Hz snapshot broadcast.
+- `game/net.mjs`: browser-side NetClient — WebSocket protocol, sequenced 60Hz inputs, a shadow `Match` that predicts your own actor and replays unacknowledged inputs after authoritative snapshots, 20Hz server-time interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
+- `server/room.mjs`: socket-agnostic multiplayer room; joins, host control, sequenced per-peer input with one-shot edges, per-actor input acknowledgements, 60Hz authoritative tick, event deltas and 20Hz snapshot broadcast.
 - `server/rooms.mjs`: room registry — one default `local` room plus rooms created on demand with a collision-checked 4-letter code; drives tick/grace/drain across every room and retires empty on-demand rooms.
 - `server/history.mjs`: per-server match history — every completed match recorded as `{id, roomId, mapId, mode, fragLimit, timeLimit, endedBy, duration, leader, players}` and persisted atomically to a JSON file (default `server/history.json`, capped at 50 entries, path injectable).
 - `server/game-server.mjs`: Node HTTP/WebSocket entry point for this machine.
@@ -126,6 +132,10 @@ Version 0.6 fixes two multiplayer bugs and adds room chat. `create` always mints
 Version 0.7 reorganizes the first screen around game-menu best practices: the selection screen is now identity-focused (operator + harness + preview) with a persistent action bar — a dominant `ENTER ARENA` primary action, `PLAY ONLINE` (opens the room browser, becomes DISCONNECT while connected), `MATCH SETUP`, and a settings gear. Arena and match rules moved behind the `MATCH SETUP` dialog (progressive disclosure, `< 3 clicks` to everything, Escape closes any overlay), and the multiplayer server address is tucked into the room browser behind a compact row with a QUICK JOIN shortcut. Solo behavior, the original menu layout and network flows remain available alongside the expanded content.
 
 Version 0.8 adds the Launchpad and Citadel arenas, Capture the Flag and Team Deathmatch, eight total weapons, Haste/Overcharge/Overshield pickups, trampoline and boost-launcher traversal, objective-aware bots, and bounded projectile handling. Launchpad is the recommended CTF map: its opposing launchers cover the centerline and its four trampolines reward aggressive flag routes.
+
+Version 0.9 adds Skybreak Isles and Aether Ring, two much larger outdoor CTF arenas built from disconnected platforms over a lethal void. Authored jump links give bots deterministic high-speed routes, while the renderer shows platform slabs, supports, route colors, void depth, and launcher markers. Multiplayer inputs now carry sequence numbers; server snapshots acknowledge processed inputs so the client can rebase and replay instead of visibly rolling back on every snapshot. Remote interpolation uses server simulation time and a deeper jitter buffer.
+
+Version 1.0 tunes launcher traversal from authored source-to-target ballistic links with bounded air correction and descending landing capture, so island jumps stop overshooting. Weapon feedback is now data-driven across all eight weapons with distinct kick, muzzle, tracer, impact and synthesized audio profiles, plus dry-fire cues. Harness profiles add passive movement/resistance and weapon affinities; operator profiles add bot weapon and strafe identities while preserving deterministic simulation and bounded balance modifiers.
 
 ## Source ZIPs
 

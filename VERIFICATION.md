@@ -1,5 +1,50 @@
 # TOKEN ARENA verification report
 
+## Launcher, weapon feel and identity pass - 2026-09-08
+
+- Launcher flights now resolve authored `jumpLinks` into deterministic ballistic
+  velocities, allow modest air correction, brake into the intended landing zone,
+  and capture descending arrivals within a bounded radius. Regression tests cover
+  every island launcher at normal gravity plus `0.75x` and `1.5x` speed settings.
+- All eight weapons now carry distinct kick, shot/launch/impact, muzzle, tracer and
+  impact-visual profiles. SynthAudio uses those profiles for local and nearby cues,
+  preserves pellet deduplication and the voice cap, adds dry-fire feedback, and
+  remains safe when muted or reduced motion is enabled.
+- Harness profiles are integrated into authoritative movement, resistance,
+  ability parameters, favored-weapon handling, bot ranges, weapon selection and
+  power-use decisions. Operator profiles add deterministic bot weapon preferences
+  and strafe styles without changing the existing roster or Claude compatibility.
+- Final verification passes: **143 game tests**, **52 server tests**, TypeScript,
+  production build, and the rendered-HTML check (**196 automated tests total**).
+- Subjective audio balance, physical launcher feel, and competitive operator/
+  harness balance still require human listening and desktop multiplayer playtests.
+
+## Outdoor CTF and network smoothing pass - 2026-09-08
+
+- Added **Skybreak Isles** and **Aether Ring**. Both are much larger than Launchpad,
+  use disconnected outdoor platforms over a real void, provide north/middle/south
+  routes, and include deterministic long-range boost arcs. Map data tests cover
+  deep immutability, bounds, platform coverage, symmetry, route/link metadata,
+  safe pickups/spawns, and descriptive map contracts.
+- Island movement now returns `null` for uncovered void surfaces, preserves the last
+  valid platform position, drops carried flags on fall, emits fall/death events,
+  and respawns through normal team-aware spawn selection. Authored jump links are
+  included in cached bot navigation; seeded launcher simulations land on platforms.
+- The Three.js arena renderer draws individual island slabs, supports, route accents,
+  and a deep void instead of a full rectangular floor. Selection previews derive
+  their SVG viewBox from map bounds and draw platforms plus launch links.
+- Multiplayer inputs now carry monotonic sequence numbers. Rooms acknowledge the
+  latest input actually applied for each actor; clients rebase the shadow match and
+  replay only unacknowledged inputs. Older snapshots are rejected, and remote actor
+  interpolation uses smoothed server simulation time with a 160ms buffer.
+- The full suite passes: **135 game tests**, **52 server tests**, TypeScript,
+  production build, and the rendered-HTML check (**188 automated tests total**).
+- Focused real-WebSocket tests pass for input acknowledgements, prediction replay,
+  stale snapshot rejection, room reconnects, spectators, simultaneous rooms, and
+  results delivery. Public deployment verification also passes after the service
+  restart: both new maps load, CTF flags/team scores initialize, WSS hosting and
+  movement remain functional, and no browser errors or failed resources appear.
+
 ## Replayability and gameplay pass - 2026-09-08
 
 - 178 game/server tests pass after the combined collision, bot, presentation,

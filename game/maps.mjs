@@ -1,3 +1,5 @@
+import {ISLAND_MAPS} from './island-maps.mjs';
+
 // Map definitions are immutable templates. Each Match owns its own collision and navigation context.
 const wall=(x,z,w,d,h=9,kind='wall')=>({x,z,w,d,h,kind});
 const shell=[wall(-14.5,0,1,30),wall(14.5,0,1,30),wall(0,14.5,30,1),wall(0,-14.5,30,1)];
@@ -17,6 +19,7 @@ export const MAPS=[
   {id:'foundry',name:'The Foundry',tag:'TWIN CORES / LONG SIGHTLINES',description:'Orange furnace towers divide three firing lanes. Take the gantry or push through the center.',color:'#ffab65',background:'#1b1210',raised:true,blocks:[wall(-4,0,2.8,5,5.7,'reactor'),wall(4,0,2.8,5,5.7,'reactor'),cover(-4,7,3,1.3,1.8),cover(4,7,3,1.3,1.8),cover(0,-5,2,1.3,1.8),...deck,...shell],spawns:upperSpawns,pickups:[['health',-11,7],['health',11,7],['armor',0,5],['rocket',0,0],['rail',-5,-12],['plasma',5,-12],['scatter',0,11],['health',0,-12],['armor',-6,-5]]},
   launchpad,
   citadel,
+  ...ISLAND_MAPS,
 ];
 const freeze=(value)=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);Object.values(value).forEach(freeze);}return value;};
 freeze(MAPS);

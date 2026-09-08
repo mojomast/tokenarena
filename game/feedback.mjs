@@ -1,7 +1,8 @@
 import * as T from 'three';
+import {WEAPONS} from './data.mjs';
 
 // Presentation only: these offsets must never be applied to the aiming camera.
-const KICKS=[ [.035,.035,17], [.075,.075,11], [.055,.025,13], [.085,.065,12], [.022,.02,20], [.07,.055,10], [.045,.035,16], [.08,.07,11] ];
+const KICKS=WEAPONS.map(w=>w.feel?.kick||[.04,.04,16]);
 export class WeaponFeedback{
  constructor(){this.reset();}
  reset(){this.kick=0;this.landing=0;this.phase=0;this.bob=0;this.sway=0;this.grounded=undefined;this.vy=0;this.weapon=-1;this.lastShot=null;}
@@ -40,19 +41,21 @@ export class EffectPool{
 const REPORTS=[[320,.075,'square',65],[110,.2,'sawtooth',28],[1500,.16,'sine',180],[180,.13,'triangle',35],[620,.09,'triangle',250],[210,.18,'sawtooth',45],[480,.1,'square',1100],[95,.22,'triangle',30]];
 export class SynthAudio{
  constructor(){this.ctx=null;this.muted=false;this.voices=new Set();this.lastDamage=null;this.lastReport=null;this.lastHit=-Infinity;}
- start(){try{this.ctx??=new AudioContext();if(this.ctx.state==='suspended')this.ctx.resume();}catch{}}
+  start(){try{const Context=globalThis.AudioContext||globalThis.webkitAudioContext;if(!Context)return;this.ctx??=new Context();if(this.ctx.state==='suspended')this.ctx.resume();}catch{}}
  tone(freq,duration=.08,type='sine',gain=.04,end=0){if(!this.ctx||this.muted||this.voices.size>=24)return;const now=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain(),voice={o,g};this.voices.add(voice);o.type=type;o.frequency.setValueAtTime(freq,now);if(end)o.frequency.exponentialRampToValueAtTime(end,now+duration);g.gain.setValueAtTime(.001,now);g.gain.linearRampToValueAtTime(gain,now+.004);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(this.ctx.destination);o.onended=()=>{o.disconnect();g.disconnect();this.voices.delete(voice);};o.start(now);o.stop(now+duration);}
  event(e,player){if(!player)return;const local=e.actor===player.id,previous=this.lastDamage;this.lastDamage=e.type==='damage'?e:null;
-  if(e.type==='shot'||e.type==='launch'){
-   const same=this.lastReport&&e.time!=null&&this.lastReport.time===e.time&&this.lastReport.actor===e.actor&&this.lastReport.weapon===e.weapon;this.lastReport=e;
+   if(e.type==='shot'||e.type==='launch'){
+    const same=this.lastReport&&e.time!=null&&this.lastReport.time===e.time&&this.lastReport.actor===e.actor&&this.lastReport.weapon===e.weapon&&this.lastReport.type===e.type;this.lastReport=e;
    const p=e.from??e.pos,distance=p?Math.hypot(p.x-player.x,p.z-player.z):Infinity;
-   if(!same&&(local||distance<20)){const [freq,duration,type,end]=REPORTS[e.weapon]||REPORTS[0];this.tone(freq,duration,type,local?.032:.012*(1-distance/20),end);}
-  }
-  if(e.type==='explosion'){const p=e.pos,d=p?Math.hypot(p.x-player.x,p.z-player.z):Infinity;if(d<24)this.tone(80,.25,'sawtooth',.025*(1-d/24),25);}
+    const feel=WEAPONS[e.weapon]?.feel||{};const [freq,duration,type,end]=(e.type==='launch'?feel.launch:feel.shot)||REPORTS[e.weapon]||REPORTS[0];
+    if(!same&&(local||distance<20)){this.tone(freq,duration,type,local?.032:.012*(1-distance/20),end);}
+   }
+   if(e.type==='dryfire'&&local)this.tone(170,.055,'square',.018,95);
+   if(e.type==='explosion'){const p=e.pos,d=p?Math.hypot(p.x-player.x,p.z-player.z):Infinity;const [freq,duration,type,end]=WEAPONS[e.weapon]?.feel?.impact||[80,.25,'sawtooth',25];if(d<24)this.tone(freq,duration,type,.025*(1-d/24),end);}
   if(e.type==='damage'&&e.source===player.id&&!local&&e.amount>0){const now=this.ctx?.currentTime??0;if(now-this.lastHit>=.045){this.tone(1050,.055,'sine',.022,1500);this.lastHit=now;}}
   // Core emits lethal damage immediately before death; do not infer kills from shots.
   if(e.type==='death'&&!local&&previous?.actor===e.actor&&previous.source===player.id&&previous.amount>0&&previous.time===e.time&&(e.id==null||previous.id===e.id-1))this.tone(1500,.16,'sine',.03,2200);
-  if(local){if(e.type==='pickup')this.tone(700,.14,'sine',.035,1300);if(e.type==='damage')this.tone(120,.1,'triangle',.045,40);if(e.type==='power')this.tone(250,.3,'sine',.04,1000);if(e.type==='death')this.tone(200,.45,'sawtooth',.03,30);}
+  if(local){if(e.type==='pickup'){const pickup={rocket:1,rail:2,scatter:3,plasma:4,grenade:5,shock:6,flak:7}[e.kind],cue=WEAPONS[pickup]?.feel?.shot;this.tone(cue?.[0]||700,.14,'sine',.035,cue?.[3]||1300);}if(e.type==='damage')this.tone(120,.1,'triangle',.045,40);if(e.type==='power')this.tone(250,.3,'sine',.04,1000);if(e.type==='death')this.tone(200,.45,'sawtooth',.03,30);}
  }
  dispose(){for(const {o,g} of this.voices){o.onended=null;try{o.stop();}catch{}o.disconnect();g.disconnect();}this.voices.clear();this.ctx?.close();this.ctx=null;}
 }

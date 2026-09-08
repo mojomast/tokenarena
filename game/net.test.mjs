@@ -82,6 +82,17 @@ test('snapshot resync converges the shadow to the authoritative state',()=>{
  assert.equal(client.shadow.actors[0].health,100);
  assert.equal(client.shadow.actors[0].ammo[0],Infinity);
 });
+test('acknowledged snapshots rebase and replay only unacknowledged inputs',()=>{
+ const client=new NetClient();client.createShadow('crosswire',config);client.actorId=0;
+ const seed={...client.shadow.actors[0],id:0,x:0,y:0,z:5,vx:0,vy:0,vz:0,grounded:true,protection:0,health:100,ammo:[Infinity,0,0,0,0,0,0,0]};client.resync(seed);
+ const first={x:1,z:0,yaw:0,pitch:0,fire:false},second={x:1,z:0,yaw:.4,pitch:0,fire:false};client.input(first);client.predict(first);const authoritative={...client.shadow.actors[0]};client.input(second);client.predict(second);
+ client.push({seq:1,acks:{0:1},state:{time:1,actors:[authoritative],rockets:[],pickups:[],feed:[],config:{},mapId:'crosswire',mapName:'',modeName:'',projectiles:0,stats:{},leaders:[]}});
+ const expected=new Match('chatgpt','openclaw',rng(),'crosswire',config);expected.actors[0].id=0;Object.assign(expected.actors[0],authoritative);expected.step(1/60,{inputs:{0:second}});
+ assert.deepEqual(client.pendingInputs.map(item=>item.seq),[2]);assert.equal(client.shadow.actors[0].x,expected.actors[0].x);assert.equal(client.shadow.actors[0].z,expected.actors[0].z);assert.equal(client.shadow.actors[0].yaw,.4);
+});
+test('older snapshots are ignored after a newer sequence',()=>{
+ const client=new NetClient();client.push({seq:2,state:{time:2,actors:[{id:0,x:2}],rockets:[]}});client.push({seq:1,state:{time:1,actors:[{id:0,x:1}],rockets:[]}});assert.equal(client.state.actors[0].x,2);assert.equal(client.snapshotSeq,2);
+});
 test('NetClient persists and reuses the session token across reconnects',()=>{
  const store=new Map();
  const storage={getItem:k=>store.get(k)??null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)};

@@ -65,8 +65,8 @@ test('remote inputs drive look, fire and events stream back as deltas',()=>{
  const [a,b]=room.match.actors;
  Object.assign(a,{x:-9,y:0,z:8,protection:0,shotWait:0,yaw:0,pitch:0});
  Object.assign(b,{x:-9,y:0,z:-2,protection:0,shotWait:0,yaw:0,pitch:0});
- room.input(1,{yaw:0,fire:true});
- room.input(2,{yaw:Math.PI,fire:true});
+  room.input(1,{seq:10,yaw:0,fire:true});
+  room.input(2,{seq:20,yaw:Math.PI,fire:true});
  for(let i=0;i<4;i++)room.tick(1/60);
  const msgs=room.drain();
  assert.equal(a.health,89);
@@ -75,8 +75,9 @@ test('remote inputs drive look, fire and events stream back as deltas',()=>{
  const ev1=find(msgs,'events',1).items,ev2=find(msgs,'events',2).items;
  assert.ok(ev1.some(e=>e.type==='damage'&&e.actor===1&&e.source===0));
  assert.ok(ev2.some(e=>e.type==='damage'&&e.actor===0&&e.source===1));
- assert.ok(find(msgs,'snapshot').state.actors[1].health===89);
- assert.ok(find(msgs,'snapshot').state.actors[0].health===89);
+  assert.ok(find(msgs,'snapshot').state.actors[1].health===89);
+  assert.ok(find(msgs,'snapshot').state.actors[0].health===89);
+  assert.deepEqual(find(msgs,'snapshot').acks,{0:10,1:20});
 });
 test('start and rematch preserve every human validated loadout',()=>{
  const room=new Room('r',rng());

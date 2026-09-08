@@ -49,7 +49,8 @@ export class Room {
     this.peers.delete(oldId);
     existing.id = peerId;
     existing.disconnectedAt = null;
-    existing.latest = null;
+     existing.latest = null;
+     existing.receivedSeq = existing.appliedSeq = existing.latestSeq = 0;
     existing.edgeJump = existing.edgePower = false;
     existing.lastJump = existing.lastPower = false;
     this.peers.set(peerId, existing);
@@ -59,7 +60,7 @@ export class Room {
     this.broadcast(this.lobby());
     if (this.started && !this.roundOver && this.match) {
      this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
-     this.send(peerId, { type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() });
+      this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [existing.actorId]: existing.appliedSeq }, state: this.match.snapshot() });
     }
     return;
    }
@@ -69,7 +70,7 @@ export class Room {
   if (!isSpectator && playerCount >= PLAYER_LIMIT) { this.send(peerId, { type: 'error', message: 'room is full' }); return; }
   const l = resolveLoadout(character, harness) || { character: 'chatgpt', harness: 'openclaw' };
   const peer = { id: peerId, name: clean(name) || CHARACTERS.find(c => c.id === l.character).name,
-   character: l.character, harness: l.harness, actorId: null, ready: false, latest: null, lastSerial: 0,
+    character: l.character, harness: l.harness, actorId: null, ready: false, latest: null, receivedSeq: 0, latestSeq: 0, appliedSeq: 0, lastSerial: 0,
    lastJump: false, lastPower: false, edgeJump: false, edgePower: false,
    token: randomUUID(), disconnectedAt: null, spectate: isSpectator };
   this.peers.set(peerId, peer);
@@ -78,7 +79,7 @@ export class Room {
   this.broadcast(this.lobby());
   if (isSpectator && this.started && !this.roundOver && this.match) {
    this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
-   this.send(peerId, { type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() });
+    this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [this.peers.get(peerId)?.actorId ?? -1]: 0 }, state: this.match.snapshot() });
   }
  }
  disconnect(peerId) {
@@ -113,7 +114,7 @@ export class Room {
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
    this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => ({ character: p.character, harness: p.harness })) });
   let i = 0;
-   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
+   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
   for (const p of this.peers.values()) if (p.spectate) p.lastSerial = 0;
   this.started = true;
   this.roundOver = false;
@@ -126,11 +127,15 @@ export class Room {
   const peer = this.peers.get(peerId);
   if (!peer || peer.spectate || peer.actorId === null || !this.match || this.roundOver) return;
   const i = input && typeof input === 'object' ? input : {};
-  const ext = { x: Number(i.x) || 0, z: Number(i.z) || 0, fire: i.fire === true };
+   const seq = Number.isInteger(i.seq) && i.seq > 0 ? i.seq : peer.receivedSeq + 1;
+   if (seq <= peer.receivedSeq) return;
+   peer.receivedSeq = seq;
+   const ext = { x: Number(i.x) || 0, z: Number(i.z) || 0, fire: i.fire === true };
   if (Number.isFinite(i.yaw)) ext.yaw = i.yaw;
   if (Number.isFinite(i.pitch)) ext.pitch = Math.max(-1.45, Math.min(1.45, i.pitch));
   if (Number.isInteger(i.weapon)) ext.weapon = i.weapon;
-  peer.latest = ext;
+   peer.latest = ext;
+   peer.latestSeq = seq;
   if (i.jump === true && !peer.lastJump) peer.edgeJump = true;
   peer.lastJump = i.jump === true;
   if (i.power === true && !peer.lastPower) peer.edgePower = true;
@@ -166,14 +171,15 @@ export class Room {
   this.tickAcc += Math.min(dt, .25);
   let steps = 0;
   while (this.tickAcc >= RULES.dt && steps < 5) {
-   const inputs = {};
+     const inputs = {};
    for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeJump || p.edgePower)) {
     const ext = { ...(p.latest ?? {}) };
     if (p.edgeJump) { ext.jump = true; p.edgeJump = false; }
     if (p.edgePower) { ext.power = true; p.edgePower = false; }
     inputs[p.actorId] = ext;
    }
-   this.match.step(RULES.dt, { inputs });
+     this.match.step(RULES.dt, { inputs });
+    for (const p of this.peers.values()) if (p.actorId !== null && p.latest) p.appliedSeq = p.latestSeq;
    this.tickAcc -= RULES.dt;
    steps++;
     for (const p of this.peers.values()) if (p.actorId !== null || p.spectate) {
@@ -181,7 +187,7 @@ export class Room {
      if (items.length) { p.lastSerial = items[items.length - 1].id; this.send(p.id, { type: 'events', items }); }
     }
     this.broadcastAt += RULES.dt;
-    if (this.broadcastAt >= .05) { this.broadcastAt = 0; this.broadcast({ type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() }); }
+     if (this.broadcastAt >= .05) { this.broadcastAt = 0; const acks = {}; for (const p of this.peers.values()) if (p.actorId !== null) acks[p.actorId] = p.appliedSeq; this.broadcast({ type: 'snapshot', seq: ++this.seq, acks, state: this.match.snapshot() }); }
     if (this.match.over) {
      this.roundOver = true;
      this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: this.match.actors });

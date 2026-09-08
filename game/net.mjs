@@ -3,8 +3,8 @@ import {Match} from './core.mjs';
 import {RULES} from './data.mjs';
 
 export const DEFAULT_SERVER_URL = 'ws://localhost:4000';
-const RENDER_DELAY = 120;
-const MAX_BUFFER = 12;
+const RENDER_DELAY = 160;
+const MAX_BUFFER = 16;
 const lerp = (a, b, t) => a + (b - a) * t;
 const turn = (a, b) => ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 
@@ -42,11 +42,15 @@ export class NetClient {
   this.actorId = null;
   this.token = this.storage ? this.storage.getItem(this.storageKey) : null;
   this.roomId = this.storage ? this.storage.getItem(this.roomKey) : null;
-  this.buffer = [];
-  this.events = [];
+   this.buffer = [];
+   this.snapshotSeq = 0;
+   this.events = [];
   this.state = null;
   this.shadow = null;
-  this.resynced = false;
+   this.resynced = false;
+   this.inputSeq = 0;
+   this.pendingInputs = [];
+   this.clockOffset = null;
   this.lastError = '';
   this.chatLog = [];
  }
@@ -78,7 +82,7 @@ export class NetClient {
   this.roomId = null;
   if (this.storage) { this.storage.removeItem(this.storageKey); this.storage.removeItem(this.roomKey); }
  }
-  input(input) { this.send({ type: 'input', input }); }
+   input(input) { const seq=++this.inputSeq,value={...(input||{})};this.pendingInputs.push({seq,input:value});if(this.pendingInputs.length>240)this.pendingInputs.splice(0,this.pendingInputs.length-240);this.send({type:'input',seq,input:value});return seq; }
   chat(text) { this.send({ type: 'chat', text }); }
  onMessage(data) {
   let msg;
@@ -107,9 +111,13 @@ export class NetClient {
    case 'start':
     this.started = true;
     this.roundOver = false;
-    this.buffer = [];
-    this.events = [];
-    this.state = null;
+     this.buffer = [];
+     this.snapshotSeq = 0;
+     this.events = [];
+     this.state = null;
+     this.inputSeq = 0;
+     this.pendingInputs = [];
+     this.clockOffset = null;
     this.createShadow(msg.mapId, msg.config);
     this.onStart?.(msg);
     break;
@@ -126,20 +134,32 @@ export class NetClient {
      break;
    case 'error': this.lastError = msg.message; this.onError?.(msg); break;
   }
- }
- push(msg) {
-  msg.recvAt = performance.now();
-  this.buffer.push(msg);
+  }
+  push(msg) {
+   if (Number.isInteger(msg.seq) && msg.seq > 0 && msg.seq <= this.snapshotSeq) return;
+   if (Number.isInteger(msg.seq) && msg.seq > 0) this.snapshotSeq = msg.seq;
+   msg.recvAt = performance.now();
+   msg.serverTime = Number.isFinite(msg.state?.time) ? msg.state.time : null;
+   if (msg.serverTime !== null) { const sample=msg.recvAt-msg.serverTime*1000;this.clockOffset=this.clockOffset===null?sample:lerp(this.clockOffset,sample,.08); }
+   this.buffer.push(msg);
   if (this.buffer.length > MAX_BUFFER) this.buffer.shift();
   this.state = msg.state;
   if (this.shadow && this.actorId !== null) {
    const own = msg.state.actors.find(a => a.id === this.actorId);
-   if (own) { this.resync(own); this.resynced = true; }
+    if (own) {
+     this.resync(own);
+     const ack=Number.isInteger(msg.acks?.[this.actorId])?msg.acks[this.actorId]:null;
+     if(ack!==null){this.pendingInputs=this.pendingInputs.filter(item=>item.seq>ack);for(const item of this.pendingInputs)this.shadow.step(RULES.dt,{inputs:{[this.shadow.actors[0].id]:item.input}});}
+     this.resynced = true;
+    }
   }
  }
  createShadow(mapId, config) {
-  this.shadow = new Match('chatgpt', 'openclaw', Math.random, getMap(mapId).id, { ...(config || {}), humanCount: 1, botCount: 0 });
-  this.resynced = false;
+   this.shadow = new Match('chatgpt', 'openclaw', Math.random, getMap(mapId).id, { ...(config || {}), humanCount: 1, botCount: 0 });
+   this.resynced = false;
+   this.inputSeq = 0;
+   this.pendingInputs = [];
+   this.clockOffset = null;
  }
  resync(actor) {
   const p = this.shadow.actors[0];
@@ -163,17 +183,18 @@ export class NetClient {
    actors = base.actors;
    rockets = base.rockets ?? [];
   } else {
-   const target = now - RENDER_DELAY;
-   let hi = b.findIndex(m => m.recvAt >= target);
+    const useServerClock=this.clockOffset!==null&&b.length>1&&b.every(m=>m.serverTime!==null),target=useServerClock?(now-this.clockOffset)/1000-RENDER_DELAY/1000:now-RENDER_DELAY;
+    let hi = b.findIndex(m => useServerClock?m.serverTime>=target:m.recvAt>=target);
    if (hi < 0) hi = b.length - 1;
    const lo = Math.max(0, hi - 1);
    const s2 = b[hi], s1 = b[lo];
-   const alpha = hi === lo ? 1 : Math.max(0, Math.min(1, (target - s1.recvAt) / (s2.recvAt - s1.recvAt)));
+    const t1=useServerClock?s1.serverTime:s1.recvAt,t2=useServerClock?s2.serverTime:s2.recvAt;
+    const alpha = hi === lo ? 1 : Math.max(0, Math.min(1, (target-t1)/(t2-t1||1)));
    base = s2.state;
    const prev = s1.state;
    actors = base.actors.map(actor => {
     const before = (prev.actors ?? []).find(x => x.id === actor.id);
-    if (!before) return actor;
+     if (!before||actor.id===this.actorId) return actor;
     return { ...actor, x: lerp(before.x, actor.x, alpha), y: lerp(before.y, actor.y, alpha), z: lerp(before.z, actor.z, alpha),
      yaw: before.yaw + turn(before.yaw, actor.yaw) * alpha, pitch: lerp(before.pitch, actor.pitch, alpha) };
    });
