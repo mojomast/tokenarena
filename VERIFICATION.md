@@ -1,5 +1,19 @@
 # TOKEN ARENA verification report
 
+## HUD layering and responsive scoreboard - 2026-09-08
+
+- Live standings now render in an explicit high-priority centered layer above the
+  command/objective panels, with an opaque surface, blur, border, shadow, and
+  internal scrolling. The objective remains available when the scoreboard closes
+  instead of competing for the same visual layer.
+- Responsive sizing keeps the scoreboard inside the safe viewport at desktop and
+  mobile widths. It accepts pointer interaction for scrolling and preserves the
+  existing Tab scoreboard workflow.
+- Browser validation passed KOTH, Domination, and CTF at `1440x900` and `390x844`:
+  scoreboard hit testing resolves to the scoreboard above the command panel, all
+  panels remain within the viewport, and there is no horizontal overflow or page
+  error. TypeScript, production build, and rendered HTML also pass.
+
 ## Lobby chat and proximity voice - 2026-09-08
 
 - Lobby chat follows new messages at the bottom, preserves manually scrolled
@@ -13,7 +27,9 @@
   Proximity is client-side playback behavior, not an access-control boundary.
 - Room-scoped, session-validated signaling has payload/rate bounds and excludes
   spectators. TURN_URLS and TURN_SECRET support one-hour HMAC TURN credentials.
-  The deployed server currently advertises STUN only: no TURN relay is configured.
+  Coturn is now deployed at `turn.ussyco.de`; the server advertises STUN plus
+  expiring TURN credentials. The relay exposes only `3478/tcp`, `3478/udp`, and
+  UDP ports `49160-49200`.
 - Full suite passed before final compatibility refinements: 252 game tests,
   77 server tests, rendered HTML, TypeScript and build. Subsequent focused voice
   checks passed, including 27 controller tests after the Chromium sink fix;
@@ -27,7 +43,9 @@
   silence after PTT release. Tests used one machine, not restrictive cross-network
   NATs. Audible human quality, live in-match attenuation, and TURN relay connectivity
   remain unverified. Audio is not recorded by this application. Direct peers may
-  learn network addresses. No commit or push performed.
+  learn network addresses. Forced relay-only browser validation later confirmed
+  relay-to-relay ICE and bidirectional RTP; cross-network audio quality remains
+  unverified.
 
 ## Arena movement, weapons and team readability - 2026-09-08
 
@@ -58,7 +76,7 @@
   Blood Gulch Team Deathmatch entry, desktop movement, jumping and firing passed.
   Mobile header/command overlap is resolved at the tested size. Close-up team
   skins, touch gameplay, multiplayer latency feel, audio balance, and hardware GPU
-  performance are not visually/playtest verified. No commit or push performed.
+  performance are not visually/playtest verified.
 - Research: [Quake III movement behavior](https://github.com/id-Software/Quake-III-Arena/blob/master/code/game/bg_pmove.c),
   [fixed timestep](https://gafferongames.com/post/fix_your_timestep/), and
   [game feel](https://www.gamedeveloper.com/design/game-feel-the-secret-ingredient).
@@ -84,7 +102,8 @@
   page errors or failed requests and no horizontal page overflow. Screenshots were
   inspected. The mobile gameplay command panel partially overlaps the phase label;
   touch gameplay is not supported. SwiftShader performance is not a GPU benchmark.
-- This pass has not been committed, pushed, or deployed by restarting services.
+- This pass was deployed after the build and the web service was restarted so the
+  live asset manifest matched the build.
 
 ## Blood Gulch map fidelity pass - 2026-09-08
 
