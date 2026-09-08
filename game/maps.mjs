@@ -1,4 +1,5 @@
 import {ISLAND_MAPS} from './island-maps.mjs';
+import BLOOD_GULCH from './blood-gulch.mjs';
 
 // Map definitions are immutable templates. Each Match owns its own collision and navigation context.
 const wall=(x,z,w,d,h=9,kind='wall')=>({x,z,w,d,h,kind});
@@ -18,7 +19,8 @@ export const MAPS=[
  {id:'crosswire',name:'Crosswire',tag:'CROSSROADS / CLOSE QUARTERS',description:'Four staggered bunkers split an open crossroads. Cut corners and ambush with the scattergun.',color:'#a998ff',background:'#101020',raised:false,blocks:[cover(-5,-5,5,3,3.3),cover(5,5,5,3,3.3),cover(-5,5,3,5,3.3),cover(5,-5,3,5,3.3),cover(0,0,1.4,1.4,1.7),...shell],spawns:[[-11,11],[11,11],[-11,-11],[11,-11],[0,12],[0,-12],[-12,0],[12,0]],pickups:[['health',-11,0],['health',11,0],['armor',0,10],['rocket',-10,-10],['rail',0,-11],['scatter',0,4],['plasma',10,10],['health',-10,10],['armor',10,-10]]},
   {id:'foundry',name:'The Foundry',tag:'TWIN CORES / LONG SIGHTLINES',description:'Orange furnace towers divide three firing lanes. Take the gantry or push through the center.',color:'#ffab65',background:'#1b1210',raised:true,blocks:[wall(-4,0,2.8,5,5.7,'reactor'),wall(4,0,2.8,5,5.7,'reactor'),cover(-4,7,3,1.3,1.8),cover(4,7,3,1.3,1.8),cover(0,-5,2,1.3,1.8),...deck,...shell],spawns:upperSpawns,pickups:[['health',-11,7],['health',11,7],['armor',0,5],['rocket',0,0],['rail',-5,-12],['plasma',5,-12],['scatter',0,11],['health',0,-12],['armor',-6,-5]]},
   launchpad,
-  citadel,
+ citadel,
+  BLOOD_GULCH,
   ...ISLAND_MAPS,
 ];
 const freeze=(value)=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);Object.values(value).forEach(freeze);}return value;};

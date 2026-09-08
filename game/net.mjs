@@ -146,9 +146,10 @@ export class NetClient {
   this.state = msg.state;
   if (this.shadow && this.actorId !== null) {
    const own = msg.state.actors.find(a => a.id === this.actorId);
-    if (own) {
-     this.resync(own);
-     const ack=Number.isInteger(msg.acks?.[this.actorId])?msg.acks[this.actorId]:null;
+     if (own) {
+      this.resync(own);
+      this.resyncVehicles(msg.state.vehicles);
+      const ack=Number.isInteger(msg.acks?.[this.actorId])?msg.acks[this.actorId]:null;
      if(ack!==null){this.pendingInputs=this.pendingInputs.filter(item=>item.seq>ack);for(const item of this.pendingInputs)this.shadow.step(RULES.dt,{inputs:{[this.shadow.actors[0].id]:item.input}});}
      this.resynced = true;
     }
@@ -161,27 +162,44 @@ export class NetClient {
    this.pendingInputs = [];
    this.clockOffset = null;
  }
- resync(actor) {
+  resync(actor) {
   const p = this.shadow.actors[0];
   Object.assign(p, actor);
-  p.ammo = actor.ammo.map(n => Number.isFinite(n) ? n : Infinity);
- }
+   p.ammo = actor.ammo.map(n => Number.isFinite(n) ? n : Infinity);
+  }
+   resyncVehicles(vehicles = []) {
+   if (!this.shadow) return;
+    for (const state of Array.isArray(vehicles) ? vehicles : []) {
+     const vehicle = this.shadow.vehicles.find(item => item.id === state.id);
+     if (!vehicle) continue;
+     vehicle.position = { x: Number.isFinite(state.x) ? state.x : vehicle.position.x, y: Number.isFinite(state.y) ? state.y : vehicle.position.y, z: Number.isFinite(state.z) ? state.z : vehicle.position.z };
+     vehicle.velocity = { x: Number.isFinite(state.vx) ? state.vx : vehicle.velocity.x, z: Number.isFinite(state.vz) ? state.vz : vehicle.velocity.z };
+     vehicle.heading = Number.isFinite(state.yaw) ? state.yaw : vehicle.heading;
+     vehicle.health = Number.isFinite(state.health) ? state.health : vehicle.health;
+     vehicle.maxHealth = Number.isFinite(state.maxHealth) ? state.maxHealth : vehicle.maxHealth;
+    vehicle.driver = state.driver;
+    vehicle.heat = state.heat;
+    vehicle.overheated = state.overheated;
+    vehicle.respawnTimer = state.respawnTimer;
+   }
+  }
  predict(input) {
   if (this.shadow) this.shadow.step(RULES.dt, { inputs: { [this.shadow.actors[0].id]: input } });
  }
  viewMatch() {
   const st = this.state;
   const mapId = st?.mapId || this.mapId;
-  return { arena: getMap(mapId), actors: st ? st.actors : [], pickups: st ? st.pickups : [], rockets: [], events: [], serial: 0 };
- }
+   return { arena: getMap(mapId), actors: st ? st.actors : [], vehicles: st ? st.vehicles ?? [] : [], pickups: st ? st.pickups : [], rockets: [], events: [], serial: 0 };
+  }
  renderState(now = performance.now()) {
   const b = this.buffer;
-  let base, actors, rockets;
+   let base, actors, rockets, vehicles;
   if (!b.length) {
    if (!this.state) return null;
    base = this.state;
-   actors = base.actors;
-   rockets = base.rockets ?? [];
+    actors = base.actors;
+    vehicles = base.vehicles ?? [];
+    rockets = base.rockets ?? [];
   } else {
     const useServerClock=this.clockOffset!==null&&b.length>1&&b.every(m=>m.serverTime!==null),target=useServerClock?(now-this.clockOffset)/1000-RENDER_DELAY/1000:now-RENDER_DELAY;
     let hi = b.findIndex(m => useServerClock?m.serverTime>=target:m.recvAt>=target);
@@ -198,17 +216,27 @@ export class NetClient {
     return { ...actor, x: lerp(before.x, actor.x, alpha), y: lerp(before.y, actor.y, alpha), z: lerp(before.z, actor.z, alpha),
      yaw: before.yaw + turn(before.yaw, actor.yaw) * alpha, pitch: lerp(before.pitch, actor.pitch, alpha) };
    });
-   rockets = (base.rockets ?? []).map(r => {
+    rockets = (base.rockets ?? []).map(r => {
     const before = (prev.rockets ?? []).find(x => x.id === r.id);
     if (!before) return r;
-    return { ...r, pos: { x: lerp(before.pos.x, r.pos.x, alpha), y: lerp(before.pos.y, r.pos.y, alpha), z: lerp(before.pos.z, r.pos.z, alpha) } };
-   });
-  }
-  if (this.shadow && this.resynced) {
+     return { ...r, pos: { x: lerp(before.pos.x, r.pos.x, alpha), y: lerp(before.pos.y, r.pos.y, alpha), z: lerp(before.pos.z, r.pos.z, alpha) } };
+    });
+    vehicles = (base.vehicles ?? []).map(vehicle => {
+     const before = (prev.vehicles ?? []).find(item => item.id === vehicle.id);
+     if (!before) return vehicle;
+     return { ...vehicle, x: lerp(before.x, vehicle.x, alpha), y: lerp(before.y, vehicle.y, alpha), z: lerp(before.z, vehicle.z, alpha), yaw: before.yaw + turn(before.yaw, vehicle.yaw) * alpha };
+    });
+   }
+   if (this.shadow && this.resynced) {
    const own = this.shadow.actors[0];
    const idx = actors.findIndex(a => a.id === this.actorId);
-   if (idx >= 0) actors = actors.slice(0, idx).concat(own, actors.slice(idx + 1));
-  }
-  return { ...base, actors, rockets, events: this.events };
+    if (idx >= 0) actors = actors.slice(0, idx).concat(own, actors.slice(idx + 1));
+    if (own.vehicleId !== null) {
+     const local = this.shadow.vehicles.find(vehicle => vehicle.id === own.vehicleId);
+     const idx = vehicles.findIndex(vehicle => vehicle.id === own.vehicleId);
+     if (local && idx >= 0) { const state = { id: local.id, kind: local.kind, x: local.position.x, y: local.position.y, z: local.position.z, vx: local.velocity.x, vz: local.velocity.z, yaw: local.heading, health: local.health, maxHealth: local.maxHealth, driver: local.driver, heat: local.heat, overheated: local.overheated, respawnTimer: local.respawnTimer }; vehicles = vehicles.slice(0, idx).concat(state, vehicles.slice(idx + 1)); }
+    }
+   }
+   return { ...base, actors, vehicles, rockets, events: this.events };
  }
 }

@@ -51,8 +51,8 @@ export class Room {
     existing.disconnectedAt = null;
      existing.latest = null;
      existing.receivedSeq = existing.appliedSeq = existing.latestSeq = 0;
-    existing.edgeJump = existing.edgePower = false;
-    existing.lastJump = existing.lastPower = false;
+     existing.edgeJump = existing.edgePower = existing.edgeInteract = false;
+     existing.lastJump = existing.lastPower = existing.lastInteract = false;
     this.peers.set(peerId, existing);
     if (this.hostId === oldId) this.hostId = peerId;
     else if (!this.hostId && existing.spectate !== true) this.hostId = peerId;
@@ -71,7 +71,7 @@ export class Room {
   const l = resolveLoadout(character, harness) || { character: 'chatgpt', harness: 'openclaw' };
   const peer = { id: peerId, name: clean(name) || CHARACTERS.find(c => c.id === l.character).name,
     character: l.character, harness: l.harness, actorId: null, ready: false, latest: null, receivedSeq: 0, latestSeq: 0, appliedSeq: 0, lastSerial: 0,
-   lastJump: false, lastPower: false, edgeJump: false, edgePower: false,
+    lastJump: false, lastPower: false, lastInteract: false, edgeJump: false, edgePower: false, edgeInteract: false,
    token: randomUUID(), disconnectedAt: null, spectate: isSpectator };
   this.peers.set(peerId, peer);
   if (!this.hostId && !isSpectator) this.hostId = peerId;
@@ -87,8 +87,8 @@ export class Room {
   if (!peer) return;
   peer.disconnectedAt = Date.now();
   peer.latest = null;
-  peer.edgeJump = peer.edgePower = false;
-  peer.lastJump = peer.lastPower = false;
+   peer.edgeJump = peer.edgePower = peer.edgeInteract = false;
+   peer.lastJump = peer.lastPower = peer.lastInteract = false;
   this.broadcast(this.lobby());
  }
  expireGrace(now = Date.now()) {
@@ -114,7 +114,7 @@ export class Room {
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
    this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => ({ character: p.character, harness: p.harness })) });
   let i = 0;
-   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
+   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = p.edgeInteract = false; p.lastJump = p.lastPower = p.lastInteract = false; i++; }
   for (const p of this.peers.values()) if (p.spectate) p.lastSerial = 0;
   this.started = true;
   this.roundOver = false;
@@ -134,12 +134,14 @@ export class Room {
   if (Number.isFinite(i.yaw)) ext.yaw = i.yaw;
   if (Number.isFinite(i.pitch)) ext.pitch = Math.max(-1.45, Math.min(1.45, i.pitch));
   if (Number.isInteger(i.weapon)) ext.weapon = i.weapon;
-   peer.latest = ext;
+    peer.latest = ext;
    peer.latestSeq = seq;
   if (i.jump === true && !peer.lastJump) peer.edgeJump = true;
   peer.lastJump = i.jump === true;
-  if (i.power === true && !peer.lastPower) peer.edgePower = true;
-  peer.lastPower = i.power === true;
+   if (i.power === true && !peer.lastPower) peer.edgePower = true;
+   peer.lastPower = i.power === true;
+   if (i.interact === true && !peer.lastInteract) peer.edgeInteract = true;
+   peer.lastInteract = i.interact === true;
  }
  chat(peerId, text, now = Date.now()) {
   const peer = this.peers.get(peerId);
@@ -159,8 +161,8 @@ export class Room {
    a.bot = { route: [], think: 0, target: -1, memory: 0, reaction: 0, stuck: 0, last: { x: a.x, y: a.y, z: a.z }, state: 'roam' };
   }
   peer.latest = null;
-  peer.edgeJump = peer.edgePower = false;
-  peer.lastJump = peer.lastPower = false;
+   peer.edgeJump = peer.edgePower = peer.edgeInteract = false;
+   peer.lastJump = peer.lastPower = peer.lastInteract = false;
   peer.actorId = null;
   this.peers.delete(peerId);
   if (this.hostId === peerId) this.hostId = this.nextConnectedHost();
@@ -172,10 +174,11 @@ export class Room {
   let steps = 0;
   while (this.tickAcc >= RULES.dt && steps < 5) {
      const inputs = {};
-   for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeJump || p.edgePower)) {
+    for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeJump || p.edgePower || p.edgeInteract)) {
     const ext = { ...(p.latest ?? {}) };
     if (p.edgeJump) { ext.jump = true; p.edgeJump = false; }
-    if (p.edgePower) { ext.power = true; p.edgePower = false; }
+     if (p.edgePower) { ext.power = true; p.edgePower = false; }
+     if (p.edgeInteract) { ext.interact = true; p.edgeInteract = false; }
     inputs[p.actorId] = ext;
    }
      this.match.step(RULES.dt, { inputs });

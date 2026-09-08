@@ -44,7 +44,7 @@ export class SynthAudio{
   start(){try{const Context=globalThis.AudioContext||globalThis.webkitAudioContext;if(!Context)return;this.ctx??=new Context();if(this.ctx.state==='suspended')this.ctx.resume();}catch{}}
  tone(freq,duration=.08,type='sine',gain=.04,end=0){if(!this.ctx||this.muted||this.voices.size>=24)return;const now=this.ctx.currentTime,o=this.ctx.createOscillator(),g=this.ctx.createGain(),voice={o,g};this.voices.add(voice);o.type=type;o.frequency.setValueAtTime(freq,now);if(end)o.frequency.exponentialRampToValueAtTime(end,now+duration);g.gain.setValueAtTime(.001,now);g.gain.linearRampToValueAtTime(gain,now+.004);g.gain.exponentialRampToValueAtTime(.001,now+duration);o.connect(g);g.connect(this.ctx.destination);o.onended=()=>{o.disconnect();g.disconnect();this.voices.delete(voice);};o.start(now);o.stop(now+duration);}
  event(e,player){if(!player)return;const local=e.actor===player.id,previous=this.lastDamage;this.lastDamage=e.type==='damage'?e:null;
-   if(e.type==='shot'||e.type==='launch'){
+    if(e.type==='shot'||e.type==='vehicle-shot'||e.type==='launch'){
     const same=this.lastReport&&e.time!=null&&this.lastReport.time===e.time&&this.lastReport.actor===e.actor&&this.lastReport.weapon===e.weapon&&this.lastReport.type===e.type;this.lastReport=e;
    const p=e.from??e.pos,distance=p?Math.hypot(p.x-player.x,p.z-player.z):Infinity;
     const feel=WEAPONS[e.weapon]?.feel||{};const [freq,duration,type,end]=(e.type==='launch'?feel.launch:feel.shot)||REPORTS[e.weapon]||REPORTS[0];

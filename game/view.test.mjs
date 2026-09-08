@@ -1,9 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ArenaView,weaponModel} from './view.mjs';
+import {ArenaView,vehicleModel,weaponModel} from './view.mjs';
 import {SoftwareRenderer} from './software.mjs';
 import {DEFAULT_DISPLAY} from './config.mjs';
 import * as T from 'three';
+import BLOOD_GULCH from './blood-gulch.mjs';
 
 function fixture(t,{dpr=1,software=false,width=800,height=450}={}){
  const previous=Object.getOwnPropertyDescriptor(globalThis,'window');
@@ -101,4 +102,30 @@ test('unknown weapons produce typed models and effects do not index past weapon 
  const model=weaponModel(7);assert.equal(model.userData.type,7);assert.ok(model.userData.flash);
  const {view,renderer}=fixture(t);view.scene=new T.Scene();view.hands=new T.Group();view.camera=new T.PerspectiveCamera();view.actorModels=new Map();view.pickupModels=[];view.flagModels=new Map();view.playerId=1;view.currentWeapon=-1;view.lastEvent=0;view.motionQuery={matches:true};renderer.render=()=>{};
  const actor={id:1,weapon:7,health:100,x:0,y:0,z:0,yaw:0,pitch:0,vx:0,vy:0,vz:0,grounded:true};view.render('playing',{actors:[actor],pickups:[],rockets:[{weapon:7,pos:{x:0,y:1,z:0}}],events:[{id:1,type:'shot',weapon:7,actor:1,pos:{x:0,y:1,z:0}}]},.016,1);assert.ok(view.firstPerson.userData.flash);view.effectPool?.dispose();view.projectilePool?.dispose();
+  });
+
+test('Puma model exposes two readable side chainguns',()=>{
+  const model=vehicleModel('puma');
+  assert.equal(model.userData.vehicle,true);
+  assert.equal(model.userData.guns.length,2);
+  assert.notEqual(model.userData.guns[0].mount.position.x,model.userData.guns[1].mount.position.x);
+  model.traverse(child=>{if(child.geometry)child.geometry.dispose();if(child.material){for(const m of Array.isArray(child.material)?child.material:[child.material])m.dispose();}});
+ });
+
+test('Blood Gulch builds polygon terrain and cliff geometry without platform assumptions',()=>{
+  const view=Object.create(ArenaView.prototype);view.scene=new T.Scene();view.renderResources=new Set();view.mapId='exchange';
+  view.buildArena(BLOOD_GULCH);
+  const meshes=view.worldGroup.children.filter(child=>child.userData.terrain);
+  assert.equal(meshes.length,3);
+  assert.equal(meshes.reduce((count,mesh)=>count+mesh.geometry.attributes.position.count/3,0),14);
+  assert.ok(meshes.some(mesh=>mesh.material.side===T.DoubleSide));
+ view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();
+ });
+
+test('rebuilding a terrain arena releases traversal resources instead of accumulating them',()=>{
+  const view=Object.create(ArenaView.prototype);view.scene=new T.Scene();view.renderResources=new Set();view.mapId='exchange';
+  view.buildArena(BLOOD_GULCH);const initial=view.renderResources.size;assert.ok(initial>0);
+  for(let i=0;i<20;i++)view.buildArena(BLOOD_GULCH);
+  assert.equal(view.renderResources.size,initial);
+  view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();
  });

@@ -1,5 +1,46 @@
 # TOKEN ARENA verification report
 
+## Polygon terrain renderer follow-up - 2026-09-08
+
+- Added **Blood Gulch**, a semi-symmetric outdoor CTF canyon with a triangulated
+  valley floor, interpolated north/south hills, walkable slopes, high plateaus,
+  analytic terrain ray hits, cliff wall faces, central cover, and route-aware
+  navigation. Terrain triangles are cached per immutable map and consumed by
+  authoritative simulation and renderer geometry.
+- Added two neutral **Puma** Warthog-style vehicles. A single living driver can
+  enter/exit with `E`, drive using bounded forward/reverse arcade handling, and
+  fire paired side-mounted chainguns. Heat, overheat, damage, driver release,
+  respawn, CTF flag-carrier restrictions, snapshots, prediction rebasing, remote
+  interpolation, WebGL rendering, software rendering, and bot takeover are covered.
+- Added focused terrain, map, vehicle, gameplay, renderer, and server edge tests.
+  Final verification passes: **170 game tests**, **53 server tests**, TypeScript,
+  production build, and rendered HTML (**224 automated tests total**).
+- Fixed the terrain-map renderer branch that incorrectly assumed every non-legacy
+  map had `platforms`. Blood Gulch now builds its polygon surface mesh and cliff
+  mesh independently; the scene regression asserts all 10 surface triangles and
+  4 cliff-wall triangles are present.
+- Public checks after restarting both services pass for linked assets, existing
+  CTF/browser flows, and a live WSS Blood Gulch match whose snapshot exposes two
+  `puma` vehicles with full health and two flags. No browser runtime errors or
+  failed resources appeared.
+- Arena entry now commits a local match only after `setMatch()` completes, keeps
+  the RAF loop alive with a visible recovery message after a frame exception, and
+  initializes network rendering from the first valid snapshot even before actor
+  binding completes. Rebuilding terrain maps releases traversal resources instead
+  of accumulating them.
+- A ten-cycle headless browser lifecycle check entered and returned from Exchange,
+  Blood Gulch, Skybreak Isles, Aether Ring, and Launchpad with nonzero renderer
+  counters and no page errors. The managed SwiftShader environment is slow, so
+  its wall-clock click timings are not a desktop performance claim.
+- Research references: [Gaffer fixed timestep](https://gafferongames.com/post/fix_your_timestep/),
+  [Gaffer networked physics](https://gafferongames.com/post/networked_physics_2004/),
+  [Unity Wheel Collider concepts](https://docs.unity3d.com/Manual/WheelColliderTutorial.html),
+  and [Halopedia Blood Gulch](https://www.halopedia.org/Blood_Gulch).
+- Subjective Puma driving feel, chaingun audio balance, and competitive vehicle
+  counterplay still require a human desktop multiplayer playtest.
+- Added ray-safety coverage for zero-distance visibility, malformed directions,
+  invalid ray bounds, invalid fire input, and explosions centered on vehicles.
+
 ## Launcher, weapon feel and identity pass - 2026-09-08
 
 - Launcher flights now resolve authored `jumpLinks` into deterministic ballistic

@@ -32,7 +32,7 @@ test('casual defaults preserve explicit saved difficulty and roster',()=>{
   moveActor(a,{z:-1},1/30,arena,config);clear(a,arena);assert.ok(a.z>=b.z+b.d/2+RULES.radius);
    Object.assign(a,{x:b.x,z:b.z,y:b.h,vx:0,vy:0,vz:0,grounded:true,traversalCooldown:10});
   for(let i=0;i<90;i++){moveActor(a,{z:1},1/60,arena,config);clear(a,arena);}
-  assert.ok(a.y<b.h);assert.equal(a.y,floorAt(a.x,a.z,arena));
+   assert.ok(arena.terrain?a.y===floorAt(a.x,a.z,arena):a.y<b.h);assert.equal(a.y,floorAt(a.x,a.z,arena));
  }
 });
 

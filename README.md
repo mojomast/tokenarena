@@ -1,6 +1,6 @@
 # TOKEN ARENA
 
-A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from seven arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from eight arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
 
 ## Run locally
 
@@ -47,6 +47,10 @@ Not yet included: accounts/matchmaking.
 - **Outdoor CTF arenas:** Skybreak Isles is a wide three-route skyway; Aether Ring
   is a diagonal island loop. Both have separated platforms, huge authored jumps,
   readable safe/risky routes, and a lethal void that drops carriers on recovery.
+- **Blood Gulch:** a semi-symmetric canyon CTF map with polygonal valley, hills,
+  walkable slopes, cliff walls, central cover, and two neutral Puma Warthog-style
+  vehicles. Each Puma has paired side-mounted chainguns; press **E** near one to
+  enter or exit. Flag carriers cannot enter a Puma.
 - Easy and Normal bots now react and turn more slowly, fire less frequently, and
   aim less accurately. Breaking line of sight gives a fresh reaction delay.
   Existing saved difficulty choices are retained; select Casual Skirmish for the
@@ -70,6 +74,7 @@ Not yet included: accounts/matchmaking.
 | Space | Jump |
 | 1–8; mouse wheel | Switch available weapon |
 | Q | Activate harness |
+| E | Enter / exit nearby Puma |
 | Tab | Hold scoreboard |
 | Escape | Pause and release mouse |
 
@@ -99,9 +104,11 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 - `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
 - `game/harness-profiles.mjs`: bounded harness passives, ability parameters, weapon affinities and bot hints.
 - `game/operator-profiles.mjs`: operator combat identities and bot weapon preferences.
-- `game/maps.mjs`: seven arena templates, CTF bases, collision geometry, traversal routes, island surfaces, spawns and supplies.
-- `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; armor, powers, pickups, scoring, respawn and bot utility/navigation.
-- `game/view.mjs`: Three.js procedural arena, models, first-person weapons, effects and synthesized Web Audio.
+  - `game/maps.mjs`: arena templates, CTF bases, polygon terrain, collision geometry, traversal routes, vehicles, spawns and supplies.
+  - `game/terrain.mjs`: deterministic triangle support, ray hits, cliff wall segments and terrain bounds.
+  - `game/vehicles.mjs`: bounded Puma arcade handling, paired-chaingun heat, enter/exit and respawn primitives.
+  - `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; terrain, Puma vehicles, armor, powers, pickups, scoring, respawn and bot utility/navigation.
+  - `game/view.mjs`: Three.js procedural arena, polygon terrain, Puma models, first-person weapons, effects and synthesized Web Audio.
 - `game/software.mjs`: CPU renderer of the same scene for browsers where WebGL2 is unavailable. This fallback is approximate and slower; hardware WebGL2 is the preferred path.
 - `game/core.test.mjs`: consequential pure-logic checks and deterministic bot match.
 - `game/net.mjs`: browser-side NetClient — WebSocket protocol, sequenced 60Hz inputs, a shadow `Match` that predicts your own actor and replays unacknowledged inputs after authoritative snapshots, 20Hz server-time interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
@@ -136,6 +143,8 @@ Version 0.8 adds the Launchpad and Citadel arenas, Capture the Flag and Team Dea
 Version 0.9 adds Skybreak Isles and Aether Ring, two much larger outdoor CTF arenas built from disconnected platforms over a lethal void. Authored jump links give bots deterministic high-speed routes, while the renderer shows platform slabs, supports, route colors, void depth, and launcher markers. Multiplayer inputs now carry sequence numbers; server snapshots acknowledge processed inputs so the client can rebase and replay instead of visibly rolling back on every snapshot. Remote interpolation uses server simulation time and a deeper jitter buffer.
 
 Version 1.0 tunes launcher traversal from authored source-to-target ballistic links with bounded air correction and descending landing capture, so island jumps stop overshooting. Weapon feedback is now data-driven across all eight weapons with distinct kick, muzzle, tracer, impact and synthesized audio profiles, plus dry-fire cues. Harness profiles add passive movement/resistance and weapon affinities; operator profiles add bot weapon and strafe identities while preserving deterministic simulation and bounded balance modifiers.
+
+Version 1.1 adds Blood Gulch: immutable triangulated terrain supports interpolated valley floors, hills, walkable slopes and analytic cliff ray hits while preserving legacy box maps. Two neutral Puma vehicles spawn near the opposing bases; one driver can use forward/reverse arcade handling and paired side-mounted chainguns with authoritative heat, damage, destruction and respawn. Puma state is included in snapshots and local prediction, and `E` is a one-shot enter/exit input in multiplayer.
 
 ## Source ZIPs
 
