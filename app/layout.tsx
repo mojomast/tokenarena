@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "TOKEN ARENA — AI Deathmatch",
-  description: "Choose an AI operator and harness. Fight four bots in a fast, original 3D arena deathmatch.",
+  description: "Choose an AI operator and harness. Play casual bot matches or host multiplayer in an original 3D arena.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

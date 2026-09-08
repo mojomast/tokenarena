@@ -1,6 +1,6 @@
 # TOKEN ARENA
 
-A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose one of three arenas, and configure a match with zero to eight bots. Defaults remain first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from five arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
 
 ## Run locally
 
@@ -31,20 +31,47 @@ Not yet included: accounts/matchmaking.
 
 ## Play
 
+### Replayability and combat
+
+- **Match Setup > Quick Match Presets:** Warmup (no bots), Casual Skirmish
+  (two Easy bots), Duel (one Normal bot), or Rocket Party (three Easy bots).
+  Presets reset match rules while retaining your callsign and selected loadout/map.
+- **Shuffle Loadout / Map:** roll a compatible operator/harness and arena without
+  changing match rules. Claude's harness restriction is always enforced.
+- **Next Arena:** after a solo round, rotate to a different map with a randomized
+   compatible loadout and the same rules. Play Again keeps the existing setup.
+- **Capture the Flag:** choose CTF and Launchpad for a large symmetric arena with
+  red/blue bases, steal-and-return flags, trampolines, and boost launchers that
+  throw you across the field. Team Deathmatch adds shared team scoring without
+  friendly fire.
+- Easy and Normal bots now react and turn more slowly, fire less frequently, and
+  aim less accurately. Breaking line of sight gives a fresh reaction delay.
+  Existing saved difficulty choices are retained; select Casual Skirmish for the
+  new beginner-friendly setup.
+- Jumping now supports landing on cover rather than falling into it. Movement
+  checks vertical and horizontal substeps, ramp/deck seams, and embedded states.
+- Weapons have distinct visual kick/recovery, restrained movement and landing
+  feedback, impact effects, and synthesized firing sounds. These visuals do not
+  displace the aiming camera. System reduced-motion preferences disable weapon
+  motion and flashes. Hit/kill sounds use confirmed damage events and local-player
+  identity, including non-host multiplayer players.
+- Map navigation is shared between matches, transient effects and audio voices
+  are bounded, and effect resources are reused rather than allocated per pellet.
+
 | Input | Action |
 |---|---|
 | WASD | Move |
 | Mouse | Look |
 | Left click / hold | Fire |
 | Space | Jump |
-| 1–5; mouse wheel | Switch available weapon |
+| 1–8; mouse wheel | Switch available weapon |
 | Q | Activate harness |
 | Tab | Hold scoreboard |
 | Escape | Pause and release mouse |
 
-Choose an operator, harness and arena, then Enter Arena. Scroll the roster and harness lists to see all choices. Settings include mouse sensitivity and audio mute, saved on this device. If mouse capture is denied, hold left mouse to aim and fire, or retry capture. Keyboard and mouse are required; there are no touch gameplay controls.
+Choose an operator, harness and arena, then Enter Arena. All operators are in an uncropped grid; on small screens, scroll the menu to reach further sections. Graphics & settings includes resolution scale, field of view, crosshair controls, mouse sensitivity and audio mute, saved on this device. If mouse capture is denied, hold left mouse to aim and fire, or use Capture mouse. Keyboard and mouse are required; there are no touch gameplay controls.
 
-Pulse Rifle has unlimited ammo. Collect orange Rocket Launchers, violet Rail Lances, gold Scatterguns and blue Plasma Drivers to unlock them with limited ammo. Green crosses restore health and blue diamonds grant armor. The Exchange and The Foundry have ramps to a north deck; Crosswire uses ground-level cross lanes. Pickups respawn. Death respawns you automatically after two seconds with brief protection; firing or Q ends that protection.
+Pulse Rifle has unlimited ammo. Collect orange Rocket Launchers, violet Rail Lances, gold Scatterguns, blue Plasma Drivers, red Grenade Launchers, cyan Shock Beams, and gold Flak Cannons to unlock them with limited ammo. Green crosses restore health and blue diamonds grant armor. Haste, Overcharge, and Overshield pickups temporarily modify movement/fire cadence, damage, or shielding. The Exchange and The Foundry have ramps to a north deck; Crosswire and Citadel use ground-level cross lanes; Launchpad uses trampoline and boost-launcher routes. Pickups respawn. Death respawns you automatically after two seconds with brief protection; firing or Q ends that protection.
 
 OpenClaw: close pulse and knockback. Hermes: temporary speed boost and trail. OpenCode: temporary faster firing. Claude Code: temporary 50% damage reduction. Codex: instant health repair. Cline: collision-safe forward dash. Roo Code: a line-of-sight slowing pulse. AI names represent fictional robots, not factual product comparisons.
 
@@ -65,8 +92,8 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 ## Architecture
 
 - `app/page.tsx`: game state menus, HUD, input, audio events and fixed-step accumulator. Rendering is RAF-driven; simulation advances at 60Hz with five-step catch-up bound.
-- `game/data.mjs`: roster, weapons, harness parameters, loadout validation.
-- `game/maps.mjs`: three arena templates, collision geometry, spawns and supplies.
+- `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, loadout validation.
+- `game/maps.mjs`: five arena templates, CTF bases, collision geometry, traversal routes, spawns and supplies.
 - `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; armor, powers, pickups, scoring, respawn and bot utility/navigation.
 - `game/view.mjs`: Three.js procedural arena, models, first-person weapons, effects and synthesized Web Audio.
 - `game/software.mjs`: CPU renderer of the same scene for browsers where WebGL2 is unavailable. This fallback is approximate and slower; hardware WebGL2 is the preferred path.
@@ -86,7 +113,7 @@ For read-only debugging, `window.tokenArenaSnapshot()` reports state and renderi
 
 ## Verify
 
-`npm run test:game` runs the 38 simulation, expansion, configuration, multi-human, prediction and session tests; `npm run test:server` runs the 47 room, registry, spectator, history, chat and network tests. `npx tsc --noEmit` checks TypeScript. `npm run build` verifies the production bundle. See VERIFICATION.md for browser evidence and gaps; do not equate a passing simulated match with GPU performance verification.
+`npm run test:game` runs the game, expansion, configuration, multi-human, prediction, content, map, mode, powerup, replay and renderer tests; `npm run test:server` runs the room, registry, spectator, history, chat and network tests. `npx tsc --noEmit` checks TypeScript. `npm run build` verifies the production bundle. See VERIFICATION.md for browser evidence and gaps; do not equate a passing simulated match with GPU performance verification.
 
 ## Scope boundary
 
@@ -96,7 +123,9 @@ Version 0.5 adds a room browser over concurrent rooms (join or create a 4-letter
 
 Version 0.6 fixes two multiplayer bugs and adds room chat. `create` always mints a fresh 4-letter room — it can no longer silently route into a previously persisted room — and abandoned on-demand rooms are retired after their grace period so the browser list stays honest. `{type:'chat', text}` broadcasts room-scoped messages (control chars stripped, trimmed, capped at 200 characters, rate-limited to one per 300ms per peer) to players and spectators alike, rendered as a lobby panel and a bottom-left in-game overlay (`T`/`Enter` opens the input, `Enter` sends, `Escape` closes; solo play is untouched).
 
-Version 0.7 reorganizes the first screen around game-menu best practices: the selection screen is now identity-focused (operator + harness + preview) with a persistent action bar — a dominant `ENTER ARENA` primary action, `PLAY ONLINE` (opens the room browser, becomes DISCONNECT while connected), `MATCH SETUP`, and a settings gear. Arena and match rules moved behind the `MATCH SETUP` dialog (progressive disclosure, `< 3 clicks` to everything, Escape closes any overlay), and the multiplayer server address is tucked into the room browser behind a compact row with a QUICK JOIN shortcut. Solo behavior, the 38 game tests and the 48 server tests are unchanged.
+Version 0.7 reorganizes the first screen around game-menu best practices: the selection screen is now identity-focused (operator + harness + preview) with a persistent action bar — a dominant `ENTER ARENA` primary action, `PLAY ONLINE` (opens the room browser, becomes DISCONNECT while connected), `MATCH SETUP`, and a settings gear. Arena and match rules moved behind the `MATCH SETUP` dialog (progressive disclosure, `< 3 clicks` to everything, Escape closes any overlay), and the multiplayer server address is tucked into the room browser behind a compact row with a QUICK JOIN shortcut. Solo behavior, the original menu layout and network flows remain available alongside the expanded content.
+
+Version 0.8 adds the Launchpad and Citadel arenas, Capture the Flag and Team Deathmatch, eight total weapons, Haste/Overcharge/Overshield pickups, trampoline and boost-launcher traversal, objective-aware bots, and bounded projectile handling. Launchpad is the recommended CTF map: its opposing launchers cover the centerline and its four trampolines reward aggressive flag routes.
 
 ## Source ZIPs
 
@@ -110,11 +139,13 @@ Use **Mode & bot settings** on the loadout screen to jump to match setup. Settin
 | Mode | Rules |
 |---|---|
 | Deathmatch | Start with your chosen weapon; collect the rest. |
+| Capture the Flag | Steal the enemy flag and return it while your flag is home; three captures wins by default. |
+| Team Deathmatch | Shared team frag score; friendly fire is disabled. |
 | Instagib | Unlimited Rail Lance only; one unprotected hit kills. No supplies or powers. |
 | Rocket Arena | Unlimited rockets only; health and armor pickups remain. |
-| Full Arsenal | All five weapons unlocked with unlimited ammo on every spawn. |
+| Full Arsenal | All eight weapons unlocked with unlimited ammo on every spawn. |
 
-Set 0–8 bots (zero is solo practice), Easy/Normal/Hard/Nightmare difficulty, 5–50 frag limit, 1–15 minute timer, and 1–5 second respawns. Difficulty changes reaction delay, aim error, decision interval and, on Easy, firing cadence; health and movement rules remain shared. Normal preserves the original bot tuning.
+Set 0–8 bots (zero is solo practice), Easy/Normal/Hard/Nightmare difficulty, 1–50 capture/team-frag limit, 1–15 minute timer, and 1–5 second respawns. Difficulty changes reaction delay, aim error, turning speed, decision interval, and firing cadence. Bots use their operator stats and the same match modifiers as players; difficulty does not grant extra health.
 
 Modifiers: 0.75–1.5× movement speed, normal/light/moon gravity, 0.5–2× damage, unlimited ammo for unlocked weapons, half ability cooldowns, and 25% life steal based on health damage actually dealt. Self-damage never heals. Instagib overrides damage and disables powers. Weapon-locked modes override the starting weapon and ammo controls.
 

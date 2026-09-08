@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ArenaView} from './view.mjs';
+import {ArenaView,weaponModel} from './view.mjs';
 import {SoftwareRenderer} from './software.mjs';
 import {DEFAULT_DISPLAY} from './config.mjs';
+import * as T from 'three';
 
 function fixture(t,{dpr=1,software=false,width=800,height=450}={}){
  const previous=Object.getOwnPropertyDescriptor(globalThis,'window');
@@ -67,3 +68,37 @@ test('software canvas honors pixel ratio arguments and guards minimum dimensions
  renderer.setPixelRatio(.425);renderer.setSize(0,1,false);assert.equal(canvas.width,1);assert.equal(canvas.height,1);
  assert.deepEqual(canvas.style,{width:'100%',height:'100%'});
 });
+
+test('view keeps camera aim authoritative while weapon feedback respects visibility and reduced motion',t=>{
+ const {view,renderer}=fixture(t);view.camera=new T.PerspectiveCamera();view.scene=new T.Scene();view.hands=new T.Group();view.camera.add(view.hands);view.scene.add(view.camera);view.actorModels=new Map();view.pickupModels=[];view.playerId=7;view.currentWeapon=-1;view.lastEvent=0;view.motionQuery={matches:false};renderer.render=()=>{};
+ const player={id:7,weapon:3,health:100,x:1,y:2,z:3,yaw:.7,pitch:.2,vx:5,vz:0,vy:0,grounded:true};
+ const match={actors:[player],pickups:[],rockets:[],time:1,events:[{id:1,type:'shot',actor:7,weapon:3,time:1,from:{x:1,y:3,z:3},to:{x:2,y:3,z:2},hit:{id:2}}]};
+  view.render('playing',match,.016,1);assert.deepEqual(view.camera.position.toArray(),[1,3.45,3]);assert.equal(view.camera.rotation.x,.2);assert.equal(view.camera.rotation.y,.7);assert.equal(view.camera.rotation.z,0);assert.ok(view.hands.position.z>-.58);assert.ok(view.effectPool.slots.some(s=>!s.line&&s.obj.scale.x===.109));
+  const kick=view.feedback.kick;
+  view.render('playing',{...match,actors:[{...player}],events:[]},.016,1.016);
+  assert.ok(view.feedback.kick>0&&view.feedback.kick<kick,'fresh network snapshots preserve recoil recovery');
+  assert.ok(view.effectPool.slots.some(s=>s.active),'fresh snapshots preserve live effects');
+ view.showWeapon=false;view.render('playing',match,.016,1);assert.equal(view.hands.visible,false);assert.equal(view.hands.position.z,-.58);
+  view.showWeapon=true;view.motionQuery.matches=true;view.render('playing',match,.016,1);assert.deepEqual(view.hands.position.toArray(),[.37,-.36,-.58]);assert.equal(view.firstPerson.userData.flash.visible,false);assert.equal(view.hands.rotation.x,0);
+  view.mapId='crosswire';view.setMatch({arena:{id:'crosswire'},actors:[],pickups:[],serial:0});
+  assert.equal(view.feedback.kick,0);assert.ok(view.effectPool.slots.every(s=>!s.active),'new rounds clear effects');
+ view.effectPool.dispose();view.projectilePool.dispose();view.disposeObject(view.scene);
+});
+
+test('object disposal deduplicates shared geometry, material and texture',()=>{
+  const view=Object.create(ArenaView.prototype),group=new T.Group(),geometry=new T.BoxGeometry(),texture=new T.Texture(),material=new T.MeshBasicMaterial({map:texture}),counts=[0,0,0];
+  [geometry,material,texture].forEach((r,i)=>r.addEventListener('dispose',()=>counts[i]++));group.add(new T.Mesh(geometry,material),new T.Mesh(geometry,material));view.disposeObject(group);assert.deepEqual(counts,[1,1,1]);
+ });
+
+test('traversal and flags tolerate metadata variants and clean shared resources',()=>{
+ const view=Object.create(ArenaView.prototype);view.renderResources=new Set();view.flagModels=new Map();view.motionQuery={matches:false};const scene=new T.Scene();view.scene=scene;const arena={id:'new-map',color:'#55ddcc',bounds:{minX:-20,maxX:20,minZ:-10,maxZ:14},traversal:{pads:[{x:-3,y:0,z:2}],launchers:[{x:4,y:0,z:-2,yaw:Math.PI/2}]}};
+ view.addTraversal(scene,arena,new T.MeshBasicMaterial({color:arena.color}));assert.equal(scene.children.filter(x=>x.userData.traversal).length,2);
+ view.updateFlags({time:1,flags:[{team:'alpha',x:1,y:0,z:2,state:'dropped'},{team:'beta',x:-1,y:0,z:2,carrierId:9}]},arena);assert.equal(view.flagModels.size,2);assert.equal(view.flagModels.get('alpha').visible,true);assert.equal(view.flagModels.get('beta').visible,false);
+ view.updateFlags({flags:undefined},arena);assert.ok([...view.flagModels.values()].every(flag=>!flag.visible));view.disposeObject(scene);for(const resource of view.renderResources)resource.dispose();
+ });
+
+test('unknown weapons produce typed models and effects do not index past weapon data',t=>{
+ const model=weaponModel(7);assert.equal(model.userData.type,7);assert.ok(model.userData.flash);
+ const {view,renderer}=fixture(t);view.scene=new T.Scene();view.hands=new T.Group();view.camera=new T.PerspectiveCamera();view.actorModels=new Map();view.pickupModels=[];view.flagModels=new Map();view.playerId=1;view.currentWeapon=-1;view.lastEvent=0;view.motionQuery={matches:true};renderer.render=()=>{};
+ const actor={id:1,weapon:7,health:100,x:0,y:0,z:0,yaw:0,pitch:0,vx:0,vy:0,vz:0,grounded:true};view.render('playing',{actors:[actor],pickups:[],rockets:[{weapon:7,pos:{x:0,y:1,z:0}}],events:[{id:1,type:'shot',weapon:7,actor:1,pos:{x:0,y:1,z:0}}]},.016,1);assert.ok(view.firstPerson.userData.flash);view.effectPool?.dispose();view.projectilePool?.dispose();
+ });

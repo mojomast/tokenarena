@@ -1,5 +1,56 @@
 # TOKEN ARENA verification report
 
+## Replayability and gameplay pass - 2026-09-08
+
+- 178 game/server tests pass after the combined collision, bot, presentation,
+  replayability, map, mode, weapon, and powerup changes. This includes cover
+  landings and embedded-state recovery on all maps at normal/low gravity, turbo
+  ramp traversal, bot reacquisition and difficulty comparisons, cached-navigation
+  isolation, recoil decay, effect/audio bounds, and preset/shuffle/map-rotation tests.
+- In the fixed-seed, stationary 20-second firing-lane fixture, Easy dealt 88
+  cumulative damage in 31 shots, Normal 418 in 58, and Hard 1,617 in 147. The
+  fixture repeatedly replenishes target health to measure cumulative damage;
+  these are relative tuning checks, not human win-rate or survival guarantees.
+- Nine viewport sizes passed menu/setup/browser/lobby/HUD checks. Browser tests
+  exercised all four presets, compatible shuffle, personal result stats, Next
+  Arena with preserved rules, and CTF setup on Launchpad with three-capture
+  scoring, team assignment, two flags, and resume. The results fixture advanced
+  simulation time to the end of the round; it was not a full-duration human match.
+- Real host/guest WebSocket browser tests passed movement, a multiplayer jump and
+  clear landing, drag aim, capture recovery, chat, host resume, and solo/network
+  transitions. Network snapshots preserve effect/recoil lifetimes between frames.
+- TypeScript, the production build, and the rendered-HTML test pass (179 automated
+  tests total). Both production services were restarted together; public checks
+  passed linked assets, presets, WSS hosting, movement, jumping/landing, firing,
+  captured relative aim, and host resume, without browser runtime errors.
+- Weapon sound quality and competitive balance still need listening/human
+  playtesting; no new hardware-GPU benchmark is claimed.
+
+## Content expansion - 2026-09-08
+
+- Added two maps: **Launchpad**, a large symmetric CTF field with red/blue bases,
+  four trampolines, and four directional boost launchers; and **Citadel**, a larger
+  fortress-lane arena. Map tests cover bounds, objective symmetry, traversal
+  metadata, safe pickups/spawns, navigation connectivity, and map-state isolation.
+- Added **Capture the Flag** with flag pickup, drop-on-death, return, capture-home
+  preconditions, team scoring, objective-aware bots, team starts, snapshots, and
+  lifecycle events. Added **Team Deathmatch** with shared scoring and disabled
+  friendly fire. New CTF rounds default to three captures.
+- Added Grenade Launcher (gravity/bounce splash projectile), Shock Beam, and Flak
+  Cannon, expanding the inventory to eight weapons while preserving the original
+  five IDs. Added Haste, Overcharge, and Overshield pickups with timed movement,
+  cadence, damage, and shield effects. New content has focused contract, balance,
+  lifecycle, and combat tests.
+- The complete sequential suite passes: **178 game/server tests**, plus the
+  rendered-HTML check. TypeScript, production build, and `git diff --check` pass.
+- Browser checks pass across nine viewport sizes for the existing menus, room
+  browser, lobby, HUD, presets, shuffle, and Next Arena. A dedicated CTF check
+  passes Capture the Flag setup, Launchpad selection, three-capture scoring, team
+  assignment, flag snapshots, and Resume.
+- Production verification is performed after restarting both services so the
+  versioned asset manifest cannot point at removed files. Human balance, audio
+  tuning, and hardware-GPU performance remain manual validation items.
+
 ## Current verification - 2026-09-08
 
 - **128 game/server tests and one rendered-HTML test pass**, including per-operator

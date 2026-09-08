@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {Match,NAV,EDGES,moveActor,rayWorld,visible,eye,aim,floorAt,obstructed} from './core.mjs';
 import {CHARACTERS,HARNESSES,validLoadout,resolveLoadout,RULES} from './data.mjs';
 function rng(){let n=42;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
-const fresh=()=>new Match('chatgpt','openclaw',rng());
+const fresh=()=>new Match('chatgpt','openclaw',rng(),'exchange',{botCount:4,difficulty:'normal'});
 function isolate(m){m.actors.forEach((a,i)=>Object.assign(a,{x:10+i*.1,y:0,z:10,protection:0,health:100,armor:0}));return m.actors;}
 test('all roster / harness combinations enforce compatibility and correction',()=>{for(const c of CHARACTERS)for(const h of HARNESSES){assert.equal(validLoadout(c.id,h.id),c.id!=='claude'||h.id==='claudecode');const l=resolveLoadout(c.id,h.id);assert.ok(validLoadout(l.character,l.harness));}assert.equal(new Match('claude','hermes').actors[0].harness,'claudecode');assert.equal(validLoadout('unknown','hermes'),false);});
 test('armor, Guardrail, protection and one-time kill scoring',()=>{const m=fresh(),[a,b]=isolate(m);b.protection=1;assert.equal(m.damage(b,100,a),0);b.protection=0;b.armor=50;b.harness='claudecode';b.active=3;m.damage(b,100,a);assert.equal(b.health,80);assert.equal(b.armor,20);m.damage(b,1000,a);m.damage(b,1000,a);assert.equal(a.frags,1);assert.equal(b.deaths,1);assert.equal(b.active,0);assert.equal(b.cooldown,0);});

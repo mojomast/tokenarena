@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { GAME_MODES } from "../game/config.mjs";
 
 const developmentPreviewMeta =
   /<meta(?=[^>]*\bname=["']codex-preview["'])(?=[^>]*\bcontent=["']development["'])[^>]*>/i;
@@ -34,5 +35,9 @@ test("serves the game selection screen without starter metadata", async () => {
   assert.match(html, /TOKEN ARENA/);
   assert.match(html, /Choose your intelligence/);
   assert.match(html, /Claude Code/);
-  for (const label of ["MATCH SETUP", "Instagib", "Rocket Arena", "Full Arsenal", "Bot count", "Bot difficulty", "Your callsign", "Movement speed"]) assert.ok(html.includes(label), label);
+  for (const label of ["MATCH SETUP", "Bot count", "Bot difficulty", "Your callsign", "Movement speed", "Casual Skirmish", "Warmup", "Rocket Party", "SHUFFLE LOADOUT / MAP"]) assert.ok(html.includes(label), label);
+  assert.ok(GAME_MODES.filter((mode) => html.includes(mode.name)).length >= 4);
+  if (GAME_MODES.some((mode) => html.includes(mode.name) && /ctf|capture/i.test(`${mode.id} ${mode.objective ?? ""}`))) {
+    assert.match(html, /Capture the enemy flag|captures/i);
+  }
 });

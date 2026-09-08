@@ -1,26 +1,31 @@
 export const GAME_MODES = [
- {id:'deathmatch',name:'Deathmatch',description:'Start with a Pulse Rifle. Collect weapons and supplies.'},
+ {id:'deathmatch',name:'Deathmatch',description:'Start with a Pulse Rifle. Collect weapons and supplies.',rules:{team:false,score:'frags',fragLimit:15}},
+  {id:'ctf',name:'Capture the Flag',description:'Steal the enemy flag and bring it home while your flag is safe.',rules:{team:true,score:'captures',fragLimit:3}},
+ {id:'teamdeathmatch',name:'Team Deathmatch',description:'Fight as a team until your side reaches the frag limit.',rules:{team:true,score:'teamFrags',fragLimit:30}},
  {id:'instagib',name:'Instagib',description:'Rail only, unlimited ammo. One unprotected hit eliminates. No supplies or harness powers.'},
  {id:'rockets',name:'Rocket Arena',description:'Unlimited rockets for everyone. Health and armor remain available.'},
  {id:'arsenal',name:'Full Arsenal',description:'Every weapon unlocked with unlimited ammo from every spawn.'},
 ];
 export const DIFFICULTIES = [
- {id:'easy',name:'Easy',description:'Longer reactions and loose aim.',reaction:.85,think:.45,error:.19,fireDelay:.2},
- {id:'normal',name:'Normal',description:'The original balanced bots.',reaction:.3,think:.2,error:.045,fireDelay:0},
+ {id:'easy',name:'Easy',description:'Relaxed reactions, loose aim and breathing room.',reaction:1.2,think:.5,error:.3,fireDelay:.48},
+ {id:'normal',name:'Normal',description:'Measured reactions and forgiving aim.',reaction:.65,think:.3,error:.12,fireDelay:.2},
  {id:'hard',name:'Hard',description:'Quicker reactions and tighter aim.',reaction:.16,think:.14,error:.023,fireDelay:0},
  {id:'nightmare',name:'Nightmare',description:'Very fast reactions and precise aim.',reaction:.08,think:.1,error:.01,fireDelay:0},
 ];
-export const DEFAULT_CONFIG = Object.freeze({mode:'deathmatch',botCount:4,difficulty:'normal',fragLimit:15,timeLimit:300,respawn:2,speed:1,gravity:1,damage:1,fastPowers:false,lifeSteal:false,unlimitedAmmo:false,startingWeapon:0,playerName:''});
+export const DEFAULT_CONFIG = Object.freeze({mode:'deathmatch',botCount:2,difficulty:'easy',fragLimit:15,timeLimit:300,respawn:2,speed:1,gravity:1,damage:1,fastPowers:false,lifeSteal:false,unlimitedAmmo:false,startingWeapon:0,playerName:''});
 export const DEFAULT_DISPLAY = Object.freeze({fov:82,crosshair:'cross',color:'#c2ffea',size:1,showFps:false,showWeapon:true,resolutionScale:1});
 const number=(v,fallback,min,max)=>typeof v==='number'&&Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 const choice=(v,values,fallback)=>values.includes(v)?v:fallback;
 export function normalizeConfig(value={}){
  const c=value&&typeof value==='object'?value:{};
- return {mode:choice(c.mode,GAME_MODES.map(m=>m.id),'deathmatch'),botCount:Math.round(number(c.botCount,4,0,8)),difficulty:choice(c.difficulty,DIFFICULTIES.map(d=>d.id),'normal'),fragLimit:Math.round(number(c.fragLimit,15,5,50)),timeLimit:Math.round(number(c.timeLimit,300,60,900)),respawn:number(c.respawn,2,1,5),speed:choice(c.speed,[.75,1,1.25,1.5],1),gravity:choice(c.gravity,[.4,.7,1],1),damage:choice(c.damage,[.5,1,1.5,2],1),fastPowers:c.fastPowers===true,lifeSteal:c.lifeSteal===true,unlimitedAmmo:c.unlimitedAmmo===true,startingWeapon:Math.round(number(c.startingWeapon,0,0,4)),playerName:typeof c.playerName==='string'?c.playerName.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,20):''};
+  const mode=choice(c.mode,GAME_MODES.map(m=>m.id),'deathmatch');
+  const modeRule=GAME_MODES.find(m=>m.id===mode).rules;
+   const minGoal=mode==='ctf'?1:5;
+   return {mode,botCount:Math.round(number(c.botCount,DEFAULT_CONFIG.botCount,0,8)),difficulty:choice(c.difficulty,DIFFICULTIES.map(d=>d.id),DEFAULT_CONFIG.difficulty),fragLimit:Math.round(number(c.fragLimit,modeRule?.fragLimit??15,minGoal,50)),timeLimit:Math.round(number(c.timeLimit,300,60,900)),respawn:number(c.respawn,2,1,5),speed:choice(c.speed,[.75,1,1.25,1.5],1),gravity:choice(c.gravity,[.4,.7,1],1),damage:choice(c.damage,[.5,1,1.5,2],1),fastPowers:c.fastPowers===true,lifeSteal:c.lifeSteal===true,unlimitedAmmo:c.unlimitedAmmo===true,startingWeapon:Math.round(number(c.startingWeapon,0,0,7)),playerName:typeof c.playerName==='string'?c.playerName.replace(/[\u0000-\u001f\u007f]/g,'').trim().slice(0,20):''};
 }
 export function normalizeDisplay(value={}){
  const c=value&&typeof value==='object'?value:{};
  return {fov:Math.round(number(c.fov,82,65,110)),crosshair:choice(c.crosshair,['cross','dot','ring'],'cross'),color:typeof c.color==='string'&&/^#[0-9a-f]{6}$/i.test(c.color)?c.color:'#c2ffea',size:number(c.size,1,.6,1.8),showFps:c.showFps===true,showWeapon:c.showWeapon!==false,resolutionScale:number(c.resolutionScale,1,.5,1.5)};
 }
 export const modeWeapon=c=>c.mode==='instagib'?2:c.mode==='rockets'?1:null;
-export function spawnInventory(c){const locked=modeWeapon(c);return [0,1,2,3,4].map(i=>locked!==null?(i===locked?Infinity:0):c.mode==='arsenal'||i===0||c.unlimitedAmmo&&i===c.startingWeapon?Infinity:i===c.startingWeapon?[0,6,5,10,24][i]:0);}
+export function spawnInventory(c){const locked=modeWeapon(c),ammo=[Infinity,6,5,10,24,6,8,10];return ammo.map((amount,i)=>locked!==null?(i===locked?Infinity:0):c.mode==='arsenal'||i===0||c.unlimitedAmmo&&i===c.startingWeapon?Infinity:i===c.startingWeapon?amount:0);}
