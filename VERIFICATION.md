@@ -1,5 +1,31 @@
 # TOKEN ARENA verification report
 
+## Current verification - 2026-09-08
+
+- **128 game/server tests and one rendered-HTML test pass**, including per-operator
+  stats, healing limits, respawns, multiplayer loadouts, prediction, and resolution
+  scaling. TypeScript and the production build pass.
+- Headless Chromium checked menus, settings, setup, browser, lobby, and HUD at
+  320x568, 390x844, 667x375, 768x1024, 1024x768, 1366x768, 1440x900,
+  1920x1080, and 2560x1080. Operator lists have no internal clipping; all nine
+  choices and the action bar fit the tested desktop viewports from 1366px wide.
+- Two browser clients against a real isolated WebSocket server verified solo to
+  multiplayer transitions, host and guest movement/camera updates, drag aiming
+  with capture deliberately denied, host resume without restarting the match,
+  neutral inputs while in lobby/chat, chat Escape isolation, real pointer lock
+  acquisition/release/reacquisition, and return to solo play.
+- The deployed public URL was checked after restarting both services. Linked
+  CSS/JavaScript assets loaded successfully. A separate verification room exercised
+  public WSS hosting, Claude's 115 maximum health and 8.2 m/s movement, WASD camera
+  movement, capture, aiming, and the host Resume control. The test explicitly left
+  its room after completion; no application runtime errors were observed.
+- Captured aim on the public site used an injected relative mouse event: headless
+  Chromium's absolute mouse automation emitted cancelling pointer-warp deltas.
+  This verifies the input handler and network/render path, not physical mouse feel
+  or a hardware GPU performance benchmark. Operator balance remains initial tuning.
+
+The sections below preserve historical verification checkpoints.
+
 Baseline MVP verified 2026-09-05; expansion evidence appears below. The MVP is implemented and playable. Automated checks pass and the local browser match loop was exercised with real inputs. The normal hardware WebGL2 path could not be visually benchmarked in this environment; the browser uses the implemented CPU compatibility renderer instead. These are explicitly separate claims.
 
 ## Automated evidence

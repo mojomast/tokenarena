@@ -1,13 +1,13 @@
 export const CHARACTERS = [
- {id:'chatgpt',name:'ChatGPT',color:'#57e6cd',accent:'#e3f7ef',tag:'THE SYNTHESIST',detail:'Adaptive mind. Uncompromising aim.'},
- {id:'claude',name:'Claude',color:'#f29d71',accent:'#f8e4cf',tag:'THE ARCHITECT',detail:'Precision inside the guardrails.'},
- {id:'grok',name:'Grok',color:'#b5c5d4',accent:'#424953',tag:'THE DISRUPTOR',detail:'A little chaos in the system.'},
- {id:'meta',name:'Meta',color:'#57b9ff',accent:'#b0edff',tag:'THE CONNECTOR',detail:'Every route is a possibility.'},
- {id:'gemini',name:'Gemini',color:'#6fa8ff',accent:'#fff0c3',tag:'THE DUALIST',detail:'Two perspectives. One target.'},
- {id:'deepseek',name:'DeepSeek',color:'#56c5f2',accent:'#c3d9f9',tag:'THE DIVER',detail:'Find the opening beneath the noise.'},
- {id:'mistral',name:'Mistral',color:'#ffbd59',accent:'#ffe1a1',tag:'THE TEMPEST',detail:'Fast enough to change the weather.'},
- {id:'kimi',name:'Kimi',color:'#ff82b2',accent:'#fbe1ed',tag:'THE ORBITER',detail:'A different angle on every fight.'},
- {id:'qwen',name:'Qwen',color:'#b797ff',accent:'#eee6ff',tag:'THE POLYMATH',detail:'Think fast. Move faster.'},
+ {id:'chatgpt',name:'ChatGPT',stats:{health:100,armor:0,speed:8},color:'#57e6cd',accent:'#e3f7ef',tag:'THE SYNTHESIST',detail:'Adaptive mind. Uncompromising aim.'},
+ {id:'claude',name:'Claude',stats:{health:115,armor:10,speed:8.2},color:'#f29d71',accent:'#f8e4cf',tag:'THE ARCHITECT',detail:'Precision inside the guardrails.'},
+ {id:'grok',name:'Grok',stats:{health:110,armor:0,speed:8.3},color:'#b5c5d4',accent:'#424953',tag:'THE DISRUPTOR',detail:'A little chaos in the system.'},
+ {id:'meta',name:'Meta',stats:{health:100,armor:20,speed:7.6},color:'#57b9ff',accent:'#b0edff',tag:'THE CONNECTOR',detail:'Every route is a possibility.'},
+ {id:'gemini',name:'Gemini',stats:{health:95,armor:10,speed:8.5},color:'#6fa8ff',accent:'#fff0c3',tag:'THE DUALIST',detail:'Two perspectives. One target.'},
+ {id:'deepseek',name:'DeepSeek',stats:{health:120,armor:0,speed:7.4},color:'#56c5f2',accent:'#c3d9f9',tag:'THE DIVER',detail:'Find the opening beneath the noise.'},
+ {id:'mistral',name:'Mistral',stats:{health:85,armor:0,speed:9.4},color:'#ffbd59',accent:'#ffe1a1',tag:'THE TEMPEST',detail:'Fast enough to change the weather.'},
+ {id:'kimi',name:'Kimi',stats:{health:90,armor:15,speed:8.7},color:'#ff82b2',accent:'#fbe1ed',tag:'THE ORBITER',detail:'A different angle on every fight.'},
+ {id:'qwen',name:'Qwen',stats:{health:100,armor:5,speed:8.4},color:'#b797ff',accent:'#eee6ff',tag:'THE POLYMATH',detail:'Think fast. Move faster.'},
 ];
 export const HARNESSES = [
  {id:'openclaw',name:'OpenClaw',power:'Claw Burst',key:'01',icon:'burst',duration:0,cooldown:10,range:5,damage:24,magnitude:12,description:'Push back nearby enemies with a damaging radial pulse.',stat:'5m radius · 24 damage'},

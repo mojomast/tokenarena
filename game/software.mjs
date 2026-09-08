@@ -4,8 +4,8 @@
 import * as T from 'three';
 export class SoftwareRenderer{
  constructor(canvas){this.domElement=canvas;this.ctx=canvas.getContext('2d',{alpha:false});if(!this.ctx)throw new Error('No canvas rendering context is available');this.info={render:{calls:0,triangles:0}};this.cache=new WeakMap();this.isSoftware=true;this.ratio=.85;}
- setPixelRatio(){this.ratio=.85;}
- setSize(w,h){this.domElement.width=Math.round(w*this.ratio);this.domElement.height=Math.round(h*this.ratio);}
+ setPixelRatio(ratio){this.ratio=ratio;}
+ setSize(w,h){this.domElement.width=Math.max(1,Math.round(w*this.ratio));this.domElement.height=Math.max(1,Math.round(h*this.ratio));}
  dispose(){}
  render(scene,camera){const ctx=this.ctx,w=this.domElement.width,h=this.domElement.height;ctx.fillStyle=scene.background?.getStyle()||'#080f13';ctx.fillRect(0,0,w,h);scene.updateMatrixWorld();camera.updateMatrixWorld();camera.matrixWorldInverse.copy(camera.matrixWorld).invert();const f=h*.5/Math.tan(camera.fov*Math.PI/360),cx=w/2,cy=h/2,draw=[],matrix=new T.Matrix4();let triangles=0;
  const project=p=>[cx+p[0]*f/-p[2],cy-p[1]*f/-p[2]];

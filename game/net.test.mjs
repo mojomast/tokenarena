@@ -4,6 +4,40 @@ import {Match} from './core.mjs';
 import {NetClient} from './net.mjs';
 function rng(){let n=3;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
 const config={humanCount:1,botCount:0,timeLimit:60};
+test('connection and reconnection preserve registered UI callbacks',async t=>{
+ class Socket {
+  constructor(){queueMicrotask(()=>this.onopen());}
+  close(){this.onclose?.();}
+ }
+ t.mock.method(globalThis,'WebSocket',function(){return new Socket();});
+ const client=new NetClient();
+ const names=['onStart','onResults','onLobby','onRooms','onHistory','onChat','onError','onClose'];
+ const handlers=Object.fromEntries(names.map(name=>[name,t.mock.fn()]));
+ Object.assign(client,handlers);
+ for(let attempt=0;attempt<2;attempt++){
+  await client.connect();
+  for(const name of names)assert.equal(client[name],handlers[name],name);
+  const rooms={type:'rooms',rooms:[{roomId:'local'}]};
+  client.ws.onmessage({data:JSON.stringify(rooms)});
+  assert.deepEqual(handlers.onRooms.mock.calls[attempt].arguments,[rooms]);
+  client.close();
+ }
+ assert.equal(handlers.onClose.mock.callCount(),0,'intentional close does not notify');
+});
+for(const id of [1,7])test(`prediction applies controls after resync to actor ${id}`,()=>{
+ const client=new NetClient();
+ client.createShadow('crosswire',config);
+ const actor={...client.shadow.actors[0],id,x:0,y:0,z:5,vx:0,vy:0,vz:0,grounded:true,shotWait:0,protection:0};
+ client.resync(actor);
+ client.predict({x:1,z:0,jump:true,yaw:.7,pitch:.2,fire:true});
+ const predicted=client.shadow.actors[0];
+ assert.equal(predicted.id,id);
+ assert.equal(predicted.yaw,.7);
+ assert.equal(predicted.pitch,.2);
+ assert.ok(predicted.vx>0);
+ assert.ok(predicted.vy>0);
+ assert.equal(predicted.shots,1);
+});
 test('shadow prediction mirrors the authoritative simulation step-for-step',()=>{
  const server=new Match('chatgpt','openclaw',rng(),'crosswire',config);
  const client=new NetClient();

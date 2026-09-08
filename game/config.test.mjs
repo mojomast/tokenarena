@@ -1,11 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Match,moveActor} from './core.mjs';
-import {DEFAULT_CONFIG,normalizeConfig,normalizeDisplay,GAME_MODES,DIFFICULTIES} from './config.mjs';
+import {DEFAULT_CONFIG,DEFAULT_DISPLAY,normalizeConfig,normalizeDisplay,GAME_MODES,DIFFICULTIES} from './config.mjs';
 const rng=()=>{let n=123;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);};
 function fixture(options={}){const m=new Match('chatgpt','hermes',()=>.75,'crosswire',{botCount:1,...options});const [a,b]=m.actors;Object.assign(a,{x:0,z:8,y:0,health:100,armor:0,protection:0,shotWait:0,yaw:0,pitch:0});if(b)Object.assign(b,{x:0,z:5,y:0,health:100,armor:0,protection:0,shotWait:0,yaw:Math.PI,pitch:0});return [m,a,b];}
 
-test('configuration sanitizes saved data and isolates each match',()=>{const c=normalizeConfig({botCount:99,difficulty:'bogus',timeLimit:NaN,fragLimit:-1,gravity:0,damage:Infinity,mode:'x',playerName:'  Kyle\u0000 D  ',lifeSteal:'yes'});assert.equal(c.botCount,8);assert.equal(c.fragLimit,5);assert.equal(c.timeLimit,300);assert.equal(c.mode,'deathmatch');assert.equal(c.gravity,1);assert.equal(c.damage,1);assert.equal(c.playerName,'Kyle D');assert.equal(c.lifeSteal,false);assert.deepEqual(normalizeConfig(null),DEFAULT_CONFIG);const options={botCount:0,fragLimit:5};const [m]=fixture(options);options.fragLimit=50;assert.equal(m.config.fragLimit,5);assert.equal(new Match().config.fragLimit,15);assert.deepEqual(normalizeDisplay({fov:999,color:'bad',size:NaN,crosshair:'x'}),{fov:110,color:'#c2ffea',size:1,crosshair:'cross',showFps:false,showWeapon:true});});
+test('configuration sanitizes saved data and isolates each match',()=>{const c=normalizeConfig({botCount:99,difficulty:'bogus',timeLimit:NaN,fragLimit:-1,gravity:0,damage:Infinity,mode:'x',playerName:'  Kyle\u0000 D  ',lifeSteal:'yes'});assert.equal(c.botCount,8);assert.equal(c.fragLimit,5);assert.equal(c.timeLimit,300);assert.equal(c.mode,'deathmatch');assert.equal(c.gravity,1);assert.equal(c.damage,1);assert.equal(c.playerName,'Kyle D');assert.equal(c.lifeSteal,false);assert.deepEqual(normalizeConfig(null),DEFAULT_CONFIG);const options={botCount:0,fragLimit:5};const [m]=fixture(options);options.fragLimit=50;assert.equal(m.config.fragLimit,5);assert.equal(new Match().config.fragLimit,15);assert.deepEqual(normalizeDisplay({fov:999,color:'bad',size:NaN,crosshair:'x'}),{...DEFAULT_DISPLAY,fov:110});});
+test('resolution scale defaults, clamps finite numbers and survives saved JSON',()=>{
+ assert.deepEqual(normalizeDisplay(null),DEFAULT_DISPLAY);
+ for(const resolutionScale of [undefined,null,'0.7',true,NaN,Infinity,-Infinity,{},[]])assert.equal(normalizeDisplay({resolutionScale}).resolutionScale,1);
+ for(const [input,expected] of [[-1,.5],[0,.5],[.5,.5],[.73,.73],[1,1],[1.5,1.5],[2,1.5]]){
+  const display=normalizeDisplay({resolutionScale:input,fov:95,showWeapon:false});
+  assert.equal(display.resolutionScale,expected);
+  const saved=JSON.parse(JSON.stringify({config:DEFAULT_CONFIG,display,mapId:'crosswire'}));
+  assert.deepEqual(normalizeDisplay(saved.display),display);
+ }
+ const legacy=JSON.parse('{"display":{"fov":90,"crosshair":"dot","showWeapon":false}}');
+ assert.deepEqual(normalizeDisplay(legacy.display),{...DEFAULT_DISPLAY,fov:90,crosshair:'dot',showWeapon:false});
+});
 test('0 through 8 bots create exact rosters; solo ends on configured time',()=>{for(let count=0;count<=8;count++){const [m]=fixture({botCount:count});assert.equal(m.actors.length,count+1);assert.equal(new Set(m.actors.map(a=>a.character)).size,count+1);assert.ok(m.actors.every(a=>a.character!=='claude'||a.harness==='claudecode'));}const [m]=fixture({botCount:0,timeLimit:60,playerName:'Kyle'});for(let i=0;i<3601;i++)m.step(1/60);assert.equal(m.over,true);assert.equal(m.stats.kills,0);assert.equal(m.snapshot().actors[0].name,'Kyle');});
 test('Instagib locks rail, ignores supplies, disables powers and kills in one unprotected hit',()=>{const [m,a,b]=fixture({mode:'instagib'});assert.equal(m.pickups.length,0);assert.equal(m.power(a),false);assert.deepEqual(a.ammo,[0,0,Infinity,0,0]);b.protection=1;m.fire(a);assert.equal(b.health,100);a.shotWait=0;b.protection=0;b.armor=100;a.weapon=0;m.fire(a);assert.equal(a.weapon,2);assert.equal(b.health,0);assert.equal(a.frags,1);m.spawn(b);assert.equal(b.weapon,2);assert.equal(b.ammo[2],Infinity);});
 test('Rocket Arena and Full Arsenal preserve unlimited inventories through firing and respawn',()=>{const [m,a]=fixture({mode:'rockets'});assert.ok(m.pickups.every(p=>['health','armor'].includes(p.kind)));a.weapon=0;m.fire(a);assert.equal(m.rockets[0].weapon,1);assert.equal(a.ammo[1],Infinity);m.spawn(a);assert.equal(a.weapon,1);const [n,c]=fixture({mode:'arsenal'});assert.ok(c.ammo.every(x=>x===Infinity));for(let i=0;i<5;i++){c.weapon=i;c.shotWait=0;n.fire(c);assert.equal(c.ammo[i],Infinity);}n.spawn(c);assert.ok(c.ammo.every(x=>x===Infinity));});

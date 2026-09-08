@@ -14,6 +14,14 @@ export class NetClient {
   this.storage = options.storage ?? (typeof localStorage !== 'undefined' ? localStorage : null);
   this.storageKey = `token-arena-net:${url}`;
   this.roomKey = `token-arena-room:${url}`;
+  this.onStart = null;
+  this.onResults = null;
+  this.onLobby = null;
+  this.onRooms = null;
+  this.onHistory = null;
+  this.onChat = null;
+  this.onError = null;
+  this.onClose = null;
   this.reset();
  }
  reset() {
@@ -41,14 +49,6 @@ export class NetClient {
   this.resynced = false;
   this.lastError = '';
   this.chatLog = [];
-  this.onStart = null;
-  this.onResults = null;
-  this.onLobby = null;
-  this.onRooms = null;
-  this.onHistory = null;
-  this.onChat = null;
-  this.onError = null;
-  this.onClose = null;
  }
  connect(url = this.url) {
   if (url) this.url = url;
@@ -147,7 +147,7 @@ export class NetClient {
   p.ammo = actor.ammo.map(n => Number.isFinite(n) ? n : Infinity);
  }
  predict(input) {
-  if (this.shadow) this.shadow.step(RULES.dt, { inputs: { 0: input } });
+  if (this.shadow) this.shadow.step(RULES.dt, { inputs: { [this.shadow.actors[0].id]: input } });
  }
  viewMatch() {
   const st = this.state;

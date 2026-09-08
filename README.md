@@ -46,7 +46,21 @@ Choose an operator, harness and arena, then Enter Arena. Scroll the roster and h
 
 Pulse Rifle has unlimited ammo. Collect orange Rocket Launchers, violet Rail Lances, gold Scatterguns and blue Plasma Drivers to unlock them with limited ammo. Green crosses restore health and blue diamonds grant armor. The Exchange and The Foundry have ramps to a north deck; Crosswire uses ground-level cross lanes. Pickups respawn. Death respawns you automatically after two seconds with brief protection; firing or Q ends that protection.
 
-OpenClaw: close pulse and knockback. Hermes: temporary speed boost and trail. OpenCode: temporary faster firing. Claude Code: temporary 50% damage reduction. Codex: instant health repair. Cline: collision-safe forward dash. Roo Code: a line-of-sight slowing pulse. Characters otherwise have equal stats. AI names represent fictional robots, not factual product comparisons.
+OpenClaw: close pulse and knockback. Hermes: temporary speed boost and trail. OpenCode: temporary faster firing. Claude Code: temporary 50% damage reduction. Codex: instant health repair. Cline: collision-safe forward dash. Roo Code: a line-of-sight slowing pulse. AI names represent fictional robots, not factual product comparisons.
+
+| Operator | Max / Spawn Health | Spawn Armor | Base Speed (m/s) |
+|---|---:|---:|---:|
+| ChatGPT | 100 | 0 | 8 |
+| Claude | 115 | 10 | 8.2 |
+| Grok | 110 | 0 | 8.3 |
+| Meta | 100 | 20 | 7.6 |
+| Gemini | 95 | 10 | 8.5 |
+| DeepSeek | 120 | 0 | 7.4 |
+| Mistral | 85 | 0 | 9.4 |
+| Kimi | 90 | 15 | 8.7 |
+| Qwen | 100 | 5 | 8.4 |
+
+Claude receives a modest stat bonus because its harness is locked to Claude Code. Every respawn restores the operator's health and starting armor. Health pickups, Codex repair and life steal cap at that operator's maximum health; armor pickups still cap at 100. Base speed multiplies the match speed setting, Hermes rush (1.6x) and Roo slow (0.55x). Weapon damage is shared, and Instagib remains lethal to every unprotected operator. Multiplayer assigns loadouts before spawning and snapshots carry `maxHealth` and `moveSpeed` for local prediction.
 
 ## Architecture
 

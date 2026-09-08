@@ -54,10 +54,13 @@ export class Room {
     existing.lastJump = existing.lastPower = false;
     this.peers.set(peerId, existing);
     if (this.hostId === oldId) this.hostId = peerId;
-    else if (!this.hostId) this.hostId = peerId;
+    else if (!this.hostId && existing.spectate !== true) this.hostId = peerId;
     this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, reconnected: true, token: existing.token, spectate: existing.spectate === true });
-    if (this.started && !this.roundOver && this.match) this.send(peerId, { type: 'start', config: { ...this.config }, mapId: this.mapId });
     this.broadcast(this.lobby());
+    if (this.started && !this.roundOver && this.match) {
+     this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
+     this.send(peerId, { type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() });
+    }
     return;
    }
   }
@@ -73,6 +76,10 @@ export class Room {
   if (!this.hostId && !isSpectator) this.hostId = peerId;
   this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, token: peer.token, spectate: isSpectator });
   this.broadcast(this.lobby());
+  if (isSpectator && this.started && !this.roundOver && this.match) {
+   this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
+   this.send(peerId, { type: 'snapshot', seq: ++this.seq, state: this.match.snapshot() });
+  }
  }
  disconnect(peerId) {
   const peer = this.peers.get(peerId);
@@ -104,16 +111,16 @@ export class Room {
   const players = [...this.peers.values()].filter(p => p.spectate !== true);
   if (players.length === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
-  this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount });
+   this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => ({ character: p.character, harness: p.harness })) });
   let i = 0;
-  for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
+   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.lastSerial = 0; p.edgeJump = p.edgePower = false; p.lastJump = p.lastPower = false; i++; }
   for (const p of this.peers.values()) if (p.spectate) p.lastSerial = 0;
   this.started = true;
   this.roundOver = false;
   this.tickAcc = 0;
   this.broadcastAt = 0;
-  this.broadcast({ type: 'start', config: { ...this.config }, mapId: this.mapId });
   this.broadcast(this.lobby());
+  this.broadcast({ type: 'start', config: { ...this.config }, mapId: this.mapId });
  }
  input(peerId, input) {
   const peer = this.peers.get(peerId);

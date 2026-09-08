@@ -48,7 +48,7 @@ test('legacy single-input step shape still drives actor zero',()=>{
  const m=new Match('chatgpt','openclaw',rng(),'crosswire');
  const [a,b]=m.actors;
  Object.assign(a,{x:-9,y:0,z:8,protection:0,shotWait:0,health:100,yaw:0,pitch:0});
- Object.assign(b,{x:-9,y:0,z:4,protection:0,health:100});
+  Object.assign(b,{x:-9,y:0,z:4,protection:0,health:100,armor:0});
  m.step(1/60,{fire:true});
  assert.equal(b.health,89);
 });

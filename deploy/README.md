@@ -16,11 +16,26 @@ Both are user units under `~/.config/systemd/user/` with linger enabled for `moj
 
 ## Redeploy after code changes
 
+The running web service loads its server bundle and asset manifest at startup.
+Rebuilding `dist/` does not reload it: old HTML can reference deleted CSS and
+JavaScript assets, leaving the public site unstyled or unable to initialize.
+Restart the web service immediately after a successful build:
+
 ```
-npm run build
-systemctl --user restart token-arena-web.service
+npm run build && systemctl --user restart token-arena-web.service
+```
+
+Restart the game server only when deploying server changes; doing so disconnects
+active multiplayer clients:
+
+```
 systemctl --user restart token-arena-server.service
 ```
+
+`npm test` also rebuilds `dist/`. Run build/test work in a separate checkout when
+the live service must remain uninterrupted. If run in this deployment checkout,
+the web service must be restarted after the build before considering verification
+complete. Verify the public URL and its linked assets, not just the local dev server.
 
 ## Notes
 

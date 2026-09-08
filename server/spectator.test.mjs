@@ -125,3 +125,62 @@ test('spectator session tokens survive disconnect and reattach',()=>{
  assert.equal(watcher.actorId,null);
  assert.equal(watcher.spectate,true);
 });
+test('active spectator joins and reconnects receive lobby, targeted start and immediate snapshot',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'Host');
+ room.host(1,{botCount:0,timeLimit:60},'crosswire');
+ room.start(1);
+ room.tick(.1);
+ const match=room.match;
+ // Pending room settings must not replace the active round settings.
+ room.host(1,{botCount:2,timeLimit:120},'exchange');
+ room.drain();
+ let token='';
+ for(const id of [2,3]){
+  const seq=room.seq;
+  room.join(id,'Watcher','chatgpt','openclaw',token,true);
+  const msgs=room.drain();
+  assert.deepEqual(msgs.map(m=>m.msg.type),['welcome','lobby','start','snapshot']);
+  assert.equal(find(msgs,'welcome',id).spectate,true);
+  assert.deepEqual(find(msgs,'start',id),{type:'start',mapId:match.arena.id,config:match.config});
+  assert.deepEqual(find(msgs,'snapshot',id).state,match.snapshot());
+  assert.ok(find(msgs,'snapshot',id).seq>seq);
+  assert.ok(msgs.filter(m=>['start','snapshot'].includes(m.msg.type)).every(m=>m.to===id));
+  assert.equal(room.peers.get(id).actorId,null);
+  assert.equal(room.match,match);
+  assert.equal(match.actors.length,1);
+  token=find(msgs,'welcome',id).token;
+  room.disconnect(id);
+  room.drain();
+ }
+});
+test('spectator joins outside an active round do not receive start or snapshot',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'Host');
+ for(const id of [2,3]){
+  room.drain();
+  room.join(id,'Watcher','chatgpt','openclaw','',true);
+  assert.deepEqual(room.drain().map(m=>m.msg.type),['welcome','lobby']);
+  room.start(1);
+  room.match.over=true;
+  room.tick(1/60);
+ }
+});
+test('reconnecting spectator cannot claim a vacant host role',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'Watcher','chatgpt','openclaw','',true);
+ const token=find(room.drain(),'welcome',1).token;
+ room.join(2,'Host');
+ room.disconnect(1);
+ room.leave(2);
+ assert.equal(room.hostId,null);
+ room.drain();
+ room.join(3,'ignored','chatgpt','openclaw',token);
+ const msgs=room.drain();
+ assert.equal(find(msgs,'welcome',3).reconnected,true);
+ assert.equal(find(msgs,'welcome',3).host,false);
+ assert.equal(room.hostId,null);
+ assert.equal(last(msgs,'lobby').hostId,null);
+ room.join(4,'Next host');
+ assert.equal(room.hostId,4);
+});

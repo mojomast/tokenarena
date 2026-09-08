@@ -11,7 +11,7 @@ export const DIFFICULTIES = [
  {id:'nightmare',name:'Nightmare',description:'Very fast reactions and precise aim.',reaction:.08,think:.1,error:.01,fireDelay:0},
 ];
 export const DEFAULT_CONFIG = Object.freeze({mode:'deathmatch',botCount:4,difficulty:'normal',fragLimit:15,timeLimit:300,respawn:2,speed:1,gravity:1,damage:1,fastPowers:false,lifeSteal:false,unlimitedAmmo:false,startingWeapon:0,playerName:''});
-export const DEFAULT_DISPLAY = Object.freeze({fov:82,crosshair:'cross',color:'#c2ffea',size:1,showFps:false,showWeapon:true});
+export const DEFAULT_DISPLAY = Object.freeze({fov:82,crosshair:'cross',color:'#c2ffea',size:1,showFps:false,showWeapon:true,resolutionScale:1});
 const number=(v,fallback,min,max)=>typeof v==='number'&&Number.isFinite(v)?Math.max(min,Math.min(max,v)):fallback;
 const choice=(v,values,fallback)=>values.includes(v)?v:fallback;
 export function normalizeConfig(value={}){
@@ -20,7 +20,7 @@ export function normalizeConfig(value={}){
 }
 export function normalizeDisplay(value={}){
  const c=value&&typeof value==='object'?value:{};
- return {fov:Math.round(number(c.fov,82,65,110)),crosshair:choice(c.crosshair,['cross','dot','ring'],'cross'),color:typeof c.color==='string'&&/^#[0-9a-f]{6}$/i.test(c.color)?c.color:'#c2ffea',size:number(c.size,1,.6,1.8),showFps:c.showFps===true,showWeapon:c.showWeapon!==false};
+ return {fov:Math.round(number(c.fov,82,65,110)),crosshair:choice(c.crosshair,['cross','dot','ring'],'cross'),color:typeof c.color==='string'&&/^#[0-9a-f]{6}$/i.test(c.color)?c.color:'#c2ffea',size:number(c.size,1,.6,1.8),showFps:c.showFps===true,showWeapon:c.showWeapon!==false,resolutionScale:number(c.resolutionScale,1,.5,1.5)};
 }
 export const modeWeapon=c=>c.mode==='instagib'?2:c.mode==='rockets'?1:null;
 export function spawnInventory(c){const locked=modeWeapon(c);return [0,1,2,3,4].map(i=>locked!==null?(i===locked?Infinity:0):c.mode==='arsenal'||i===0||c.unlimitedAmmo&&i===c.startingWeapon?Infinity:i===c.startingWeapon?[0,6,5,10,24][i]:0);}

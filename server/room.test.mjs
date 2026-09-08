@@ -78,6 +78,27 @@ test('remote inputs drive look, fire and events stream back as deltas',()=>{
  assert.ok(find(msgs,'snapshot').state.actors[1].health===89);
  assert.ok(find(msgs,'snapshot').state.actors[0].health===89);
 });
+test('start and rematch preserve every human validated loadout',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'Alice','kimi','hermes');
+ room.join(2,'Watcher','chatgpt','openclaw','',true);
+ room.join(3,'Bob','claude','hermes');
+ room.join(4,'Carol','invalid','invalid');
+ room.host(1,{botCount:1},'crosswire');
+ const expected=[['Alice','kimi','hermes'],['Bob','claude','claudecode'],['Carol','chatgpt','openclaw']];
+ for(let round=0;round<2;round++){
+  room.drain();
+  room.start(1);
+  assert.deepEqual(room.match.actors.slice(0,3).map(a=>[a.name,a.character,a.harness]),expected);
+  assert.ok(room.match.actors.slice(0,3).every(a=>a.bot===null));
+  assert.ok(room.match.actors[3].bot);
+  const msgs=room.drain();
+  assert.ok(msgs.findIndex(m=>m.msg.type==='lobby')<msgs.findIndex(m=>m.msg.type==='start'));
+  room.match.over=true;
+  room.tick(1/60);
+  assert.equal(room.roundOver,true);
+ }
+});
 test('match completes on the timer and results broadcast once with final events delivered',()=>{
  const room=new Room('r',rng());
  room.join(1,'A');room.join(2,'B');
