@@ -52,7 +52,7 @@ const canyon={
   landmarks:[{label:'WEST SUNFALL',x:-50,z:0,y:3},{label:'EAST SUNFALL',x:50,z:0,y:3},{label:'THE SCAR',x:0,z:0,y:3}]
 };
 
-const megaLaunchers=[launcher('ironfall-north-west',-29,-23,[1,0],point(-6,-23,10),7),launcher('ironfall-north-east',29,-23,[-1,0],point(6,-23,10),7),launcher('ironfall-south-west',-29,23,[1,0],point(-6,23,10),7),launcher('ironfall-south-east',29,23,[-1,0],point(6,23,10),7),launcher('ironfall-mid-west',-7,0,[-1,0],point(-35,0),0),launcher('ironfall-mid-east',7,0,[1,0],point(35,0),0)];
+const megaLaunchers=[launcher('ironfall-north-west',-29,-23,[1,0],point(-6,-23,10),7),launcher('ironfall-north-east',29,-23,[-1,0],point(6,-23,10),7),launcher('ironfall-south-west',-29,23,[1,0],point(-6,23,10),7),launcher('ironfall-south-east',29,23,[-1,0],point(6,23,10),7),launcher('ironfall-mid-west',-7,0,[-1,0],point(-35,0),0),launcher('ironfall-mid-east',7,0,[1,0],point(35,0),0),launcher('ironfall-return-west',-37,0,[1,0],point(-7,0),0),launcher('ironfall-return-east',37,0,[-1,0],point(7,0),0)];
 const megastructure={
   id:'ironfall-megastructure',name:'Ironfall Megastructure',tag:'INDUSTRIAL / BROKEN VERTICAL CTF',
   description:'A broken industrial megastructure CTF arena of staggered decks, reactor towers, exposed service gaps, and three brutal approach routes.',
@@ -69,7 +69,7 @@ const megastructure={
   landmarks:[{label:'WEST CORE',x:-43,z:0,y:5},{label:'EAST CORE',x:43,z:0,y:5},{label:'IRONFALL REACTOR',x:0,z:0,y:6}]
 };
 
-const plateauLaunchers=[launcher('longreach-north-west',-35,-30,[1,0],point(-10,-34),0),launcher('longreach-north-east',35,-30,[-1,0],point(10,-34),0),launcher('longreach-south-west',-35,30,[1,0],point(-10,34),0),launcher('longreach-south-east',35,30,[-1,0],point(10,34),0),launcher('longreach-west-middle',-42,0,[1,0],point(-20,0),0),launcher('longreach-east-middle',42,0,[-1,0],point(20,0),0)];
+const plateauLaunchers=[launcher('longreach-north-west',-35,-30,[1,0],point(-10,-34),0),launcher('longreach-north-east',35,-30,[-1,0],point(10,-34),0),launcher('longreach-south-west',-35,30,[1,0],point(-10,34),0),launcher('longreach-south-east',35,30,[-1,0],point(10,34),0),launcher('longreach-west-middle',-42,0,[1,0],point(-20,0),0),launcher('longreach-east-middle',42,0,[-1,0],point(20,0),0),launcher('longreach-return-west',-20,0,[-1,0],point(-45,0),0),launcher('longreach-return-east',20,0,[1,0],point(45,0),0)];
 const plateau={
   id:'longreach-plateau',name:'Longreach Plateau',tag:'OUTDOOR / WIDE ISLAND ROUTES CTF',
   description:'A wide outdoor island and plateau route map for CTF, with a broad central table, twin flank causeways, and long sightlines.',

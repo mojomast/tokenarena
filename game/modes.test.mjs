@@ -31,6 +31,15 @@ test('CTF drops a carried flag on death and emits lifecycle events',()=>{
  assert.ok(m.events.some(e=>e.type==='flag-pickup')&&m.events.some(e=>e.type==='flag-drop'));
 });
 
+test('CTF scoreStats records the complete flag lifecycle',()=>{
+ const m=new Match('chatgpt','openclaw',rng,'exchange',{mode:'ctf',botCount:0,fragLimit:5}),a=m.actors[0];
+ Object.assign(a,{x:m.flags[1].x,z:m.flags[1].z});m.objective(a);
+ assert.equal(a.scoreStats.flagPickups,1);Object.assign(a,{x:m.flags[0].x,z:m.flags[0].z});m.flags[0].state='dropped';m.objective(a);
+ assert.equal(a.scoreStats.flagReturns,1);Object.assign(a,{x:m.flagSpawns[1][0],z:m.flagSpawns[1][1]});m.objective(a);m.dropFlag(a);
+ assert.equal(a.scoreStats.flagDrops,1);Object.assign(a,{x:m.flags[1].x,z:m.flags[1].z});m.objective(a);Object.assign(a,{x:m.flags[0].x,z:m.flags[0].z});m.objective(a);
+ assert.equal(a.scoreStats.captures,1);assert.deepEqual(m.snapshot().actors[0].scoreStats,a.scoreStats);
+});
+
 test('team deathmatch wins by team score without changing deathmatch scoring',()=>{
  const t=new Match('chatgpt','openclaw',rng,'exchange',{mode:'teamdeathmatch',botCount:1,fragLimit:5});const [a,b]=t.actors;
  for(let i=0;i<5;i++){b.health=100;b.protection=0;t.damage(b,1000,a);}assert.equal(t.teamScores[a.team],5);assert.equal(t.over,true);

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {EXPANSION_MAPS} from './expansion-maps.mjs';
-import {floorAt,obstructed} from './core.mjs';
+import {floorAt,navigation,obstructed} from './core.mjs';
 import {terrainBounds,terrainTriangles} from './terrain.mjs';
 
 const point=value=>Array.isArray(value)?{x:value[0],z:value[1],y:0}:value;
@@ -9,6 +9,13 @@ const inside=(map,value)=>{const p=point(value);return p.x>=map.bounds.minX&&p.x
 const rectangle=(b)=>({minX:b.x-b.w/2,maxX:b.x+b.w/2,minZ:b.z-b.d/2,maxZ:b.z+b.d/2});
 const traversal=map=>Object.values(map.traversal).flat();
 const allPoints=map=>[...map.spawns,...Object.values(map.teamSpawns).flat(),...Object.values(map.flagSpawns),...map.pickups.map(([,x,z])=>({x,z})),...(map.objectiveZones||[]),...traversal(map),...(map.jumpLinks||[]).flatMap(link=>[link.source,link.target])];
+const nearest=(p,nodes)=>nodes.reduce((best,node,index)=>dist(p,node)<best.distance?{index,distance:dist(p,node)}:best,{index:0,distance:Infinity}).index;
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y,a.z-b.z);
+const reachable=(from,to,graph)=>{
+  const start=nearest(from,graph.nodes),goal=nearest(to,graph.nodes),seen=new Set([start]),queue=[start];
+  while(queue.length){for(const next of graph.edges[queue.shift()])if(!seen.has(next)){if(next===goal)return true;seen.add(next);queue.push(next);}}
+  return start===goal;
+};
 
 test('expansion pack exports three large, deeply frozen unique maps',()=>{
   assert.equal(EXPANSION_MAPS.length,3);
@@ -59,5 +66,22 @@ test('maps advertise distinct navigation-friendly route metadata',()=>{
     const ids=new Set(traversal(map).map(item=>item.id));
     assert.equal(ids.size,traversal(map).length,map.id);
     for(const link of map.jumpLinks)assert.ok(ids.has(link.traversal),`${map.id} missing ${link.traversal}`);
+  }
+});
+
+test('team spawns can reach every objective and return to either base',()=>{
+  for(const map of EXPANSION_MAPS){
+    const graph=navigation(map),objectives=map.objectiveZones,flagPoints=Object.values(map.flagSpawns);
+    for(const spawn of Object.values(map.teamSpawns).flat())for(const objective of objectives)assert.equal(reachable(point(spawn),objective,graph),true,`${map.id} spawn to objective`);
+    for(const objective of objectives)for(const flag of flagPoints)assert.equal(reachable(objective,point(flag),graph),true,`${map.id} objective to base`);
+  }
+});
+
+test('launcher endpoints have player clearance and platform support',()=>{
+  for(const map of EXPANSION_MAPS)for(const pad of map.traversal.boostLaunchers)for(const p of [{x:pad.x,z:pad.z,y:pad.y},pad.target]){
+    const floor=floorAt(p.x,p.z,map);
+    assert.notEqual(floor,null,`${map.id} launcher support ${pad.id}`);
+    assert.ok(Math.abs(floor-p.y)<.36,`${map.id} launcher height ${pad.id}`);
+    assert.equal(obstructed(p.x,floor,p.z,.42,map),false,`${map.id} launcher clearance ${pad.id}`);
   }
 });

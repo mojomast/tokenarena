@@ -8,6 +8,7 @@ import {Room} from './room.mjs';
 function rng(){let n=11;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
 const tmpDir=()=>fs.mkdtempSync(path.join(os.tmpdir(),'token-arena-history-'));
 const actors=[{name:'Alice',character:'chatgpt',harness:'openclaw',frags:7,deaths:3},{name:'Bob',character:'claude',harness:'claudecode',frags:4,deaths:6},{name:'Bot-1',character:'gemini',harness:'cline',frags:2,deaths:5}];
+const stats={captures:2,flagPickups:3,flagReturns:4,flagDrops:1,objectiveTime:12.5,objectiveCaptures:2,objectiveNeutralizations:1,objectiveContests:3};
 test('record builds a complete history entry and leader',()=>{
  const h=new MatchHistory();
  const entry=h.record({roomId:'ABCD',mapId:'crosswire',config:{mode:'deathmatch',fragLimit:5,timeLimit:60},time:42.3,actors});
@@ -36,6 +37,23 @@ test('objective history records the winning team, scores, and objective ending r
  assert.equal(entry.winner,0);
  assert.deepEqual(entry.teamScores,{0:100,1:72.5});
  assert.equal(entry.endedBy,'objective');
+});
+test('objective scoreStats survive history round-trip without mutation',()=>{
+ const h=new MatchHistory(), actor={...actors[0],scoreStats:{...stats}};
+ h.record({config:{mode:'ctf',fragLimit:5,timeLimit:60},actors:[actor],teamScores:{0:5,1:2},winner:0});
+ actor.scoreStats.captures=99;
+ assert.deepEqual(h.all()[0].players[0].scoreStats,stats);
+ assert.deepEqual(h.all()[0].teamScores,{0:5,1:2});
+});
+test('history leaders use the mode objective ranking and retain legacy entries',()=>{
+ const h=new MatchHistory();
+ const ctf=h.record({config:{mode:'ctf'},actors:[{name:'Frags',frags:9,scoreStats:{...stats,captures:0}},{name:'Carrier',frags:1,scoreStats:{...stats,captures:1}}]});
+ assert.equal(ctf.leader,'Carrier');
+ const koth=h.record({config:{mode:'koth'},actors:[{name:'Objective',frags:1,scoreStats:{...stats,objectiveTime:4}},{name:'Slayer',frags:8,scoreStats:{...stats,objectiveTime:3}}]});
+ assert.equal(koth.leader,'Objective');
+ const legacy={id:'legacy',players:[{name:'Old',frags:2,deaths:1}]};
+ h.matches.push(legacy);
+ assert.deepEqual(h.all().at(-1),legacy);
 });
 test('team deathmatch derives team scores without changing deathmatch entries',()=>{
  const h=new MatchHistory();

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Room,PLAYER_LIMIT} from './room.mjs';
+import {MatchHistory} from './history.mjs';
 function rng(){let n=11;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
 const find=(msgs,type,to)=>msgs.find(m=>m.msg.type===type&&(to===undefined||m.to===to))?.msg;
 const last=(msgs,type)=>[...msgs].reverse().find(m=>m.msg.type===type)?.msg;
@@ -285,4 +286,21 @@ test('reconnecting after a completed round receives the final result',()=>{
  room.join(2,'ignored','','',token);const result=find(room.drain(),'results',2);
  assert.equal(result.state.over,true);
  assert.equal(result.state.time,room.match.time);
+});
+test('final results and history preserve cloned scoreStats',()=>{
+ const history=new MatchHistory();
+ const room=new Room('r',rng(),{history});
+ room.join(1,'A');const token=find(room.drain(),'welcome',1).token;
+ room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);room.drain();
+ const stats=room.match.actors[0].scoreStats;
+ stats.captures=2;stats.objectiveTime=7.5;
+ room.match.over=true;room.tick(1/60);
+ const result=find(room.drain(),'results').state;
+ assert.deepEqual(result.actors[0].scoreStats,{...stats});
+ assert.deepEqual(history.all()[0].players[0].scoreStats,{...stats});
+ stats.captures=99;
+ assert.equal(result.actors[0].scoreStats.captures,2);
+ assert.equal(history.all()[0].players[0].scoreStats.captures,2);
+ room.disconnect(1);room.join(2,'ignored','','',token);
+ assert.deepEqual(find(room.drain(),'results',2).state.actors[0].scoreStats,{...stats,captures:99});
 });

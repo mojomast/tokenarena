@@ -1,5 +1,27 @@
 # TOKEN ARENA verification report
 
+## Gameplay modes and leaderboards pass - 2026-09-08
+
+- Added authoritative per-player `scoreStats` for CTF flag pickups, returns, drops,
+  and captures, plus KOTH/Domination objective time, captures, neutralizations, and
+  contest transitions. Continuous objective state remains snapshot-driven while
+  progress/score events are bucketed to avoid a per-tick network flood.
+- Objective bots now prioritize their mode objective and team combat, divert only for
+  critical or immediately useful supplies, and pause steering during authored launch
+  flights. Platform-map reverse launch routes and solid-top collision handling prevent
+  bots from falling or being snapped onto reactor tops.
+- Live standings, results, and recent-match history now keep kills and deaths while
+  adding mode-specific metrics: CTF captures/pickups/returns/drops, KOTH hill time/
+  captures/contests, Domination zone time/captures/neutralizations/contests, and
+  Team Deathmatch team totals. History leaders use the mode's primary contribution.
+- Full verification passes: **196 game tests**, **64 server tests**, TypeScript,
+  production build, and rendered HTML (**261 automated checks total**).
+- Deterministic 30-second simulations across Skybreak, Aether, Ironfall, and Longreach
+  produced combat or objective activity in every team-mode combination. Public browser
+  checks passed linked assets, responsive layouts, CTF hosting/resume, and mode-specific
+  leaderboard columns with no runtime or resource errors. Both production services
+  were restarted and remain active.
+
 ## Traversal and objective readability pass - 2026-09-08
 
 - Sky-map targeted launchers now derive their authored direction from the actual

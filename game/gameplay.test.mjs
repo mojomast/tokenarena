@@ -101,3 +101,31 @@ test('matches share frozen map navigation but not mutable match state',()=>{
   assert.notEqual(a.pickups,b.pickups);assert.notEqual(a.actors[1].bot.route,b.actors[1].bot.route);
  }
 });
+
+test('seeded platform-map team bots traverse launchers instead of falling through routes',()=>{
+ const cases=[['skybreak','ctf'],['aether','koth'],['ironfall-megastructure','teamdeathmatch'],['longreach-plateau','domination']];
+ for(const [map,mode] of cases){
+  const m=new Match('chatgpt','openclaw',()=>.37,map,{mode,botCount:7,timeLimit:30,fragLimit:20});
+  for(let i=0;i<1800;i++)m.step(1/60);
+  assert.ok(m.actors.every(a=>[a.x,a.y,a.z].every(Number.isFinite)),`${map}: finite actor state`);
+  assert.ok(m.stats.falls<30,`${map}: ${m.stats.falls} falls`);
+  assert.ok(m.stats.shots>0,`${map}: bots fired`);
+  if(mode==='koth'||mode==='domination')assert.ok(m.teamScores[0]+m.teamScores[1]>0||m.objectiveState.zones.some(z=>z.progress>0||z.owner!==null),`${map}: objective activity`);
+  else if(mode==='ctf')assert.ok(m.teamScores[0]+m.teamScores[1]>0||m.events.some(e=>e.type==='flag-pickup'),`${map}: flag activity`);
+  else assert.ok(m.stats.kills>0||m.stats.shots>0,`${map}: combat activity`);
+ }
+});
+
+test('side approach to a solid never snaps onto its top',()=>{
+ const arena={id:'reactor-side',raised:false,blocks:[{kind:'reactor',x:0,z:0,w:3,d:3,h:5}],spawns:[[0,0]],pickups:[],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}};
+ const a=actor(arena,{x:-2.6,y:0,z:0,grounded:true});
+ for(let i=0;i<60;i++)moveActor(a,{x:1},1/60,arena,{speed:1.5,gravity:1});
+ assert.equal(a.y,0);assert.ok(a.x<-.5);clear(a,arena);
+});
+
+test('descending from above lands on a solid top',()=>{
+ const arena={id:'reactor-landing',raised:false,blocks:[{kind:'reactor',x:0,z:0,w:3,d:3,h:5}],spawns:[[0,0]],pickups:[],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}};
+ const a=actor(arena,{x:0,y:7,z:0,vy:-8});
+ for(let i=0;i<30&&!a.grounded;i++)moveActor(a,{},1/60,arena,{speed:1.5,gravity:1});
+ assert.equal(a.y,5);assert.equal(a.grounded,true);clear(a,arena);
+});

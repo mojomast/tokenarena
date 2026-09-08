@@ -201,7 +201,7 @@ export class Room {
       const result = this.match.snapshot();
       const mode = this.match.config.mode;
       const objectiveEnded = mode === 'ctf' ? 'capture' : mode === 'teamdeathmatch' ? 'frag' : mode === 'koth' || mode === 'domination' ? 'objective' : null;
-      this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: this.match.actors, teamScores: result.teamScores, winner: result.winner, endingReason: result.winner === null ? null : objectiveEnded });
+      this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: result.actors, teamScores: result.teamScores, winner: result.winner, endingReason: result.winner === null ? null : objectiveEnded });
       this.broadcast({ type: 'results', state: result }); break;
     }
   }
