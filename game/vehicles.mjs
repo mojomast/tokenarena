@@ -131,6 +131,7 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision) {
   if (resolved !== false) {
     if (resolved && Number.isFinite(resolved.x) && Number.isFinite(resolved.z)) {
       vehicle.position.x = resolved.x;
+      if (Number.isFinite(resolved.y)) vehicle.position.y = resolved.y;
       vehicle.position.z = resolved.z;
     } else {
       vehicle.position.x = next.x;

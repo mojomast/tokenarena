@@ -23,13 +23,13 @@ export class WeaponFeedback{
 
 // Fixed-size reusable slots: bursts and pellets cannot grow GPU resources.
 export class EffectPool{
- constructor(scene,limit=96){this.scene=scene;this.limit=limit;this.slots=[];this.serial=0;this.line=new T.BufferGeometry().setFromPoints([new T.Vector3(),new T.Vector3(0,0,1)]);this.sphere=new T.IcosahedronGeometry(1,0);this.axis=new T.Vector3(0,0,1);this.direction=new T.Vector3();}
+  constructor(scene,limit=96){this.scene=scene;this.limit=limit;this.slots=[];this.serial=0;this.line=new T.CylinderGeometry(.5,.5,1,6).rotateX(Math.PI/2).translate(0,0,.5);this.sphere=new T.IcosahedronGeometry(1,0);this.axis=new T.Vector3(0,0,1);this.direction=new T.Vector3();}
  add({from,to,pos,color,life=.15,size=.08,expand=0,velocity=null,wireframe=false}){
   const line=!!from;let slot=this.slots.find(s=>!s.active&&s.line===line);
-  if(!slot&&this.slots.length<this.limit){const mat=line?new T.LineBasicMaterial({transparent:true,depthWrite:false}):new T.MeshBasicMaterial({transparent:true,depthWrite:false});const obj=line?new T.Line(this.line,mat):new T.Mesh(this.sphere,mat);slot={obj,line};this.slots.push(slot);this.scene.add(obj);}
+   if(!slot&&this.slots.length<this.limit){const mat=new T.MeshBasicMaterial({transparent:true,depthWrite:false});const obj=new T.Mesh(line?this.line:this.sphere,mat);slot={obj,line};this.slots.push(slot);this.scene.add(obj);}
   if(!slot){slot=this.slots.filter(s=>s.line===line).sort((a,b)=>a.serial-b.serial)[0];if(!slot)return;}
   const obj=slot.obj;obj.visible=true;obj.material.color.set(color);obj.material.opacity=.8;obj.material.wireframe=wireframe;obj.rotation.set(0,0,0);
-  if(line){obj.position.copy(from);this.direction.subVectors(to,from);obj.scale.set(1,1,this.direction.length());obj.quaternion.setFromUnitVectors(this.axis,this.direction.normalize());}
+   if(line){obj.position.copy(from);this.direction.subVectors(to,from);obj.scale.set(size,size,this.direction.length());obj.quaternion.setFromUnitVectors(this.axis,this.direction.normalize());}
   else{obj.position.copy(pos);obj.scale.setScalar(size);}
   Object.assign(slot,{active:true,serial:++this.serial,life,total:life,expand,velocity});return obj;
  }

@@ -90,6 +90,31 @@ test('acknowledged snapshots rebase and replay only unacknowledged inputs',()=>{
  const expected=new Match('chatgpt','openclaw',rng(),'crosswire',config);expected.actors[0].id=0;Object.assign(expected.actors[0],authoritative);expected.step(1/60,{inputs:{0:second}});
  assert.deepEqual(client.pendingInputs.map(item=>item.seq),[2]);assert.equal(client.shadow.actors[0].x,expected.actors[0].x);assert.equal(client.shadow.actors[0].z,expected.actors[0].z);assert.equal(client.shadow.actors[0].yaw,.4);
 });
+test('resync, replay and prediction keep received nested actor state isolated',()=>{
+ const server=new Match('chatgpt','openclaw',rng(),'crosswire',config);
+ Object.assign(server.actors[0],{x:0,y:0,z:5,shotWait:0,powerups:{haste:5}});
+ const state=JSON.parse(JSON.stringify(server.snapshot()));
+ const original=structuredClone(state);
+ const client=new NetClient();client.createShadow('crosswire',config);client.actorId=0;
+ client.input({x:1,fire:true});
+ client.push({seq:1,acks:{0:0},state});
+ assert.deepEqual(state,original,'resync and pending input replay leave snapshot unchanged');
+ const predicted=client.shadow.actors[0];
+ for(const [key,value] of Object.entries(state.actors[0])){
+  if(value&&typeof value==='object')assert.notEqual(predicted[key],value,`${key} is prediction-owned`);
+ }
+ client.predict({x:1,fire:true});
+ predicted.scoreStats.captures++;
+ predicted.powerups.haste=1;
+ predicted.ammo[1]=99;
+ assert.deepEqual(state,original,'subsequent prediction and nested writes leave snapshot unchanged');
+ assert.equal(client.state,state);
+ assert.equal(client.buffer[0].state,state);
+ client.resync(state.actors[0]);
+ assert.equal(predicted.scoreStats.captures,original.actors[0].scoreStats.captures);
+ assert.equal(predicted.powerups.haste,5);
+ assert.equal(predicted.ammo[0],Infinity,'wire ammo sentinel remains normalized');
+});
 test('older snapshots are ignored after a newer sequence',()=>{
  const client=new NetClient();client.push({seq:2,state:{time:2,actors:[{id:0,x:2}],rockets:[]}});client.push({seq:1,state:{time:1,actors:[{id:0,x:1}],rockets:[]}});assert.equal(client.state.actors[0].x,2);assert.equal(client.snapshotSeq,2);
 });

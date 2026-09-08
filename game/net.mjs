@@ -22,6 +22,8 @@ export class NetClient {
   this.onChat = null;
   this.onError = null;
   this.onClose = null;
+  this.onVoiceSignal = null;
+  this.onVoiceConfig = null;
   this.reset();
  }
  reset() {
@@ -53,6 +55,7 @@ export class NetClient {
    this.clockOffset = null;
   this.lastError = '';
   this.chatLog = [];
+  this.voiceIceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
  }
  connect(url = this.url) {
   if (url) this.url = url;
@@ -69,13 +72,25 @@ export class NetClient {
   });
  }
  close() { this.closedByUser = true; try { this.ws?.close(); } catch {} this.ws = null; this.connected = false; }
- send(msg) { if (this.ws && this.ws.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg)); }
+ send(msg) {
+  if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
+  const text = JSON.stringify(msg);
+  if (msg.type === 'voice-signal' &&
+   new TextEncoder().encode(text).length + (this.ws.bufferedAmount ?? 0) > 64 * 1024) return false;
+  this.ws.send(text);
+  return true;
+ }
  join(name, character, harness, opts = {}) { this.send({ type: 'join', name, character, harness, token: this.token ?? '', roomId: opts.roomId || this.roomId || 'local', spectate: opts.spectate === true }); }
   create(name, character, harness, playerName = '') { this.send({ type: 'create', name, playerName, character, harness, token: this.token ?? '', roomId: '' }); }
  list() { this.send({ type: 'list' }); }
  history() { this.send({ type: 'history' }); }
  host(config, mapId) { this.send({ type: 'host', config, mapId }); }
- start() { this.send({ type: 'start' }); }
+  start() { this.send({ type: 'start' }); }
+  voiceState(enabled) { return typeof enabled === 'boolean' && this.send({ type: 'voice-state', enabled }); }
+  voiceSignal(to, payload) {
+   if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
+   this.send({ ...payload, type: 'voice-signal', roomId: this.roomId, to });
+  }
  leave() {
   this.send({ type: 'leave' });
   this.token = null;
@@ -87,7 +102,16 @@ export class NetClient {
  onMessage(data) {
   let msg;
   try { msg = JSON.parse(data); } catch { return; }
+  if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return;
   switch (msg.type) {
+   case 'voice-signal': this.onVoiceSignal?.(msg); break;
+   case 'voice-config':
+    if (!Array.isArray(msg.iceServers) || msg.iceServers.length > 16 || !msg.iceServers.every(server =>
+     server && typeof server === 'object' && !Array.isArray(server) &&
+     (typeof server.urls === 'string' || (Array.isArray(server.urls) && server.urls.every(url => typeof url === 'string'))))) break;
+    this.voiceIceServers = msg.iceServers;
+    this.onVoiceConfig?.(msg);
+    break;
    case 'welcome':
     this.peerId = msg.peerId;
     this.isHost = msg.host;
@@ -164,7 +188,7 @@ export class NetClient {
  }
   resync(actor) {
   const p = this.shadow.actors[0];
-  Object.assign(p, actor);
+   Object.assign(p, structuredClone(actor));
    p.ammo = actor.ammo.map(n => Number.isFinite(n) ? n : Infinity);
   }
    resyncVehicles(vehicles = []) {

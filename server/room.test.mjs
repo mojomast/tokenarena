@@ -174,6 +174,53 @@ test('jump and power arrive as one-shot edges while fire stays level',()=>{
   for(let i=0;i<20;i++)room.tick(1/60);
   assert.equal(room.match.stats.powers,1,'power edge consumed exactly once');
 });
+test('short fire taps survive one tick without sticking; held fire still repeats',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);
+ const a=room.match.actors[0],peer=room.peers.get(1);
+ a.shotWait=0;
+ room.input(1,{seq:1,fire:true});room.input(1,{seq:2,fire:false});
+ room.tick(1/120);
+ assert.equal(a.shots,0);
+ assert.equal(peer.edgeFire,true);
+ room.tick(1/120);
+ assert.equal(a.shots,1);
+ assert.equal(peer.edgeFire,false);
+ assert.equal(peer.latest.fire,false);
+ for(let i=0;i<60;i++)room.tick(1/60);
+ assert.equal(a.shots,1,'released tap must not repeat');
+ room.input(1,{seq:3,fire:true,weapon:0});
+ for(let i=0;i<60;i++)room.tick(1/60);
+ assert.ok(a.shots>2,'held fire repeats beyond the latched tick');
+ room.input(1,{seq:4,fire:false});
+ room.input(1,{seq:3,fire:true});
+ const shots=a.shots;
+ for(let i=0;i<60;i++)room.tick(1/60);
+ assert.equal(a.shots,shots,'release stops held fire and stale presses are ignored');
+});
+for(const lifecycle of ['start','disconnect','reconnect','leave','expireGrace'])test(`${lifecycle} clears pending and held fire`,()=>{
+ const room=new Room('r',rng(),{graceMs:1000});
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);
+ const peer=room.peers.get(1);
+ assert.equal(peer.edgeFire,false);
+ room.input(1,{fire:true});
+ assert.equal(peer.edgeFire,true);
+ if(lifecycle==='reconnect'||lifecycle==='expireGrace')room.disconnect(1);
+ if(lifecycle==='reconnect')room.join(2,'','','',peer.token);
+ else if(lifecycle==='expireGrace')room.expireGrace(peer.disconnectedAt+1001);
+ else room[lifecycle](1);
+ assert.equal(peer.edgeFire,false);
+ assert.equal(peer.latest,null);
+ if(lifecycle==='disconnect'){
+  room.input(1,{fire:true});
+  assert.equal(peer.edgeFire,false,'late disconnected input cannot rearm fire');
+  assert.equal(peer.latest,null);
+ }
+ if(lifecycle!=='leave'&&lifecycle!=='expireGrace'){
+  for(let i=0;i<60;i++)room.tick(1/60);
+  assert.equal(room.match.actors[0].shots,0,'no stale fire after lifecycle reset');
+ }
+});
 test('disconnect holds the seat; token reattach restores mid-match play',()=>{
  const room=new Room('r',rng(),{graceMs:60000});
  room.join(1,'A');room.join(2,'B');

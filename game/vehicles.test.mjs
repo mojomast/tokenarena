@@ -35,6 +35,17 @@ test('acceleration, reverse speed, and turning are bounded', () => {
   assert.ok(reverse >= -GUNTRUCK.reverseSpeed - 1e-9);
 });
 
+test('collision-resolved terrain height follows slopes and blocked moves preserve position', () => {
+  const vehicle = createVehicle();
+  stepVehicle(vehicle, { throttle: 1 }, 1 / 60, next => ({ ...next, y: 3 }));
+  assert.equal(vehicle.position.y, 3);
+  stepVehicle(vehicle, { throttle: 1 }, 1 / 60, next => ({ ...next, y: 1 }));
+  assert.equal(vehicle.position.y, 1);
+  const before = { ...vehicle.position };
+  stepVehicle(vehicle, { throttle: 1 }, 1 / 60, () => false);
+  assert.deepEqual(vehicle.position, before);
+});
+
 test('muzzles remain paired and mounted on distinct sides', () => {
   const vehicle = createVehicle();
   vehicle.position = { x: 10, y: 2, z: 8 };

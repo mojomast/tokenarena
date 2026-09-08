@@ -5,6 +5,8 @@ import {SoftwareRenderer} from './software.mjs';
 import {DEFAULT_DISPLAY} from './config.mjs';
 import * as T from 'three';
 import BLOOD_GULCH from './blood-gulch.mjs';
+import {MAPS} from './maps.mjs';
+import {terrainTriangles,terrainWallTriangles} from './terrain.mjs';
 
 function fixture(t,{dpr=1,software=false,width=800,height=450}={}){
  const previous=Object.getOwnPropertyDescriptor(globalThis,'window');
@@ -116,7 +118,7 @@ test('KOTH and Domination objective areas show state and clean stale zones',()=>
   const hill=view.objectiveModels.get('hill');
     assert.ok(hill&&hill.userData.objective);assert.equal(hill.position.y,1);assert.equal(hill.scale.y,1);assert.equal(hill.userData.radius,4);assert.equal(hill.userData.area.geometry.parameters.radiusTop,4);assert.equal(hill.userData.base.geometry.parameters.radius,4);assert.equal(hill.userData.identifier,'hill');assert.ok(hill.userData.emblem.visible);
     assert.ok(hill.userData.area.material.opacity>0,'neutral and owned areas have a filled footprint');
-   assert.equal(hill.userData.progress.visible,true);assert.equal(hill.userData.baseMat.color.getHexString(),'55ddcc');
+    assert.equal(hill.userData.progress.visible,true);assert.equal(hill.userData.baseMat.color.getHexString(),'ed514b');
    const progressGeometry=hill.userData.progress.geometry;
    assert.equal(progressGeometry.drawRange.count,78);
    view.updateObjectives({time:2,objectives:{kind:'koth',zones:[{id:'hill',x:2,y:1,z:-3,radius:4,owner:0,captureTeam:0,progress:41}]}},arena);
@@ -124,8 +126,8 @@ test('KOTH and Domination objective areas show state and clean stale zones',()=>
    assert.equal(progressGeometry.drawRange.count,84);
    view.updateObjectives({time:2,objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:null,progress:0,contested:true},{id:'bravo',x:5,z:0,owner:1,progress:75}]}},arena);
   assert.equal(view.objectiveModels.size,2);assert.equal(view.objectiveModels.get('alpha').userData.baseMat.color.getHexString(),'ffd166');
-   assert.equal(view.objectiveModels.get('bravo').userData.baseMat.color.getHexString(),'ff789d');assert.equal(view.objectiveModels.get('bravo').userData.areaMat.color.getHexString(),'ff789d');assert.equal(view.objectiveModels.get('bravo').userData.progressMat.color.getHexString(),'ff789d');assert.equal(view.objectiveModels.get('alpha').userData.progress.visible,false);
-   view.updateObjectives({objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:0,captureTeam:1,progress:25}]}},arena);const alpha=view.objectiveModels.get('alpha');assert.equal(alpha.userData.areaMat.color.getHexString(),'55ddcc');assert.equal(alpha.userData.progressMat.color.getHexString(),'ff789d');assert.equal(alpha.userData.progress.visible,true);
+    assert.equal(view.objectiveModels.get('bravo').userData.baseMat.color.getHexString(),'438eff');assert.equal(view.objectiveModels.get('bravo').userData.areaMat.color.getHexString(),'438eff');assert.equal(view.objectiveModels.get('bravo').userData.progressMat.color.getHexString(),'438eff');assert.equal(view.objectiveModels.get('alpha').userData.progress.visible,false);
+    view.updateObjectives({objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:0,captureTeam:1,progress:25}]}},arena);const alpha=view.objectiveModels.get('alpha');assert.equal(alpha.userData.areaMat.color.getHexString(),'ed514b');assert.equal(alpha.userData.progressMat.color.getHexString(),'438eff');assert.equal(alpha.userData.progress.visible,true);
    const stale=view.objectiveModels.get('alpha'),disposed=[0,0];stale.userData.area.geometry.addEventListener('dispose',()=>disposed[0]++);stale.userData.areaMat.addEventListener('dispose',()=>disposed[1]++);
    view.updateObjectives({objectives:{kind:'ctf',zones:[]}},arena);assert.equal(view.objectiveModels.size,0);assert.equal(world.children.length,0);assert.deepEqual(disposed,[1,1]);
 });
@@ -148,8 +150,8 @@ test('Blood Gulch builds polygon terrain and cliff geometry without platform ass
   const view=Object.create(ArenaView.prototype);view.scene=new T.Scene();view.renderResources=new Set();view.mapId='exchange';
   view.buildArena(BLOOD_GULCH);
   const meshes=view.worldGroup.children.filter(child=>child.userData.terrain);
-  assert.equal(meshes.length,3);
-  assert.equal(meshes.reduce((count,mesh)=>count+mesh.geometry.attributes.position.count/3,0),20);
+   assert.ok(meshes.length>0);
+   assert.equal(meshes.reduce((count,mesh)=>count+mesh.geometry.attributes.position.count/3,0),terrainTriangles(BLOOD_GULCH.terrain).length+terrainWallTriangles(BLOOD_GULCH.terrain).length);
   assert.ok(meshes.some(mesh=>mesh.material.side===T.DoubleSide));
  view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();
  });
@@ -160,4 +162,34 @@ test('rebuilding a terrain arena releases traversal resources instead of accumul
   for(let i=0;i<20;i++)view.buildArena(BLOOD_GULCH);
   assert.equal(view.renderResources.size,initial);
   view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();
- });
+  });
+
+test('every canonical arena has batched polish, faithful collision boxes and software-readable materials',t=>{
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'document');
+ const ctx={fillRect(){},fillText(){},beginPath(){},moveTo(x,y){assert.ok(Number.isFinite(x)&&Number.isFinite(y));},lineTo(x,y){assert.ok(Number.isFinite(x)&&Number.isFinite(y));},closePath(){},stroke(){},fill(){}};
+ Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({getContext:()=>ctx})}});
+ t.after(()=>{if(previous)Object.defineProperty(globalThis,'document',previous);else delete globalThis.document;});
+ const renderer=new SoftwareRenderer({width:320,height:180,getContext:()=>ctx}),view=Object.assign(Object.create(ArenaView.prototype),{scene:new T.Scene(),renderResources:new Set(),renderer});
+ view.scene.add(new T.HemisphereLight(),new T.DirectionalLight());
+ const signatures=new Set();
+ for(const arena of MAPS){
+  const before=JSON.stringify(arena);view.buildArena(arena);
+  const children=view.worldGroup.children,details=children.filter(n=>n.userData.arenaDetail),blocks=children.filter(n=>Number.isInteger(n.userData.block));
+  assert.ok(details.length>0&&details.length<=8,`${arena.id}: bounded detail batches`);
+  assert.equal(blocks.length,arena.blocks.length);
+  for(const mesh of blocks){const b=arena.blocks[mesh.userData.block];assert.deepEqual(mesh.position.toArray(),[b.x,b.h/2,b.z]);assert.deepEqual([mesh.geometry.parameters.width,mesh.geometry.parameters.height,mesh.geometry.parameters.depth],[b.w,b.h,b.d]);}
+  signatures.add(`${blocks[0].material.color.getHexString()}/${view.scene.fog.density}`);
+  for(const mesh of details){assert.equal(mesh.material.isMeshStandardMaterial,true);assert.ok(mesh.material.roughness>=.3);assert.ok([...mesh.geometry.attributes.position.array].every(Number.isFinite));}
+  if(arena.platforms){const platforms=children.filter(n=>n.userData.platform);assert.equal(platforms.length,arena.platforms.length);assert.ok(platforms.every(n=>n.material.emissive.getHex()===0),'landing surfaces are not washed out by full-deck emission');}
+  if(arena.terrain){assert.ok(children.some(n=>n.userData.strata));const actual=children.filter(n=>n.userData.terrain).flatMap(n=>Array.from(n.geometry.attributes.position.array));const expected=[...terrainTriangles(arena.terrain),...terrainWallTriangles(arena.terrain)].flatMap(t=>t.vertices.flat());assert.equal(actual.length,expected.length);assert.deepEqual(actual.sort((a,b)=>a-b),Array.from(new Float32Array(expected)).sort((a,b)=>a-b));}
+  const camera=new T.PerspectiveCamera(82,320/180,.08,220);camera.position.set(0,12,24);camera.lookAt(0,0,0);renderer.render(view.scene,camera);assert.ok(renderer.info.render.triangles>0,`${arena.id}: CPU scene renders`);
+  assert.equal(JSON.stringify(arena),before,'rendering never mutates canonical maps');
+  // Every attached resource must be disposed exactly once when the arena is replaced.
+  const resources=new Set();view.worldGroup.traverse(n=>{if(n.geometry)resources.add(n.geometry);if(n.material){resources.add(n.material);if(n.material.map)resources.add(n.material.map);}});
+  for(const resource of view.renderResources)resources.add(resource);
+  const counts=new Map();for(const resource of resources){counts.set(resource,0);resource.addEventListener('dispose',()=>counts.set(resource,counts.get(resource)+1));}
+  view.buildArena(arena);assert.ok([...counts.values()].every(count=>count===1),`${arena.id}: map replacement disposes resources once`);
+ }
+ assert.equal(signatures.size,MAPS.length,'all canonical maps have a distinct material/atmosphere identity');
+ view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();renderer.dispose();
+});

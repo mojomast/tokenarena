@@ -1,5 +1,91 @@
 # TOKEN ARENA verification report
 
+## Lobby chat and proximity voice - 2026-09-08
+
+- Lobby chat follows new messages at the bottom, preserves manually scrolled
+  history with a jump-to-latest button, and resets across room changes.
+- Added explicit opt-in WebRTC voice: hold V/pointer PTT, RMS voice activation,
+  receive volume, sensitivity, and visible mic state. Capture stops on disable,
+  departure and connection teardown; pending permission requests can be canceled.
+  Typing, hidden/blurred windows, menus and spectators suppress transmission.
+- Active-match playback is full within 5 units, fading to zero at 30, using fresh
+  actor positions even outside the gameplay screen. Pregame lobby audio is uniform.
+  Proximity is client-side playback behavior, not an access-control boundary.
+- Room-scoped, session-validated signaling has payload/rate bounds and excludes
+  spectators. TURN_URLS and TURN_SECRET support one-hour HMAC TURN credentials.
+  The deployed server currently advertises STUN only: no TURN relay is configured.
+- Full suite passed before final compatibility refinements: 252 game tests,
+  77 server tests, rendered HTML, TypeScript and build. Subsequent focused voice
+  checks passed, including 27 controller tests after the Chromium sink fix;
+  TypeScript and final build passed. Both production services were restarted.
+- Two fresh public browser clients verified chat scrolling with 25 messages,
+  PTT, automatic detection, receive mute, RTC connection, and capture cleanup.
+  A real Chromium receive-path failure was fixed using a muted media element to
+  activate decoding; audible output still passes through WebAudio proximity gain.
+- Final unmodified-app fake-microphone test measured nonzero received WebAudio
+  samples (peak RMS 0.3053), zero master output when receive volume was zero, and
+  silence after PTT release. Tests used one machine, not restrictive cross-network
+  NATs. Audible human quality, live in-match attenuation, and TURN relay connectivity
+  remain unverified. Audio is not recorded by this application. Direct peers may
+  learn network addresses. No commit or push performed.
+
+## Arena movement, weapons and team readability - 2026-09-08
+
+- Ground acceleration is now direction-independent, with sharp braking and
+  reversal. Projection-based air acceleration preserves momentum with bounded
+  steering gain; launcher momentum, jump buffering, and coyote time remain.
+  Shared movement continues to run in authority and shadow prediction.
+- Fixed free-flight projectiles losing distance to an impact-only clearance
+  epsilon. Team-mode self splash now permits self damage/boost without damaging
+  teammates. Server input preserves short fire taps between ticks and clears them
+  at lifecycle boundaries. Prediction owns cloned nested snapshot state.
+- All eight weapons have dedicated detailed geometry and explicit muzzle anchors.
+  Muzzle lifetime follows weapon profiles, and pooled mesh traces honor width.
+  Team armor, flags, and zones use consistent red/blue colors with I/II markings;
+  character accents and FFA appearance remain distinct.
+- Fixed unlimited-ammo and rapid wheel switching, expanded editable-input guards,
+  and cleared held controls on focus/capture loss. Vehicle HUD exposes enter/exit,
+  health, and heat instead of infantry ammo. Online Escape explains lobby behavior.
+- Full `npm test` passed: 230 game tests, 71 server tests, one rendered-HTML test,
+  TypeScript and production build. `git diff --check` passed.
+- Diagnosed public 502s as a stale in-memory manifest referencing removed assets
+  after an in-place build. Restarted the web service to restore availability, then
+  restarted both services immediately after the final successful build. Both are
+  active. In-place builds still require coordinated restart; atomic deployment
+  and historical asset retention are not implemented.
+- Public Chromium checks at 1440x900 and 390x844 loaded all seven requested JS
+  chunks including the dynamic renderer without failed requests or page errors.
+  Blood Gulch Team Deathmatch entry, desktop movement, jumping and firing passed.
+  Mobile header/command overlap is resolved at the tested size. Close-up team
+  skins, touch gameplay, multiplayer latency feel, audio balance, and hardware GPU
+  performance are not visually/playtest verified. No commit or push performed.
+- Research: [Quake III movement behavior](https://github.com/id-Software/Quake-III-Arena/blob/master/code/game/bg_pmove.c),
+  [fixed timestep](https://gafferongames.com/post/fix_your_timestep/), and
+  [game feel](https://www.gamedeveloper.com/design/game-feel-the-secret-ingredient).
+  Movement implementation is original; GPL source was behavioral reference only.
+
+## All-arena visual and canyon rebuild - 2026-09-08
+
+- All ten arenas now have individual material and atmosphere palettes, batched
+  architectural details, and clearer surface treatment. Island foundations have
+  distinct supports, ribs, or rock layers; indoor structures gain panels, vents,
+  trim, and reactor details. Launchpad gains runway markings.
+- Blood Gulch now uses continuous rolling terrain, irregular enclosing cliffs,
+  low opposing bunkers with four walkable roof ramps, clear flag approaches, and
+  two vehicle lanes. Cliff strata and team-colored bunker cladding improve identity.
+- Fixed overlapping mound geometry, floating traversal pads/targets, and vehicle
+  movement ignoring collision-resolved terrain height. Bunkers remain solid with
+  accessible roofs, not interiors; launch pads are not instant teleporters.
+- Full `npm test` passed: 203 game tests, 65 server tests, one rendered-HTML test,
+  TypeScript, and production build. The seeded 300-second Blood Gulch match logged
+  16 kills and zero falls. The build retains its large-chunk warning.
+- Installed Chromium/Playwright checked the isolated production build at 1440x900
+  and 390x844: selection, map setup, and Blood Gulch entry passed with no captured
+  page errors or failed requests and no horizontal page overflow. Screenshots were
+  inspected. The mobile gameplay command panel partially overlaps the phase label;
+  touch gameplay is not supported. SwiftShader performance is not a GPU benchmark.
+- This pass has not been committed, pushed, or deployed by restarting services.
+
 ## Blood Gulch map fidelity pass - 2026-09-08
 
 - Rebuilt **Blood Gulch** into a wider, more recognisable canyon arena while keeping it compact enough for bot matches.
@@ -11,7 +97,9 @@
 - Updated focused tests in `game/blood-gulch.test.mjs`, `game/view.test.mjs`, `game/vehicle-gameplay.test.mjs`, and `server/vehicle.test.mjs` for the new layout.
 - Full verification passes: **196 game tests**, **64 server tests**, TypeScript, production build, and rendered HTML (**261 automated checks total**).
 - Deterministic 5-minute Blood Gulch simulation produced **13 kills, 231 shots, 24 pickups, 25 powers, and 16 respawns** with no falls, confirming bot connectivity on the new terrain.
-- Public browser checks passed linked assets, responsive layouts, and Blood Gulch CTF hosting with two flags and two Pumas visible in snapshots. Both production services were restarted and remain active.
+- Public HTTP and fresh-room WSS checks passed with two flags and two Pumas in
+  snapshots. Both production services were restarted. Browser layout checks were
+  not performed for that checkpoint.
 
 ## Gameplay modes and leaderboards pass - 2026-09-08
 

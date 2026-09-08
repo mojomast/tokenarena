@@ -283,6 +283,8 @@
 .next-arena-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
 .next-arena-button small { display: block; font: 12px monospace; line-height: 1.5; color: #a4bdb1; margin-top: 6px; }
 .ammo-warning { padding: 6px 10px; background: #241c13ed; border: 1px solid #ffc48970; color: #ffce9c; font: 12px monospace; line-height: 1.5; text-align: center; }
+.vehicle-prompt { padding: 6px 10px; background: #081818ed; border: 1px solid #83f4d566; color: #d5f7e6; font: 12px/1.5 monospace; }
+.vehicle-hud.overheated { border-color: #ffc48970; color: #ffce9c; }
 .mode-selection .selection-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
 .mode-selection .selection-scroll { min-height: 0; overflow-y: auto; display: flex; padding-bottom: 0; }
 .mode-selection .selection-heading { flex: none; padding-top: 16px; }
@@ -361,6 +363,27 @@
 .history-match .mode-scoreboard-domination > .score-row { min-width: 555px; }
 
 /* Live command layer keeps the current order distinct from the game telemetry. */
+.lobby-chat .chat-lines { overscroll-behavior: contain; overflow-anchor: none; scrollbar-width: thin; }
+.chat-new { width: 100%; margin: 0 0 10px; padding: 8px; border: 1px solid #83f4d566; background: #17362e; color: #caffeb; font: 12px monospace; }
+.voice-panel { margin-top: 18px; padding: 12px; border: 1px solid #83f4d544; background: #0a191cf2; color: #c9e6d6; font: 12px/1.5 monospace; }
+.voice-panel.talking { border-color: #83f4d5; }
+.voice-heading, .voice-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.voice-heading { justify-content: space-between; margin-bottom: 8px; color: #a6e5c9; }
+.voice-panel button, .voice-panel select { min-height: 36px; max-width: 100%; padding: 6px 8px; border: 1px solid #83f4d555; background: #17302c; color: #d5f7e6; font: inherit; }
+.voice-panel button:disabled { opacity: .5; }
+.voice-panel label { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.voice-panel input { width: 100%; accent-color: #83f4d5; }
+.voice-panel :is(select, input, summary):focus-visible, .lobby-chat .chat-lines:focus-visible { outline: 2px solid #b9ffe3; outline-offset: 2px; }
+.voice-panel details { margin-top: 8px; }
+.voice-panel summary { cursor: pointer; }
+.voice-panel details label { margin-top: 12px; }
+.voice-panel output { margin-left: auto; }
+.voice-panel p { margin: 8px 0 0; color: #a0b7ac; }
+.voice-panel .voice-error { color: #ffc9a8; }
+.voice-hold { touch-action: none; user-select: none; }
+.game-voice { position: absolute; z-index: 4; right: var(--safe-right); top: 31%; width: min(290px, calc(100% - var(--safe-left) - var(--safe-right))); max-height: 32dvh; overflow-y: auto; scrollbar-width: thin; }
+.game-voice .voice-panel { margin: 0; padding: 8px; }
+@media (max-width: 600px) { .game-voice { top: auto; bottom: calc(var(--safe-bottom) + 40px); width: min(250px, 65vw); max-height: 25dvh; } }
 .match-top { z-index: 2; }
 .match-context { display: grid; gap: 4px; align-content: start; }
 .match-context .phase-label { color: #8ba99d; font: 11px monospace; letter-spacing: 1.4px; margin-top: 5px; }
@@ -382,7 +405,7 @@
 .command-panel + .ctf-objective { top: 254px; }
 .ctf-objective { z-index: 1; }
 @media (max-width: 600px) {
-  .command-panel { top: 92px; width: calc(100% - 24px); padding: 11px 12px 12px; }
+  .command-panel { position: relative; top: auto; left: auto; transform: none; margin: 0 auto; width: calc(100% - 24px); padding: 8px 10px; }
   .command-copy h2 { font-size: 17px; }
   .command-copy p { font-size: 12px; }
   .command-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; margin-top: 10px; }

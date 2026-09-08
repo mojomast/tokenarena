@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {Match, floorAt} from './core.mjs';
+import {Match, floorAt, obstructed} from './core.mjs';
 import {GUNTRUCK} from './vehicles.mjs';
 
 const match=()=>new Match('chatgpt','openclaw',()=>.5,'blood-gulch',{mode:'ctf',botCount:0,respawn:1});
@@ -53,4 +53,25 @@ test('Puma damage releases its driver and respawns from its authored slot',()=>{
   assert.equal(vehicle.health,vehicle.maxHealth);
   assert.deepEqual(vehicle.position,vehicle.spawn);
   assert.ok(m.events.some(e=>e.type==='vehicle-respawn'));
+});
+
+test('Pumas can leave both garages, cross either valley lane, and exit safely',()=>{
+  for(const side of [-1,1])for(const lane of [-1,1]){
+    const m=match(),a=m.actors[0],vehicle=m.vehicles[side<0?0:1];
+    Object.assign(a,{x:side*28,y:0,z:0,grounded:true});
+    assert.ok(m.enterVehicle(a));
+    for(const [axis,target,direction] of [['z',lane*8,lane],['x',-side*30,-side],['z',0,-lane]]){
+      vehicle.heading=axis==='x'?direction*Math.PI/2:direction>0?0:Math.PI;
+      vehicle.velocity.x=vehicle.velocity.z=0;
+      a.yaw=vehicle.heading-Math.PI;
+      let frames=0;
+      while(direction*(target-vehicle.position[axis])>.12&&frames++<600)m.driveVehicle(a,{[axis]:direction},1/60);
+      assert.ok(frames<600,`route ${side}/${lane} stalled on ${axis}`);
+    }
+    assert.ok(Math.abs(a.x+side*30)<.2&&Math.abs(a.z)<.2);
+    assert.ok(m.releaseVehicle(a));
+    assert.equal(a.vehicleId,null);
+    assert.equal(a.y,floorAt(a.x,a.z,m.arena));
+    assert.ok(!obstructed(a.x,a.y,a.z,.52,m.arena));
+  }
 });

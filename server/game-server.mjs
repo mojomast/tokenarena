@@ -3,6 +3,19 @@ import { pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { RoomRegistry } from './rooms.mjs';
 import { MatchHistory } from './history.mjs';
+import { createHmac } from 'node:crypto';
+
+export function voiceConfig(peerId, env = process.env, now = Date.now()) {
+ const iceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
+ const urls = (env.TURN_URLS ?? '').split(',').map(url => url.trim()).filter(url => /^turns?:[^\s@]+$/i.test(url)).slice(0, 8);
+ if (urls.length && env.TURN_SECRET) {
+  const username = `${Math.floor(now / 1000) + 3600}:${peerId}`;
+  iceServers.push({ urls, username, credential: createHmac('sha1', env.TURN_SECRET).update(username).digest('base64') });
+ }
+ return { type: 'voice-config', iceServers };
+}
+
+const VOICE_BUFFER_LIMIT = 64 * 1024;
 
 export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, historyPath = null } = {}) {
  const history = new MatchHistory(historyPath);
@@ -15,7 +28,7 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   const players = [...registry.rooms.values()].reduce((n, r) => n + r.peers.size, 0);
   res.end(JSON.stringify({ service: 'token-arena-game-server', rooms: registry.rooms.size, players, port: server.address()?.port ?? port }));
  });
- const wss = new WebSocketServer({ server });
+  const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
  let nextPeer = 1;
  function sendTo(peerId, msg) {
   const ws = sockets.get(peerId);
@@ -41,8 +54,11 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   releaseSeat(peerId);
   peerRoom.set(peerId, room);
  }
- function dispatch(peerId, msg) {
-  switch (msg.type) {
+  function dispatch(peerId, msg) {
+   if (!msg || typeof msg !== 'object' || Array.isArray(msg)) return;
+   switch (msg.type) {
+    case 'voice-state': peerRoom.get(peerId)?.voiceState(peerId, msg.enabled, voiceConfig); break;
+    case 'voice-signal': peerRoom.get(peerId)?.voiceSignal(peerId, msg); break;
    case 'join': joinPeer(peerId, msg); break;
    case 'create': createRoom(peerId, msg); break;
    case 'list': sendTo(peerId, { type: 'rooms', rooms: registry.list() }); break;
@@ -67,12 +83,22 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
  }
  function flush() {
   for (const room of registry.rooms.values()) {
-   for (const { to, msg } of room.drain()) {
-    const text = JSON.stringify(msg);
+    for (const { to, msg } of room.drain()) {
+     if (msg.type === 'voice-signal' && (!room.voicePeers(msg.from, to, msg) ||
+      peerRoom.get(msg.from) !== room || peerRoom.get(to) !== room ||
+      sockets.get(msg.from)?.readyState !== 1)) continue;
+     const text = JSON.stringify(msg);
     if (to === null) {
      for (const ws of wss.clients) if (ws.readyState === ws.OPEN && peerRoom.get(socketPeer.get(ws)) === room) ws.send(text);
     } else {
-     const ws = sockets.get(to);
+      const ws = sockets.get(to);
+      if (msg.type === 'voice-config' && peerRoom.get(to) !== room) continue;
+      if (msg.type === 'voice-signal' || msg.type === 'voice-config') {
+       if (!ws || ws.bufferedAmount + Buffer.byteLength(text) > VOICE_BUFFER_LIMIT) {
+        if (msg.type === 'voice-config') ws?.terminate();
+        continue;
+       }
+      }
      if (ws && ws.readyState === ws.OPEN) ws.send(text);
     }
    }
