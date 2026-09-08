@@ -171,3 +171,13 @@ Thirty-seven server tests pass: the twelve 0.4 room tests and three 0.4 E2E test
 ### Verification
 
 Forty-eight server tests pass: the twelve 0.4 room tests, seven registry tests (now including expireAll retiring abandoned rooms), seven spectator tests, six history tests, eleven real-socket E2E tests, and five chat unit tests (sanitize/cap, empty drop, rate limit, unknown peer ignored, spectator chat delivered with a room-broadcast envelope). The new E2E tests prove: create mints a fresh room even when the socket carries a stored `roomId` (a fresh socket lists it), a dropped NetClient reattaches to its created room via its stored token and chats, an abruptly abandoned room disappears from `list` after grace while `local` persists, create vacates the previous room seat so no zombie peer lingers in the old room, and chat is room-scoped — every peer and spectator in the room receives it while a second room and a non-member receive nothing, with chat flowing during a live match. The 38 game tests are untouched. TypeScript, production build and the rendered response test remain green; the chat overlay compiles through the NetClient tests, with manual desktop-browser playtesting still pending on this machine.
+
+## Menu cleanup 0.7 — 2026-09-07
+
+Applied game-menu best practices (clear hierarchy, ≤ 3 clicks to anything, one dominant primary action, progressive disclosure) to the first screen, without changing any game or network behavior:
+
+- **Identity-first selection screen**: the grid is now just operator, live model preview and harness. Match rules and arena selection moved behind a `MATCH SETUP` dialog (kept in the DOM and CSS-hidden so server-rendered content — and the rendered-HTML gate — is unchanged).
+- **Persistent action bar**: sticky bottom bar with a selection summary (operator, harness, map, mode, bots, live `ONLINE · ROOM` status) and the root actions — dominant `ENTER ARENA`, `PLAY ONLINE` (opens the room browser; while connected the same button becomes `DISCONNECT`), `MATCH SETUP` and a settings gear. The old inline multiplayer panel is gone; `CONNECT & JOIN` and the server-address field moved to the room browser as a compact row with a `QUICK JOIN` shortcut.
+- **Overlay consistency**: Escape closes the match-setup dialog and settings panel; the backdrop click closes the dialog; modals animate in at 200ms (fade + scale).
+
+Solo play, the lobby, prediction/reconciliation and the network protocol are untouched; the 38 game and 48 server tests pass unchanged, as do typecheck, production build and the rendered response test. Manual desktop-browser playtesting of the new layout is still pending on this machine.

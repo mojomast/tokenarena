@@ -67,9 +67,18 @@ First authorized step toward the separately scoped P5 multiplayer, hosted from t
 | Match history | Completed matches recorded as `{id, roomId, mapId, mode, fragLimit, timeLimit, endedBy, duration, leader, players}`; persisted atomically to a JSON file (default `server/history.json`, capped at 50, path injectable, loaded at boot) | 6 history tests + history E2E pass |
 | Room browser UI | `NetClient.list()/create()`, room code in the lobby header, browse screen with join/WATCH/create and a recent-matches panel reusing scoreboard styling | Typecheck/build green; browser flow compile-tested |
 | Demo | `npm run demo` headless client joins, hosts and plays to results | Observed on this machine |
-| Local verification | test:game 38/38, test:server 47/47, typecheck, production build, rendered response test | Complete |
+| Local verification | test:game 38/38, test:server 48/48, typecheck, production build, rendered response test | Complete |
 
 Remaining for fully polished multiplayer: matchmaking, accounts/persistence, and manually playtested spectator camera switching.
+
+## Menu cleanup 0.7 — 2026-09-07
+
+| Milestone | Outcome | Verification status |
+|---|---|---|
+| Identity-first selection screen | Operator/harness/preview grid only; match rules and arena moved behind a CSS-hidden `MATCH SETUP` dialog (SSR content unchanged) | Rendered-response test green |
+| Persistent action bar | Sticky summary + dominant `ENTER ARENA`, `PLAY ONLINE` (room browser; DISCONNECT while connected), `MATCH SETUP`, settings gear | Typecheck/build green |
+| Progressive disclosure | Server address + QUICK JOIN tucked into the room browser; Escape closes dialogs; 200ms modal transitions | Typecheck/build green |
+| Local verification | test:game 38/38, test:server 48/48, typecheck, production build, rendered response test | Complete |
 
 ## Room chat and multiplayer fixes 0.6 — 2026-09-07
 
@@ -78,4 +87,4 @@ Remaining for fully polished multiplayer: matchmaking, accounts/persistence, and
 | Create always mints a fresh room | `create` no longer routes into an existing or persisted room; creator becomes host of a new 4-letter room; `NetClient.create` sends `roomId:''`; browse refreshes after create | Fresh-socket E2E + reconnect-to-created-room E2E pass |
 | Abandoned rooms retired | `expireAll` runs `removeIfEmpty` after expiring seats; `local` never removed | Registry test + abrupt-disconnect E2E pass |
 | Room chat | Sanitized (control chars stripped, 200-char cap), rate-limited (300ms per peer) `{type:'chat'}` broadcast to the room only; spectators chat; bounded client `chatLog` + `onChat`; lobby panel + in-game overlay (`T`/`Enter` opens, `Enter` sends, `Escape` closes); solo untouched | 5 chat unit tests + room-scoping/live-match E2E pass |
-| Local verification | test:game 38/38, test:server 47/47, typecheck, production build, rendered response test | Complete |
+| Local verification | test:game 38/38, test:server 48/48, typecheck, production build, rendered response test | Complete |
