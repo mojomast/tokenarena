@@ -96,15 +96,26 @@ test('traversal and flags tolerate metadata variants and clean shared resources'
  view.addTraversal(scene,arena,new T.MeshBasicMaterial({color:arena.color}));assert.equal(scene.children.filter(x=>x.userData.traversal).length,2);
  view.updateFlags({time:1,flags:[{team:'alpha',x:1,y:0,z:2,state:'dropped'},{team:'beta',x:-1,y:0,z:2,carrierId:9}]},arena);assert.equal(view.flagModels.size,2);assert.equal(view.flagModels.get('alpha').visible,true);assert.equal(view.flagModels.get('beta').visible,false);
  view.updateFlags({flags:undefined},arena);assert.ok([...view.flagModels.values()].every(flag=>!flag.visible));view.disposeObject(scene);for(const resource of view.renderResources)resource.dispose();
-  });
+   });
 
-test('KOTH and Domination objective markers show state and clean stale zones',()=>{
+test('targeted launchers face their landing route and carry decorative stripes',()=>{
+  const view=Object.create(ArenaView.prototype);view.renderResources=new Set();const scene=new T.Scene();const glow=new T.MeshBasicMaterial({color:'#55ddcc'});
+  const arena={id:'targeted',color:'#55ddcc',traversal:{boostLaunchers:[{id:'route',x:4,y:2,z:-2,dir:[-1,0]}]},jumpLinks:[{traversal:'route',source:{x:4,y:2,z:-2},target:{x:9,y:2,z:-2}}]};
+  view.addTraversal(scene,arena,glow);const launcher=scene.children.find(child=>child.userData.traversal==='boost-launcher');
+  assert.equal(launcher.rotation.y,Math.PI/2);assert.equal(launcher.userData.stripes.length,2);assert.ok(launcher.userData.stripes.every(stripe=>stripe.parent===launcher));
+  assert.deepEqual(launcher.userData.stripes.map(stripe=>stripe.position.toArray()),[[-.25,.08,0],[.25,.08,0]]);
+  launcher.updateMatrixWorld(true);const stripeWorld=launcher.userData.stripes[0].getWorldPosition(new T.Vector3());assert.ok(Math.abs(stripeWorld.x-4)<1e-9&&Math.abs(stripeWorld.z+1.75)<1e-9);
+  view.disposeObject(scene);glow.dispose();
+ });
+
+test('KOTH and Domination objective areas show state and clean stale zones',()=>{
   const view=Object.create(ArenaView.prototype),scene=new T.Scene(),world=new T.Group();scene.add(world);
   view.scene=scene;view.worldGroup=world;view.objectiveModels=new Map();view.motionQuery={matches:true};
   const arena={id:'crosswire',color:'#55ddcc'};
   view.updateObjectives({time:2,objectives:{kind:'koth',zones:[{id:'hill',x:2,y:1,z:-3,radius:4,owner:0,captureTeam:0,progress:40}]}},arena);
   const hill=view.objectiveModels.get('hill');
-   assert.ok(hill&&hill.userData.objective);assert.equal(hill.position.y,1);assert.equal(hill.scale.y,1);
+    assert.ok(hill&&hill.userData.objective);assert.equal(hill.position.y,1);assert.equal(hill.scale.y,1);assert.equal(hill.userData.radius,4);assert.equal(hill.userData.area.geometry.parameters.radiusTop,4);assert.equal(hill.userData.base.geometry.parameters.radius,4);assert.equal(hill.userData.identifier,'hill');assert.ok(hill.userData.emblem.visible);
+    assert.ok(hill.userData.area.material.opacity>0,'neutral and owned areas have a filled footprint');
    assert.equal(hill.userData.progress.visible,true);assert.equal(hill.userData.baseMat.color.getHexString(),'55ddcc');
    const progressGeometry=hill.userData.progress.geometry;
    assert.equal(progressGeometry.drawRange.count,78);
@@ -113,8 +124,10 @@ test('KOTH and Domination objective markers show state and clean stale zones',()
    assert.equal(progressGeometry.drawRange.count,84);
    view.updateObjectives({time:2,objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:null,progress:0,contested:true},{id:'bravo',x:5,z:0,owner:1,progress:75}]}},arena);
   assert.equal(view.objectiveModels.size,2);assert.equal(view.objectiveModels.get('alpha').userData.baseMat.color.getHexString(),'ffd166');
-  assert.equal(view.objectiveModels.get('bravo').userData.baseMat.color.getHexString(),'ff789d');
-  view.updateObjectives({objectives:{kind:'ctf',zones:[]}},arena);assert.equal(view.objectiveModels.size,0);assert.equal(world.children.length,0);
+   assert.equal(view.objectiveModels.get('bravo').userData.baseMat.color.getHexString(),'ff789d');assert.equal(view.objectiveModels.get('bravo').userData.areaMat.color.getHexString(),'ff789d');assert.equal(view.objectiveModels.get('bravo').userData.progressMat.color.getHexString(),'ff789d');assert.equal(view.objectiveModels.get('alpha').userData.progress.visible,false);
+   view.updateObjectives({objectives:{kind:'domination',zones:[{id:'alpha',x:0,z:0,owner:0,captureTeam:1,progress:25}]}},arena);const alpha=view.objectiveModels.get('alpha');assert.equal(alpha.userData.areaMat.color.getHexString(),'55ddcc');assert.equal(alpha.userData.progressMat.color.getHexString(),'ff789d');assert.equal(alpha.userData.progress.visible,true);
+   const stale=view.objectiveModels.get('alpha'),disposed=[0,0];stale.userData.area.geometry.addEventListener('dispose',()=>disposed[0]++);stale.userData.areaMat.addEventListener('dispose',()=>disposed[1]++);
+   view.updateObjectives({objectives:{kind:'ctf',zones:[]}},arena);assert.equal(view.objectiveModels.size,0);assert.equal(world.children.length,0);assert.deepEqual(disposed,[1,1]);
 });
 
 test('unknown weapons produce typed models and effects do not index past weapon data',t=>{

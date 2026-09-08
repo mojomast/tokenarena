@@ -1,12 +1,40 @@
 import {modeRule} from './config.mjs';
-const point=(x,z,id,rules)=>({id,x,z,radius:3.5,owner:null,captureTeam:null,progress:0,captureSeconds:rules.objective?.captureSeconds??5});
+const point=(x,z,id,rules,radius=3.5,y=0)=>({id,x,z,radius,owner:null,captureTeam:null,progress:0,captureSeconds:rules.objective?.captureSeconds??5,y});
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
-const authoredPoints=(arena,ids,rules)=>Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length?ids.map((id,i)=>{const source=arena.objectiveZones[i];return {...point(source.x,source.z,id,rules),y:source.y??0};}):null;
+
+// Keep capture centers on walkable ground. These maps predate objective metadata,
+// so their bounds centers can be inside a reactor, cover, or island landmark.
+const authoredObjectivePoints={
+  exchange:[[-11,-12,1.5,3.8],[0,-12,1.5,3.8],[11,-12,1.5,3.8]],
+  crosswire:[[-9,0,3.5,0],[0,-9,3.5,0],[9,0,3.5,0]],
+  foundry:[[-10,0,3.5,0.95],[0,-9,3.5,3.8],[10,0,3.5,0.95]],
+  launchpad:[[-18,0,3.5,0],[0,8,3.5,0],[18,0,3.5,0]],
+  citadel:[[-12,0,3.5,0],[0,-9,3.5,0],[12,0,3.5,0]],
+  'blood-gulch':[[-20,0,3.5,0],[0,-7,3.5,0],[20,0,3.5,0]],
+  skybreak:[[-21,-18,3.5,0],[0,3,2,0],[21,18,3.5,0]],
+  aether:[[-17,-18,2,0],[0,3,2,0],[17,18,2,0]],
+  'sunscar-canyon':[[-28,0,3.5,0],[0,-7,3.5,0],[28,0,3.5,0]],
+  'ironfall-megastructure':[[-43,-8,3.5,0],[0,0,3.5,0],[43,8,3.5,0]],
+  'longreach-plateau':[[-52,-10,3.5,0],[0,0,3.5,0],[52,10,3.5,0]],
+};
+const toPoints=(values,ids,rules)=>values?.map(([x,z,radius,y=0],i)=>point(x,z,ids[i],rules,radius,y));
+const obstructedByBlocks=(arena,x,z,y,radius)=> (arena.blocks||[]).some(block=>Math.abs(x-block.x)<block.w/2+radius&&Math.abs(z-block.z)<block.d/2+radius&&y<block.h-1e-6);
+const onPlatform=(arena,x,z,radius)=> (arena.platforms||[]).some(platform=>Math.abs(x-platform.x)<=platform.w/2-radius&&Math.abs(z-platform.z)<=platform.d/2-radius);
+const candidatePoints=(arena,ids,rules)=>{
+  const b=boundsOf(arena),radius=3.5;
+  const candidates=[...(arena.navNodes||[]),...(arena.spawns||[]).map(([x,z])=>({x,z,y:0})),...(arena.pickups||[]).map(([,x,z])=>({x,z,y:0}))];
+  if(!arena.terrain)candidates.push({x:b.minX+(b.maxX-b.minX)*.25,z:b.minZ+(b.maxZ-b.minZ)*.25,y:0},{x:b.maxX-(b.maxX-b.minX)*.25,z:b.maxZ-(b.maxZ-b.minZ)*.25,y:0});
+  const safe=candidates.filter(candidate=>Number.isFinite(candidate.x)&&Number.isFinite(candidate.z)&&(!arena.platforms?.length||onPlatform(arena,candidate.x,candidate.z,radius))&&!obstructedByBlocks(arena,candidate.x,candidate.z,candidate.y??0,radius));
+  return ids.map((id,index)=>{const candidate=safe[index%safe.length]||{x:b.minX+(b.maxX-b.minX)/2,z:b.minZ+(b.maxZ-b.minZ)/2,y:0};return point(candidate.x,candidate.z,id,rules,radius,candidate.y??0);});
+};
+const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.id],ids,rules)||(
+  Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length
+    ? ids.map((id,index)=>{const source=arena.objectiveZones[index];return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);})
+    : candidatePoints(arena,ids,rules));
 export function objectiveTemplate(mode,arena){
-  const b=boundsOf(arena),cx=(b.minX+b.maxX)/2,cz=(b.minZ+b.maxZ)/2;
   const rules=modeRule(mode);
   const authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
-  if(mode==='koth'){const source=authored?.[1]||point(cx,cz,'hill',rules);return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};}
-  if(mode==='domination'){const dx=(b.maxX-b.minX)*.28;return {kind:'domination',zones:authored||[point(cx-dx,cz,'alpha',rules),point(cx,cz,'bravo',rules),point(cx+dx,cz,'charlie',rules)],winner:null};}
+  if(mode==='koth'){const source=authored[1];return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};}
+  if(mode==='domination')return {kind:'domination',zones:authored,winner:null};
   return null;
 }

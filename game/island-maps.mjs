@@ -4,6 +4,17 @@ const point=(x,z)=>({x,z,y:0});
 const boost=(id,x,z,dir,power,vy)=>({id,x,z,y:0,dir,power,vy,cooldown:2});
 const link=(id,source,target,traversal,route)=>({id,source:point(...source),target:point(...target),traversal,route});
 
+const alignLauncherDirections=map=>{
+  const links=new Map((map.jumpLinks||[]).map(value=>[value.traversal,value]));
+  map.traversal.boostLaunchers=map.traversal.boostLaunchers.map(launcher=>{
+    const jump=links.get(launcher.id);
+    if(!jump)return launcher;
+    const dx=jump.target.x-jump.source.x,dz=jump.target.z-jump.source.z,length=Math.hypot(dx,dz);
+    return {...launcher,dir:[dx/length,dz/length]};
+  });
+  return map;
+};
+
 // Numeric aliases keep CTF metadata compatible with the current Match helpers.
 const teamData=(west,east)=>({0:west,1:east,red:west,blue:east});
 const flagData=(west,east)=>({0:{x:west,z:0},1:{x:east,z:0},red:{x:west,z:0},blue:{x:east,z:0}});
@@ -92,6 +103,9 @@ const aether={
  navNodes:[point(-36,0),point(36,0),point(-19,-18),point(0,-22),point(19,-18),point(0,0),point(-19,18),point(0,22),point(19,18)],
  landmarks:[{label:'WEST RING',x:-32,z:0,y:3.2},{label:'EAST RING',x:32,z:0,y:3.2},{label:'AETHER HUB',x:0,z:0,y:3.2}],
 };
+
+alignLauncherDirections(skybreak);
+alignLauncherDirections(aether);
 
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);Object.values(value).forEach(freeze);}return value;};
 export const ISLAND_MAPS=freeze([skybreak,aether]);

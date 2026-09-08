@@ -31,6 +31,13 @@ const platformContains=(platform,value,margin=0)=>{
   const r=rectangle(platform),p=point(value);
   return p.x>=r.minX+margin&&p.x<=r.maxX-margin&&p.z>=r.minZ+margin&&p.z<=r.maxZ-margin;
 };
+const clearOfBlocks=(map,value,radius)=>{
+  const p=point(value);
+  return (map.blocks||[]).every(block=>{
+    const r=rectangle(block),dx=Math.max(r.minX-p.x,0,p.x-r.maxX),dz=Math.max(r.minZ-p.z,0,p.z-r.maxZ);
+    return Math.hypot(dx,dz)>=radius;
+  });
+};
 
 test('island maps are exactly two unique, deeply immutable maps',()=>{
   assert.equal(ISLAND_MAPS.length,2);
@@ -80,6 +87,27 @@ test('jump links reference present endpoints and traversal IDs',()=>{
       assert.ok(within(map,link.source)&&within(map,link.target),map.id);
       assert.ok(link.traversal||link.traversalId||link.traversalID,map.id);
       assert.ok(ids.has(link.traversal||link.traversalId||link.traversalID),map.id);
+    }
+  }
+});
+
+test('targeted launcher directions and landing clearance match authored links',()=>{
+  const playerRadius=.42;
+  for(const map of ISLAND_MAPS){
+    const launchers=map.traversal.boostLaunchers;
+    assert.equal(launchers.length,map.jumpLinks.length,map.id);
+    for(const launcher of launchers){
+      const link=map.jumpLinks.find(value=>value.traversal===launcher.id);
+      assert.ok(link,`${map.id} ${launcher.id} missing link`);
+      assert.deepEqual({x:launcher.x,z:launcher.z},{x:link.source.x,z:link.source.z},`${map.id} ${launcher.id} source mismatch`);
+      const dx=link.target.x-link.source.x,dz=link.target.z-link.source.z,length=Math.hypot(dx,dz);
+      const directionLength=Math.hypot(launcher.dir[0],launcher.dir[1]);
+      assert.ok(Math.abs(directionLength-1)<1e-9,`${map.id} ${launcher.id} direction is not normalized`);
+      assert.ok(Math.abs(launcher.dir[0]-dx/length)<1e-9&&Math.abs(launcher.dir[1]-dz/length)<1e-9,`${map.id} ${launcher.id} points away from target`);
+      assert.ok(platformsOf(map).some(platform=>platformContains(platform,launcher,playerRadius)),`${map.id} ${launcher.id} source lacks player clearance`);
+      assert.ok(platformsOf(map).some(platform=>platformContains(platform,link.target,playerRadius)),`${map.id} ${launcher.id} target lacks player clearance`);
+      assert.ok(clearOfBlocks(map,launcher,playerRadius),`${map.id} ${launcher.id} source intersects cover`);
+      assert.ok(clearOfBlocks(map,link.target,playerRadius),`${map.id} ${launcher.id} target intersects cover`);
     }
   }
 });

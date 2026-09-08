@@ -1,5 +1,24 @@
 # TOKEN ARENA verification report
 
+## Traversal and objective readability pass - 2026-09-08
+
+- Sky-map targeted launchers now derive their authored direction from the actual
+  source-to-target link, and the renderer uses that same link for launcher yaw. Pad
+  stripes are parented to their launcher, so diagonal slingshots no longer point away
+  from their landing route. Existing vertical-only outer trampolines remain explicit
+  bounce pads rather than pretending to be cross-platform links.
+- KOTH and Domination objectives now render as low-opacity, team-colored capture areas
+  with a full-radius footprint, bright perimeter, progress indicator, and center
+  emblem. Neutral zero-progress areas stay visible; ownership, capture, and contest
+  states remain distinct in WebGL and the software renderer.
+- Objective anchors are authored on supported, unobstructed surfaces for every
+  canonical map. Raised Exchange/Foundry points use deck height, Ironfall uses its
+  middle deck, and island zones stay within their platform footprints.
+- The HUD now reports truthful terrain route context and per-zone Domination state
+  instead of defaulting to CENTER or aggregate counts alone.
+- Full verification passes: **185 game tests**, **61 server tests**, TypeScript,
+  production build, and rendered HTML (**247 automated checks total**).
+
 ## Polish pass - 2026-09-08
 
 - Added keyboard-accessible focus entry and Tab wrapping for setup, pause, and
