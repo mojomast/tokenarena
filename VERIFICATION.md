@@ -1,5 +1,33 @@
 # TOKEN ARENA verification report
 
+## Theater, cinematic camera and live menu showcase 1.6 - 2026-09-10
+
+- **`game/demo.mjs`** records snapshot keyframes at 18 Hz, interpolates
+  positions/yaw (shortest-angle) on playback, exposes the event stream for
+  effects, and serializes/parses plus gzip (de)compression. **`game/demo-store.mjs`**
+  persists recordings in IndexedDB (summary + data stores).
+- **`game/director.mjs`** is a pure-math cinematic director: seven rigs, damped
+  motion between hard cuts, auto-cuts on `death`/`explosion`/`capture`, target
+  selection from highlight events or nearby explosions, and manual rig/target/
+  free-look control. It returns a `{x,y,z,yaw,pitch,roll,fov,cut}` pose that the
+  renderer copies onto the existing camera (so bloom post-processing keeps working).
+- **`game/view.mjs`** gained a cinema path (`setCinema`/`setDirector`/`setShowcase`),
+  renders the gameplay scene with the director pose, hides the first-person view
+  model, suppresses local-player shake, null-guards `match.events`, and composites
+  the selected operator's menu model into the customization panel with a scissored
+  viewport pass over the showcase (`setPreviewRect`).
+- **`app/page.tsx`** runs a live bot showcase behind the menu (fully bot-driven,
+  rotating map/mode), records solo and network matches, and adds a Theater screen
+  with playback controls, rig chips and keyboard shortcuts. The showcase can be
+  disabled in settings and is automatically skipped for the CPU renderer and
+  `prefers-reduced-motion`.
+
+Verification: `npm run test:game` 338/338 (incl. 13 demo and 8 director tests),
+`npm run test:server` 80/80, `npx tsc --noEmit` clean, `npm run build` succeeds,
+`node --test tests/*.test.mjs` 1/1. The showcase/theater integration lives in the
+client render loop and is exercised by the build + SSR test rather than a headless
+WebGL test.
+
 ## Bunny-hop fix and audio upgrade 1.5 - 2026-09-10
 
 - **Bunny-hopping**: previously each landing applied ground friction before the

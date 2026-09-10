@@ -199,6 +199,12 @@ Version 1.5 fixes bunny-hopping and upgrades the sound:
 - **Bunny-hopping works now.** Holding jump auto-hops, and a held or buffered hop skips the landing frame's ground friction, so chained hops keep their momentum instead of bleeding ~10% per landing. Air acceleration is retuned (`airAccel 3.5`, `airCap 1.6`, terminal ×2.2) so strafe jumping turns speed into gains; forward hops preserve cruise speed.
 - **Richer synthesized audio.** Gunshots are now layered (filtered noise transient + tonal body + sub thump) with per-weapon character (rifle/heavy/zap/burst/plasma), plus improved explosions, reload clicks, weapon-switch, hit and kill feedback, footsteps and landing thuds, and a speed-tracking Warthog engine. Positional sounds use distance falloff and stereo panning.
 
+Version 1.6 adds a cinematic demo system and a living main menu:
+
+- **Theater (demo recording and playback).** Every solo and network match you finish is recorded automatically as compact keyframes (18 Hz, rounded, gzip-ready). Open **THEATER** from the loadout to replay any recording, scrub the timeline, change speed, and watch with **cinematic cameras**.
+- **Variable camera angles.** A camera director offers seven rigs — orbit, chase, dolly, crane, tripod, follow and first-person — and auto-cuts to kills, explosions and captures. Pick a rig with `1`–`7` or the on-screen chips, cycle subjects with `[` / `]`, and play/pause with `SPACE`.
+- **Live menu showcase.** The main menu now renders a real bot match behind the UI, auto-directed by the same camera system, with the selected operator's 3D model composited into the customization panel. Toggle it under Graphics & settings → **Menu showcase**.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.
