@@ -2,6 +2,12 @@
 
 A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from fourteen arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
 
+**Play it live:** https://arena.ussyco.de — **Source:** https://github.com/mojomast/tokenarena (also linked from the in-game menus).
+
+## Live deployment
+
+The production build is served at `https://arena.ussyco.de` from this host (nginx → `vinext start` on `127.0.0.1:3000`, with `/ws` proxied to the Node game server on `127.0.0.1:4000`). Both run as `mojo` user systemd units (`token-arena-web.service`, `token-arena-server.service`). After a successful `npm run build`, restart the web unit so it reloads the bundle and asset manifest; restart the game-server unit only when server code changes, since that disconnects active multiplayer clients. See `deploy/README.md` for the full procedure.
+
 ## Run locally
 
 Requires Node.js 22.13+ and npm. Install with `npm ci`, launch with `npm run dev`, then open the URL printed by Vite. Use `npm run build` for the production Worker build and `npm run start` to serve it. In the managed Sites environment, the supervised preview is started with `sites-preview start /workspace/sites/token-arena`.

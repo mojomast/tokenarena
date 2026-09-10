@@ -1,5 +1,30 @@
 # TOKEN ARENA verification report
 
+## Live deployment and in-game source link - 2026-09-10
+
+Public site: https://arena.ussyco.de (nginx + wildcard TLS) proxying the
+production `vinext start` app on `127.0.0.1:3000` and the Node game server on
+`127.0.0.1:4000` at `/ws`. Both run as `mojo` user systemd units on this host.
+
+- Added a GitHub source link (`https://github.com/mojomast/tokenarena`) to the
+  selection/browse/lobby top bars, the Graphics & settings dialog, and the pause
+  menu, using an inline GitHub mark (lucide 1.31 dropped brand icons).
+- The rendered-HTML gate now asserts the source link is present in the
+  server-rendered selection screen.
+- Redeployed: `npm run build` then `systemctl --user restart
+  token-arena-web.service` (reloads the server bundle and asset manifest) and
+  `token-arena-server.service` (loads the 1.3/1.4 netcode; disconnects active
+  multiplayer clients briefly).
+
+Live verification (curl + WebSocket, 2026-09-10):
+
+| Check | Result |
+|---|---|
+| `https://arena.ussyco.de/` | HTTP 200, new asset hash `assets/page-CgTUMVNQ.js` |
+| Referenced page asset | HTTP 200, contains `github.com/mojomast/tokenarena` |
+| `https://arena.ussyco.de/ws` | WebSocket opens and returns `{"type":"rooms",...}` |
+| `node --test tests/*.test.mjs` | pass (now also asserts the source link) |
+
 ## Combat feedback, bot flow and platform-map connectivity 1.4 - 2026-09-10
 
 A follow-up pass of four parallel subagents on non-overlapping files (maps, HUD/UI, renderer, bot AI), then reconciled and verified.

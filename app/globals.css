@@ -480,3 +480,10 @@
   .kill-banner { animation: none; }
   .objective-announcer { animation: none; }
 }
+
+/* Source link in menus */
+a.icon-button.github-link{text-decoration:none}
+a.icon-button.github-link>span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.settings-source{margin-top:14px;font-size:12px;color:#8ca69b}
+.settings-source a{color:#9ef0cf}
+.pause-source{margin-top:14px;justify-content:center;text-decoration:none}
