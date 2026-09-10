@@ -1,5 +1,33 @@
 # TOKEN ARENA verification report
 
+## Arena framework, traversal v2 and combined arms 1.8 - 2026-09-10
+
+- **`game/arenas.mjs`** adds an arena registry: group/scale/mode-whitelist/legacy
+  metadata derived from authored overrides or map shape, with `activeMaps`,
+  `mapsForMode`, `maxBotsFor`, `recommendedBots`, `groupedMaps` and
+  `arenaVariant`. Covered by 6 tests.
+- **Legacy gating:** Exchange, Crosswire, Foundry, Launchpad, Citadel and Blood
+  Gulch are `legacy`; the setup/host map pickers, `shuffleSelection` and
+  `nextArenaSelection` exclude them unless Games & settings → *Legacy arenas*
+  is on. Rotation tests cover both paths.
+- **Traversal v2:** trampolines/jump pads, boost launchers, **ziplines** and
+  **teleporters** are parsed and simulated in `game/core.mjs` (with teleporter
+  nav edges), rendered in `game/view.mjs`, and exercised by 5 traversal tests
+  (launch, teleport relocation + cooldown, zipline ride, nav bridge, event
+  forwarding).
+- **New maps** (`game/battle-maps.mjs`): `neon-vertical` (urban, jump pads,
+  rooftop ziplines, teleporters), `substation` (indoor, ceiling array,
+  bulkheads, teleporters), `warfront` (large combined-arms, four Pumas). Each
+  passes the all-map contracts: block bounds, connected navigation, grounded
+  and clear spawns/pickups/flags/zones, distinct material/fog signature,
+  render/dispose invariants, cover landings and full 3-bot match completion.
+- **Combined Arms mode** (`game/config.mjs`) with `maxBots:16`; `normalizeConfig`
+  clamps bot count to the mode cap and `MatchConfiguration` follows it.
+
+Verification: `npm run test:game` 365/365, `npm run test:server` 80/80,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Bot personalities and mode balance 1.7 - 2026-09-10
 
 - **`game/bot-personalities.mjs`** blends the existing operator `role` and harness

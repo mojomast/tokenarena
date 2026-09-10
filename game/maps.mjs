@@ -2,6 +2,7 @@ import {ISLAND_MAPS} from './island-maps.mjs';
 import BLOOD_GULCH from './blood-gulch.mjs';
 import {EXPANSION_MAPS} from './expansion-maps.mjs';
 import {CTF_MAPS} from './ctf-maps.mjs';
+import {BATTLE_MAPS} from './battle-maps.mjs';
 
 // Map definitions are immutable templates. Each Match owns its own collision and navigation context.
 const wall=(x,z,w,d,h=9,kind='wall')=>({x,z,w,d,h,kind});
@@ -26,6 +27,7 @@ export const MAPS=[
   ...ISLAND_MAPS,
   ...EXPANSION_MAPS,
   ...CTF_MAPS,
+  ...BATTLE_MAPS,
 ];
 const freeze=(value)=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);Object.values(value).forEach(freeze);}return value;};
 freeze(MAPS);

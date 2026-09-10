@@ -212,6 +212,15 @@ Version 1.7 gives every bot a distinct brain and rebalances objective modes:
 - **Harder to hold ground.** A contested objective now decays the holder's control toward the challenger instead of freezing, so a lone camper can no longer lock a hill. Scoring still only accrues while a team holds the zone uncontested.
 - **Attackers keep pushing.** Bots now keep advancing on objectives while shooting instead of stopping to duel, which keeps CTF/Domination games flowing.
 
+Version 1.8 rebuilds the arena and mode layer and adds traversal v2:
+
+- **An arena framework.** Every map now carries a group (urban, indoor, outdoor, island, vehicle, combined), a scale, a mode whitelist, a recommended bot count and a `legacy` flag (`game/arenas.mjs`). The map picker, shuffle and "next arena" all respect the selected mode and hide archived maps unless **Legacy arenas** is enabled in Graphics & settings.
+- **Archived arenas.** The original compact arenas (Exchange, Crosswire, Foundry, Launchpad, Citadel, Blood Gulch) are marked legacy and no longer appear by default, while remaining in the rotation for anyone who turns the toggle on.
+- **Traversal v2.** Alongside trampolines and boost launchers, maps can now author **jump pads**, **ziplines** (ride the cable to a far anchor) and **teleporters** (paired pads that bots can path through). All are simulated deterministically, rendered, and covered by tests.
+- **New maps.** *Neon Vertical* (urban rooftops with jump pads and ziplines), *Substation 7* (enclosed indoor facility under a ceiling), and *Warfront Delta* (a wide combined-arms battlefield with four Puma slots).
+- **Combined Arms mode.** A team objective mode built for the largest maps with up to **16** bots (per-mode `maxBots`), plus animation of every mode's objectives.
+- **Per-mode rosters.** Bot count now scales per mode (8 standard, 16 for Combined Arms) and the setup slider follows it; the menu showcase picks a map by group and a matching bot count.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.
