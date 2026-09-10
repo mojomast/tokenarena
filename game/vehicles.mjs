@@ -25,10 +25,30 @@ export const PUMA = freeze({
   name: 'Puma',
   kind: 'puma',
   dimensions: { length: 3.6, width: 2.1, height: 1.7 },
-  speed: 8,
-  acceleration: 18,
-  reverseSpeed: 3.5,
+  speed: 20,
+  acceleration: 14,
+  reverseSpeed: 6,
+  brake: 22,
+  drag: 0.035,
   turnRate: 1.8,
+  maxSteer: 0.55,
+  steerAssist: 1.4,
+  steerAssistSpeed: 3,
+  maxYawRate: 3.5,
+  handbrakeYaw: 1.6,
+  maxHandbrakeYawRate: 5,
+  grip: 8,
+  handbrakeGrip: 1.8,
+  driftLateral: 4,
+  boostSpeed: 26,
+  boostAcceleration: 24,
+  boostDuration: 2,
+  boostCooldown: 6,
+  traverseRate: 1.75,
+  rollMax: 0.35,
+  pitchMax: 0.35,
+  suspensionRate: 12,
+  bodyRate: 8,
   health: 300,
   respawn: 5,
   mountedChaingun: CHAINGUN,
@@ -45,10 +65,25 @@ const number = (value, fallback) => Number.isFinite(value) ? value : fallback;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const approach = (value, target, amount) =>
   value < target ? Math.min(value + amount, target) : Math.max(value - amount, target);
+const wrapAngle = value => {
+  const tau = Math.PI * 2;
+  let angle = (value + Math.PI) % tau;
+  if (angle < 0) angle += tau;
+  return angle - Math.PI;
+};
+const approachAngle = (value, target, amount) => value + clamp(wrapAngle(target - value), -amount, amount);
+const normalize = vector => {
+  const length = Math.hypot(vector.x, vector.y, vector.z) || 1;
+  return { x: vector.x / length, y: vector.y / length, z: vector.z / length };
+};
+const readNormal = value => {
+  if (Array.isArray(value)) return { x: value[0], y: value[1], z: value[2] };
+  if (value && typeof value === 'object') return { x: value.x, y: value.y, z: value.z };
+  return null;
+};
 
 export function createVehicle(template = PUMA) {
   const source = template || GUNTRUCK;
-  const gun = source.mountedChaingun || GUNTRUCK.mountedChaingun;
   return {
     template: source.id || 'vehicle',
     config: source,
@@ -65,6 +100,14 @@ export function createVehicle(template = PUMA) {
     overheatTimer: 0,
     fireCooldown: 0,
     muzzleIndex: 0,
+    turretYaw: 0,
+    roll: 0,
+    pitchBody: 0,
+    speed: 0,
+    grounded: true,
+    handbrake: false,
+    boostTimer: 0,
+    boostCooldown: 0,
     lastStep: { fired: false, muzzle: -1 }
   };
 }
@@ -72,9 +115,9 @@ export function createVehicle(template = PUMA) {
 export function vehicleMuzzles(vehicle) {
   const template = vehicle?.template === PUMA.id ? PUMA : vehicle?.config;
   const offsets = template?.muzzles || GUNTRUCK.muzzles;
-  const angle = number(vehicle?.heading, 0);
-  const sin = Math.sin(angle);
-  const cos = Math.cos(angle);
+  const heading = number(vehicle?.heading, 0) + number(vehicle?.turretYaw, 0);
+  const sin = Math.sin(heading);
+  const cos = Math.cos(heading);
   const x = number(vehicle?.position?.x, 0);
   const y = number(vehicle?.position?.y, 0);
   const z = number(vehicle?.position?.z, 0);
@@ -82,7 +125,7 @@ export function vehicleMuzzles(vehicle) {
     x: x + offset.x * cos + offset.z * sin,
     y: y + offset.y,
     z: z - offset.x * sin + offset.z * cos,
-    heading: angle
+    heading
   }));
 }
 
@@ -91,16 +134,21 @@ export function vehicleCanEnter(vehicle, actor) {
     vehicle.driver === null && actor.vehicle == null && actor.vehicleId == null && actor.health > 0);
 }
 
-export function stepVehicle(vehicle, input = {}, dt = 0, collision) {
+export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
   if (!vehicle || !Number.isFinite(dt) || dt <= 0) return vehicle;
   const config = vehicle.config?.kind === PUMA.kind || vehicle.template === PUMA.id ? PUMA : vehicle.config || PUMA;
   const gun = config.mountedChaingun || GUNTRUCK.mountedChaingun;
   const duration = dt;
+  const position = vehicle.position || (vehicle.position = { x: 0, y: 0, z: 0 });
+  const velocity = vehicle.velocity || (vehicle.velocity = { x: 0, z: 0 });
   vehicle.lastStep = { fired: false, muzzle: -1 };
 
   if (vehicle.respawnTimer > 0) {
     vehicle.respawnTimer = Math.max(0, vehicle.respawnTimer - duration);
-    vehicle.velocity.x = vehicle.velocity.z = 0;
+    velocity.x = velocity.z = 0;
+    vehicle.speed = 0;
+    vehicle.handbrake = false;
+    vehicle.turretYaw = number(vehicle.turretYaw, 0);
     return vehicle;
   }
 
@@ -113,38 +161,167 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision) {
 
   const throttle = clamp(number(input.throttle, 0), -1, 1);
   const steer = clamp(number(input.steer, 0), -1, 1);
-  const forwardSpeed = number(config.speed, GUNTRUCK.speed);
-  const reverseSpeed = number(config.reverseSpeed, GUNTRUCK.reverseSpeed);
-  const target = throttle >= 0 ? throttle * forwardSpeed : throttle * reverseSpeed;
-  const localSpeed = vehicle.velocity.x * Math.sin(vehicle.heading) + vehicle.velocity.z * Math.cos(vehicle.heading);
-  const speed = approach(localSpeed, target, number(config.acceleration, GUNTRUCK.acceleration) * duration);
-  vehicle.heading += steer * number(config.turnRate, GUNTRUCK.turnRate) * duration * clamp(Math.abs(speed) / forwardSpeed, 0, 1) * (speed < 0 ? -1 : 1);
-  vehicle.velocity.x = Math.sin(vehicle.heading) * speed;
-  vehicle.velocity.z = Math.cos(vehicle.heading) * speed;
+  const handbrake = input.brake === true;
+  vehicle.handbrake = handbrake;
+
+  const wasBoosting = number(vehicle.boostTimer, 0) > 0;
+  vehicle.boostTimer = Math.max(0, number(vehicle.boostTimer, 0) - duration);
+  vehicle.boostCooldown = Math.max(0, number(vehicle.boostCooldown, 0) - duration);
+  if (wasBoosting && vehicle.boostTimer <= 0) {
+    vehicle.boostCooldown = Math.max(vehicle.boostCooldown, number(config.boostCooldown, 6));
+  }
+  if (input.boost === true && throttle > 0 && vehicle.boostTimer <= 0 && vehicle.boostCooldown <= 0) {
+    vehicle.boostTimer = number(config.boostDuration, 2);
+  }
+  const boosting = vehicle.boostTimer > 0;
+
+  let heading = number(vehicle.heading, 0);
+  const fwd = { x: Math.sin(heading), z: Math.cos(heading) };
+  const right = { x: Math.cos(heading), z: -Math.sin(heading) };
+  const prevSpeed = number(vehicle.speed, velocity.x * fwd.x + velocity.z * fwd.z);
+  let speed = velocity.x * fwd.x + velocity.z * fwd.z;
+  let lateral = velocity.x * right.x + velocity.z * right.z;
+  const dimensions = config.dimensions || GUNTRUCK.dimensions;
+  const wheelBase = number(config.wheelBase, dimensions.length);
+  const track = number(config.trackWidth, dimensions.width);
+
+  let groundY = null;
+  let groundNormal = null;
+  let groundPitch = 0;
+  let groundRoll = 0;
+  let grounded = true;
+  if (typeof ground === 'function') {
+    const halfTrack = track / 2;
+    const halfBase = wheelBase / 2;
+    const samples = [];
+    for (const ox of [-halfTrack, halfTrack]) {
+      for (const oz of [halfBase, -halfBase]) {
+        const sample = ground(
+          position.x + ox * right.x + oz * fwd.x,
+          position.z + ox * right.z + oz * fwd.z
+        );
+        if (sample == null) continue;
+        const y = typeof sample === 'number' ? sample : number(sample.y, NaN);
+        if (!Number.isFinite(y)) continue;
+        const normal = typeof sample === 'object' ? readNormal(sample.normal) : null;
+        const valid = normal && Number.isFinite(normal.x) && Number.isFinite(normal.y) && Number.isFinite(normal.z);
+        samples.push({ ox, oz, y, normal: valid ? normal : null });
+      }
+    }
+    if (samples.length) {
+      groundY = samples.reduce((sum, sample) => sum + sample.y, 0) / samples.length;
+      const normals = samples.filter(sample => sample.normal);
+      if (normals.length) {
+        const sum = normals.reduce((acc, sample) => ({
+          x: acc.x + sample.normal.x,
+          y: acc.y + sample.normal.y,
+          z: acc.z + sample.normal.z
+        }), { x: 0, y: 0, z: 0 });
+        groundNormal = normalize(sum);
+      }
+      const front = samples.filter(sample => sample.oz > 0);
+      const rear = samples.filter(sample => sample.oz < 0);
+      const left = samples.filter(sample => sample.ox < 0);
+      const rightSide = samples.filter(sample => sample.ox > 0);
+      if (front.length && rear.length) {
+        const frontY = front.reduce((sum, sample) => sum + sample.y, 0) / front.length;
+        const rearY = rear.reduce((sum, sample) => sum + sample.y, 0) / rear.length;
+        groundPitch = Math.atan2(frontY - rearY, wheelBase);
+      }
+      if (left.length && rightSide.length) {
+        const leftY = left.reduce((sum, sample) => sum + sample.y, 0) / left.length;
+        const rightY = rightSide.reduce((sum, sample) => sum + sample.y, 0) / rightSide.length;
+        groundRoll = Math.atan2(leftY - rightY, track);
+      }
+      grounded = position.y - groundY <= 0.4;
+    }
+  }
+  if (groundNormal) {
+    groundPitch = -Math.asin(clamp(groundNormal.x * fwd.x + groundNormal.z * fwd.z, -1, 1));
+    groundRoll = Math.asin(clamp(groundNormal.x * right.x + groundNormal.z * right.z, -1, 1));
+  }
+
+  const engineAir = grounded ? 1 : 0.35;
+  const thrust = throttle >= 0
+    ? throttle * (boosting ? number(config.boostAcceleration, 24) : number(config.acceleration, 14)) * engineAir
+    : throttle * number(config.acceleration, 14) * 0.35 * engineAir;
+  const drag = number(config.drag, 0.035);
+  let acceleration = thrust - drag * speed * Math.abs(speed);
+  if (handbrake) acceleration -= Math.sign(speed) * number(config.brake, 22);
+  speed += acceleration * duration;
+  const topSpeed = boosting ? number(config.boostSpeed, 26) : number(config.speed, 20);
+  speed = clamp(speed, -number(config.reverseSpeed, 6), topSpeed);
+  if (throttle === 0 && !handbrake) speed = approach(speed, 0, 2 * duration);
+
+  const slopeGrip = groundNormal ? clamp(groundNormal.y, 0.4, 1) : 1;
+  let grip = (handbrake ? number(config.handbrakeGrip, 1.8) : number(config.grip, 8)) * slopeGrip;
+  if (!grounded) grip *= 0.25;
+  if (Math.abs(lateral) > number(config.driftLateral, 4)) grip *= 0.5;
+  lateral *= Math.max(0, 1 - grip * duration);
+  if (!Number.isFinite(lateral)) lateral = 0;
+
+  velocity.x = fwd.x * speed + right.x * lateral;
+  velocity.z = fwd.z * speed + right.z * lateral;
+
+  let yawRate = (speed / wheelBase) * Math.tan(steer * number(config.maxSteer, 0.55));
+  if (Math.abs(speed) < number(config.steerAssistSpeed, 3)) {
+    yawRate += steer * number(config.steerAssist, 1.4) * (speed < -0.1 ? -1 : 1);
+  }
+  if (!grounded) yawRate *= 0.25;
+  yawRate = clamp(yawRate, -number(config.maxYawRate, 3.5), number(config.maxYawRate, 3.5));
+  if (handbrake) yawRate *= number(config.handbrakeYaw, 1.6);
+  yawRate = clamp(yawRate, -number(config.maxHandbrakeYawRate, 5), number(config.maxHandbrakeYawRate, 5));
+  heading += yawRate * duration;
+  vehicle.heading = Number.isFinite(heading) ? heading : 0;
+  vehicle.speed = speed;
+
+  if (Number.isFinite(input.turretYaw)) {
+    const traverse = number(config.traverseRate, 1.75) * duration;
+    vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
+  } else {
+    vehicle.turretYaw = number(vehicle.turretYaw, 0);
+  }
 
   const next = {
-    x: vehicle.position.x + vehicle.velocity.x * duration,
-    y: vehicle.position.y,
-    z: vehicle.position.z + vehicle.velocity.z * duration
+    x: position.x + velocity.x * duration,
+    y: position.y,
+    z: position.z + velocity.z * duration
   };
   const resolved = typeof collision === 'function' ? collision(next, vehicle) : next;
-  if (resolved !== false) {
-    if (resolved && Number.isFinite(resolved.x) && Number.isFinite(resolved.z)) {
-      vehicle.position.x = resolved.x;
-      if (Number.isFinite(resolved.y)) vehicle.position.y = resolved.y;
-      vehicle.position.z = resolved.z;
-    } else {
-      vehicle.position.x = next.x;
-      vehicle.position.z = next.z;
-    }
+  if (resolved === false) {
+    velocity.x = velocity.z = 0;
+    vehicle.speed = speed = 0;
+  } else if (resolved && Number.isFinite(resolved.x) && Number.isFinite(resolved.z)) {
+    position.x = resolved.x;
+    position.z = resolved.z;
   } else {
-    vehicle.velocity.x = vehicle.velocity.z = 0;
+    position.x = next.x;
+    position.z = next.z;
   }
+
+  if (groundY !== null) {
+    const suspension = clamp(number(config.suspensionRate, 12) * duration, 0, 1);
+    position.y = number(position.y, 0) + (groundY - number(position.y, 0)) * suspension;
+    if (!Number.isFinite(position.y)) position.y = groundY;
+  } else if (resolved && Number.isFinite(resolved.y)) {
+    position.y = resolved.y;
+  }
+
+  const accelerationPitch = clamp(((speed - prevSpeed) / duration) * 0.006, -0.12, 0.12);
+  const accelerationRoll = clamp(-(yawRate * speed) * 0.02, -number(config.rollMax, 0.35), number(config.rollMax, 0.35));
+  const pitchTarget = clamp(groundPitch + accelerationPitch, -number(config.pitchMax, 0.35), number(config.pitchMax, 0.35));
+  const rollTarget = clamp(groundRoll + accelerationRoll, -number(config.rollMax, 0.35), number(config.rollMax, 0.35));
+  const bodyBlend = clamp(1 - Math.exp(-number(config.bodyRate, 8) * duration), 0, 1);
+  vehicle.pitchBody = number(vehicle.pitchBody, 0) + (pitchTarget - number(vehicle.pitchBody, 0)) * bodyBlend;
+  vehicle.roll = number(vehicle.roll, 0) + (rollTarget - number(vehicle.roll, 0)) * bodyBlend;
+  if (!Number.isFinite(vehicle.pitchBody)) vehicle.pitchBody = 0;
+  if (!Number.isFinite(vehicle.roll)) vehicle.roll = 0;
+  vehicle.grounded = groundY === null ? true : grounded;
 
   if (input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
     vehicle.heat = Math.min(gun.maxHeat, vehicle.heat + gun.heatPerShot);
     vehicle.fireCooldown = gun.interval;
-     vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };
+    vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };
     vehicle.muzzleIndex = (vehicle.muzzleIndex + 1) % 2;
     if (vehicle.heat >= gun.maxHeat) {
       vehicle.overheated = true;
@@ -166,6 +343,14 @@ export function respawnVehicle(vehicle, position = { x: 0, y: 0, z: 0 }, heading
   vehicle.overheatTimer = 0;
   vehicle.fireCooldown = 0;
   vehicle.muzzleIndex = 0;
+  vehicle.turretYaw = 0;
+  vehicle.roll = 0;
+  vehicle.pitchBody = 0;
+  vehicle.speed = 0;
+  vehicle.grounded = true;
+  vehicle.handbrake = false;
+  vehicle.boostTimer = 0;
+  vehicle.boostCooldown = 0;
   vehicle.lastStep = { fired: false, muzzle: -1 };
   return vehicle;
 }

@@ -8,130 +8,156 @@ const freeze=value=>{
   return value;
 };
 
-const teamSpawns={0:[[-32,-5],[-32,5]],1:[[32,-5],[32,5]]};
-const flagSpawns={0:{x:-34,z:0},1:{x:34,z:0}};
+const smooth=t=>t<=0?0:t>=1?1:t*t*(3-2*t);
+const clamp01=t=>Math.max(0,Math.min(1,t));
+const gauss=(d,s)=>Math.exp(-(d*d)/(2*s*s));
 
-// Shared grid vertices avoid overlapping mound faces and abrupt hillside seams.
-// The low central lanes stay broad enough for a Puma in either direction.
-const xs=[-42,-36,-24,-12,0,12,24,36,42],zs=[-25,-22,-14,-8,-7,0,8,14,22,25];
-const heights=[
-  [6,6,6.5,5.5,6,5.5,6.5,6,6],
-  [4,4.5,5,4,4.8,4,5,4.5,4],
-  [0,0,0,.8,1,.8,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,0,1.8,0,0,0,0],
-  [0,0,0,0,0,0,0,0,0],
-  [0,0,0,.8,1,.8,0,0,0],
-  [4,4.5,5,4,4.8,4,5,4.5,4],
-  [6,6,6.5,5.5,6,5.5,6.5,6,6]
-];
-const surfaces=[];
-const vertex=(i,j)=>{
-  let x=xs[i],z=zs[j];
-  if(j===0||j===zs.length-1){
-    x=[-38,-34,-24,-12,0,12,24,34,38][i];
-    z=Math.sign(z)*[24,25,25,24,25,24,25,25,24][i];
-  }else if((j===1||j===zs.length-2)&&(i===0||i===xs.length-1)){
-    x=Math.sign(x)*40;z=Math.sign(z)*21;
-  }
-  return [x,heights[j][i],z];
+// Shared 17 x 11 heightfield vertices tile the whole playfield with no gaps.
+const xs=[-80,-70,-60,-50,-40,-30,-20,-10,0,10,20,30,40,50,60,70,80];
+const zs=[-35,-28,-21,-14,-7,0,7,14,21,28,35];
+
+const heightAt=(x,z)=>{
+  const r=Math.hypot(x,z);
+  const hill=7*(1-smooth(r/21));
+  const pad=2.5*smooth((Math.abs(x)-50)/10);
+  const ridgeAxis=smooth((Math.abs(z)-18)/14);
+  const ridgePeak=gauss(x-(z>0?-64:64),18);
+  const ridge=ridgeAxis*(8+3.5*ridgePeak);
+  let h=Math.max(0,hill,pad,ridge);
+  const ditch=-1.2*Math.max(0,1-Math.pow((Math.abs(z)-14)/5,2));
+  if(h<1.6)h+=ditch;
+  const cave=(cx,cz)=>{
+    const wx=1-Math.pow((x-cx)/12,2);
+    const wz=1-Math.pow((z-cz)/12,2);
+    return clamp01(wx)*clamp01(wz);
+  };
+  const carve=Math.max(cave(-64,-30),cave(64,30));
+  return h*(1-carve);
 };
-for(let z=0;z<zs.length-1;z++)for(let x=0;x<xs.length-1;x++){
-  surfaces.push({id:`valley-${x}-${z}`,material:zs[z+1]<=-14||zs[z]>=14?'dirt':'grass',vertices:[vertex(x,z),vertex(x,z+1),vertex(x+1,z+1),vertex(x+1,z)]});
+
+const vertex=(i,j)=>[xs[i],heightAt(xs[i],zs[j]),zs[j]];
+const surfaces=[];
+for(let j=0;j<zs.length-1;j++)for(let i=0;i<xs.length-1;i++){
+  const [ax,ay,az]=vertex(i,j),[bx,by,bz]=vertex(i,j+1),[cx,cy,cz]=vertex(i+1,j+1),[dx,dy,dz]=vertex(i+1,j);
+  const material=Math.abs(zs[j])>=21||Math.abs(zs[j+1])>=21?'rock':ay<0||by<0||cy<0||dy<0?'dirt':'grass';
+  surfaces.push({id:`gulch-${i}-${j}`,material,vertices:[[ax,ay,az],[bx,by,bz],[cx,cy,cz],[dx,dy,dz]]});
 }
-// A solid bunker has no pretend interior. Roof terrain also makes it visible to
-// floor queries and bot navigation; ramps meet the roof before capsule collision.
-for(const x of [-38,38]){
-  surfaces.push({id:`base-roof-${x}`,material:'concrete',vertices:[[x-3,2.4,-4.8],[x-3,2.4,4.8],[x+3,2.4,4.8],[x+3,2.4,-4.8]]});
-  for(const side of [-1,1])surfaces.push({id:`base-ramp-${x}-${side}`,material:'concrete',vertices:[[x-2,side<0?0:2.4,side<0?-10:4.8],[x-2,side<0?2.4:0,side<0?-4.8:10],[x+2,side<0?2.4:0,side<0?-4.8:10],[x+2,side<0?0:2.4,side<0?-10:4.8]]});
+
+// Base constructs are authored concrete surfaces layered on the pad. The keep is
+// solid: its roof quad is the only walkable surface over that footprint, so the
+// interior is intentionally not a fake room.
+const rampX=(id,x0,x1,y0,y1,zHalf,material='concrete')=>({id,material,vertices:[[x0,y0,-zHalf],[x0,y0,zHalf],[x1,y1,zHalf],[x1,y1,-zHalf]]});
+const flat=(id,x0,x1,z0,z1,y,material='concrete')=>({id,material,vertices:[[x0,y,z0],[x0,y,z1],[x1,y,z1],[x1,y,z0]]});
+
+const bases=[-64,64].map(cx=>{
+  const out=Math.sign(cx);
+  const kx=cx+out*4.5;
+  return {cx,out,kx};
+});
+for(const {cx,out,kx} of bases){
+  const r0=out<0?kx-3.6:kx-3,r1=out<0?kx+3:kx+3.6;
+  surfaces.push(flat(`base-roof-${cx}`,r0,r1,-3,3,4.5));
+  if(out<0)surfaces.push(rampX(`base-ramp-${cx}`,kx-5.5,kx-3.6,2.5,4.5,3));
+  else surfaces.push(rampX(`base-ramp-${cx}`,kx+3.6,kx+5.5,4.5,2.5,3));
 }
-// Use the same perimeter as the floor: no walkable pockets outside the cliffs.
-const perimeter=[...xs.map((_,i)=>vertex(i,0)),...zs.slice(1).map((_,j)=>vertex(xs.length-1,j+1)),...xs.slice(0,-1).map((_,i)=>vertex(xs.length-2-i,zs.length-1)),...zs.slice(1,-1).map((_,j)=>vertex(0,zs.length-2-j))];
-const rim=perimeter.map(([x,y,z],i)=>[x,z,10+y/2+i%3]);
-const terrain={maxSlope:.9,surfaces,walls:rim.flatMap(([x,z,h],i)=>{
-  const [nx,nz,nh]=rim[(i+1)%rim.length];
-  // The engine collides wall edges, so a shared diagonal supplies the full
-  // vertical collision span that horizontal quad edges alone cannot provide.
-  return [
-    {id:`canyon-cliff-${i}-a`,material:'cliff',vertices:[[x,-8,z],[x,h,z],[nx,nh,nz]]},
-    {id:`canyon-cliff-${i}-b`,material:'cliff',vertices:[[x,-8,z],[nx,nh,nz],[nx,-8,nz]]}
-  ];
-})};
+
+const perimeterWall=(id,a,b)=>({id,material:'cliff',vertices:[[a[0],-10,a[1]],[b[0],-10,b[1]],[b[0],16,b[1]],[a[0],16,a[1]]]});
+const walls=[];
+const inGap=(value,gap)=>value>gap[0]&&value<gap[1];
+const southGap=[-76,-52],northGap=[52,76];
+for(let i=0;i<xs.length-1;i++){
+  const midSouth=(xs[i]+xs[i+1])/2,midNorth=midSouth;
+  if(!inGap(midSouth,southGap))walls.push(perimeterWall(`rim-s-${i}`,[xs[i],-35],[xs[i+1],-35]));
+  if(!inGap(midNorth,northGap))walls.push(perimeterWall(`rim-n-${i}`,[xs[i],35],[xs[i+1],35]));
+}
+for(let j=0;j<zs.length-1;j++){
+  walls.push(perimeterWall(`rim-w-${j}`,[-80,zs[j]],[-80,zs[j+1]]));
+  walls.push(perimeterWall(`rim-e-${j}`,[80,zs[j]],[80,zs[j+1]]));
+}
+const wallZ=(id,x,z0,z1,bottom,top)=>({id,material:'cliff',vertices:[[x,bottom,z0],[x,bottom,z1],[x,top,z1],[x,top,z0]]});
+for(const x of [-73,-55])walls.push(wallZ(`cave-a-${x}`,x,-35,-19,-1,9));
+for(const x of [55,73])walls.push(wallZ(`cave-b-${x}`,x,19,35,-1,9));
+
+const terrain={maxSlope:.9,surfaces,walls};
 
 const wall=(x,z,w,d,h=2.4,kind='base-wall')=>({x,z,w,d,h,kind});
-const cover=(x,z,w=3,d=2,h=2.2,kind='cover')=>({x,z,w,d,h,kind});
+const cover=(x,z,w=3,d=2,h=1.8,kind='cover')=>({x,z,w,d,h,kind});
 const point=(x,z)=>({x,z,y:terrainSupportAt(x,z,terrain,terrain.maxSlope).y});
+
+const baseWalls=bases.flatMap(({cx,out,kx})=>[
+  wall(cx-4.25,6,5.5,1,5.5),wall(cx+4.25,6,5.5,1,5.5),
+  wall(cx-4.25,-6,5.5,1,5.5),wall(cx+4.25,-6,5.5,1,5.5),
+  wall(cx-out*7,0,1,12,5.5,'deck'),
+  wall(kx,0,6,6,4.5,'deck')
+]);
+
 const boost=(id,x,z,dir,power,vy)=>({id,...point(x,z),dir,power,vy,cooldown:2});
 const link=(id,source,target)=>({id,source,target,traversal:id});
+const roofPads=[
+  boost('red-roof-tele',-66,0,[1,0],34,20),
+  boost('blue-roof-tele',66,0,[-1,0],34,20)
+];
+const roofLinks=[
+  link('red-roof-tele',point(-66,0),point(-40,0)),
+  link('blue-roof-tele',point(66,0),point(40,0))
+];
 
-const westTeleporters=[
-  boost('west-tele-north',-38,-12,[0.926,-0.378],34,20),
-  boost('west-tele-south',-38,12,[0.926,0.378],34,20)
-];
-const eastTeleporters=[
-  boost('east-tele-north',38,-12,[-0.926,-0.378],34,20),
-  boost('east-tele-south',38,12,[-0.926,0.378],34,20)
-];
-const teleporters=[...westTeleporters,...eastTeleporters];
-const teleporterLinks=[
-  link('west-tele-north',point(-38,-12),point(-10,-22)),
-  link('west-tele-south',point(-38,12),point(-10,22)),
-  link('east-tele-north',point(38,-12),point(10,-22)),
-  link('east-tele-south',point(38,12),point(10,22))
-];
+const teamSpawns={0:[[-75,5],[-75,-5],[-64,-27]],1:[[75,-5],[75,5],[64,27]],red:[[-75,5],[-75,-5],[-64,-27]],blue:[[75,-5],[75,5],[64,27]]};
+const flagSpawns={0:{x:-64,z:0},1:{x:64,z:0},red:{x:-64,z:0},blue:{x:64,z:0}};
 
 const bloodGulch={
   id:'blood-gulch',
   name:'Blood Gulch',
   tag:'OUTDOOR / CANYON CTF',
-  description:'Rolling grassland enclosed by jagged sandstone cliffs. Opposing low bunkers offer ramp-accessible roofs, open flag aprons, and broad vehicle flanks beneath sniper ridges.',
-  color:'#d39b5c',
-  background:'#78b7d1',
-  bounds:{minX:-42,maxX:42,minZ:-25,maxZ:25},voidY:-8,
+  description:'A warm sandstone box canyon with opposing fortress bases, open vehicle lanes, twin sniper ridges, and cave flanks. Push the big hill or take a Warthog across the exposed middle.',
+  color:'#c98c4e',
+  background:'#8ec6df',
+  bounds:{minX:-80,maxX:80,minZ:-35,maxZ:35},voidY:-10,
   terrain,
   teamSpawns,
   flagSpawns,
-  spawns:[[0,0],[3,0],[-3,0],[6,0],[-6,0],[-15,-15],[15,-15],[-15,15]],
+  spawns:[[-40,0],[-20,-18],[0,18],[20,18],[40,0],[0,-18],[-20,18],[20,-18],[-48,-7],[48,7]],
   pickups:[
-    ['health',-31,-12],['health',31,12],['armor',-31,12],['armor',31,-12],
-    ['rocket',0,0],['rail',0,-22],['rail',0,22],
-    ['scatter',-5,5],['scatter',5,-5],['plasma',-12,0],['plasma',12,0],
-    ['grenade',-25,0],['grenade',25,0],['shock',-20,-18],['shock',20,18],
-    ['flak',0,9],['haste',-30,-20],['overcharge',30,20],['overshield',0,-7]
+    ['health',-64,-9],['health',64,9],['armor',-64,9],['armor',64,-9],
+    ['health',0,-18],['armor',0,18],
+    ['rocket',0,0],
+    ['rail',-56,28],['rail',56,-28],
+    ['scatter',-34,7],['scatter',34,-7],
+    ['plasma',-44,-14],['plasma',44,14],
+    ['grenade',-12,0],['grenade',12,0],
+    ['shock',-44,14],['shock',44,-14],
+    ['flak',0,20],['flak',0,-20],
+    ['haste',-30,-20],['overcharge',30,20],
+    ['overshield',0,3]
   ],
   blocks:[
-    wall(-38,0,6,8,2.4,'base-keep'),
-    wall(38,0,6,8,2.4,'base-keep'),
-    // Central rocks and cover pieces.
-    cover(-15,0,3,5,2.4,'cover'),
-    cover(15,0,3,5,2.4,'cover'),
-    cover(-8,-4,3,2,2.8,'landmark'),
-    cover(8,4,3,2,2.8,'landmark')
+    ...baseWalls,
+    cover(-30,0,3,2,2.0),
+    cover(24,0,3,2,2.0,'rock'),
+    cover(0,16,3,2,1.6,'rock'),cover(0,-16,3,2,1.6,'rock'),
+    cover(-40,14,3,2,1.4,'rock'),cover(40,-14,3,2,1.4,'rock')
   ],
   traversal:{
     trampolines:[
-      {id:'north-west-lift',...point(-25,-16),power:15,cooldown:2},
-      {id:'north-east-lift',...point(25,-16),power:15,cooldown:2},
-      {id:'south-west-lift',...point(-25,16),power:15,cooldown:2},
-      {id:'south-east-lift',...point(25,16),power:15,cooldown:2}
+      {id:'gulch-north-hop',...point(0,-28),power:15,cooldown:2},
+      {id:'gulch-south-hop',...point(0,28),power:15,cooldown:2}
     ],
-    boostLaunchers:teleporters
+    boostLaunchers:roofPads
   },
-  jumpLinks:teleporterLinks,
+  jumpLinks:roofLinks,
   navNodes:[
-    point(-34,0),point(-30,0),point(-10,-22),point(0,-22),
-    point(0,0),point(0,22),point(10,22),point(30,0),point(34,0),
-    ...[-38,38].flatMap(x=>[-10,-7,-4,0,4,7,10].map(z=>point(x,z)))
+    point(-50,0),point(-40,0),point(-20,0),point(0,0),point(20,0),point(40,0),point(50,0),
+    ...[-18,18].flatMap(z=>[-48,-28,-8,8,28,48].map(x=>point(x,z))),
+    point(-56,28),point(56,-28),point(-64,-27),point(64,27)
   ],
   landmarks:[
-    {label:'RED BASE',...point(-38,0)},
-    {label:'BLUE BASE',...point(38,0)},
-    {label:'GULCH MOUND',...point(0,0)}
+    {label:'RED BASE',...point(-64,0)},
+    {label:'BLUE BASE',...point(64,0)},
+    {label:'BIG HILL',...point(0,0)}
   ],
   vehicles:[
-    {id:'blood-gulch-west-puma',kind:'puma',x:-30,y:0,z:0,yaw:Math.PI/2},
-    {id:'blood-gulch-east-puma',kind:'puma',x:30,y:0,z:0,yaw:-Math.PI/2}
+    {id:'blood-gulch-west-puma',kind:'puma',x:-46,y:0,z:0,yaw:Math.PI/2},
+    {id:'blood-gulch-east-puma',kind:'puma',x:46,y:0,z:0,yaw:-Math.PI/2}
   ]
 };
 

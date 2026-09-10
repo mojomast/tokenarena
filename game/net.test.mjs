@@ -150,5 +150,61 @@ test('renderState replaces the own actor with the predicted shadow',()=>{
  assert.equal(s.actors.find(a=>a.id===1).x,5,'own actor uses predicted position');
  assert.equal(s.actors.find(a=>a.id===1).yaw,.9,'own actor uses predicted yaw');
  assert.equal(s.actors.find(a=>a.id===0).x,2,'remote actor stays interpolated');
- assert.equal(s.actors.find(a=>a.id===1).character,'gemini','predicted actor keeps server identity');
+  assert.equal(s.actors.find(a=>a.id===1).character,'gemini','predicted actor keeps server identity');
+});
+const snapShot=(seq,time,x=0,y=0)=>({seq,state:{time,over:false,actors:[{id:0,x,y,z:0,yaw:0,pitch:0}],rockets:[],vehicles:[]}});
+test('render delay defaults to 100ms and decays toward the 90ms floor on a stable stream',t=>{
+ let clock=1000;
+ t.mock.method(performance,'now',()=>clock);
+ const client=new NetClient();
+ assert.equal(client.renderDelay,100,'default render delay');
+ const step=1000/30;
+ for(let i=0;i<80;i++){
+  clock+=step;
+  client.push(snapShot(i+1,i*step/1000,i));
+ }
+ assert.ok(client.renderDelay>=90&&client.renderDelay<95,`stable delay settles near the floor: ${client.renderDelay}`);
+ assert.equal(client.bufferTarget,4,'stable buffer target stays at the minimum');
+ assert.ok(client.buffer.length<=4,'stable buffer stays bounded');
+ assert.equal(client.buffer[client.buffer.length-1].seq,80,'newest snapshot is retained');
+});
+test('render delay and buffer target rise under jitter and loss, within bounds',t=>{
+ let clock=1000;
+ t.mock.method(performance,'now',()=>clock);
+ const client=new NetClient();
+ const step=60;
+ let seq=0,time=0;
+ for(let i=0;i<80;i++){
+  clock+=step+(i%2?50:-50);
+  const drop=i>0&&i%7===0;
+  seq+=drop?2:1;
+  time+=(drop?2:1)*step/1000;
+  client.push(snapShot(seq,time,i));
+ }
+ assert.ok(client.renderDelay>=90&&client.renderDelay<=160,`delay stays bounded: ${client.renderDelay}`);
+ assert.ok(client.renderDelay>130,`delay rises under stress: ${client.renderDelay}`);
+ assert.ok(client.bufferTarget>=4&&client.bufferTarget<=16,`buffer target stays bounded: ${client.bufferTarget}`);
+ assert.ok(client.bufferTarget>4,`buffer target rises under stress: ${client.bufferTarget}`);
+ assert.equal(client.buffer[client.buffer.length-1].seq,seq,'newest snapshot is never dropped');
+ assert.ok(client.buffer.length<=16,'buffer never exceeds the maximum');
+});
+test('render delay can be seeded through options',t=>{
+ const client=new NetClient('ws://test:9',{renderDelay:5});
+ assert.equal(client.renderDelay,90,'out-of-range seed is clamped to the floor');
+ const client2=new NetClient('ws://test:9',{renderDelay:300});
+ assert.equal(client2.renderDelay,160,'out-of-range seed is clamped to the ceiling');
+ const client3=new NetClient('ws://test:9',{renderDelay:120});
+ assert.equal(client3.renderDelay,120,'in-range seed is honored');
+});
+test('renderState interpolates remote actors using the adaptive delay',t=>{
+ let clock=1000;
+ t.mock.method(performance,'now',()=>clock);
+ const client=new NetClient();
+ const mk=(time,x)=>({state:{time,over:false,actors:[{id:0,x,y:0,z:0,yaw:0,pitch:0}],rockets:[],vehicles:[]}});
+ client.push(mk(0,0));
+ clock=1033;
+ client.push(mk(0.033,10));
+ const now=1000+1000*(0.0165+client.renderDelay/1000);
+ const s=client.renderState(now);
+ assert.ok(Math.abs(s.actors[0].x-5)<0.01,`remote actor interpolates to the midpoint, got ${s.actors[0].x}`);
 });

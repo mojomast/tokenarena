@@ -349,5 +349,32 @@ test('final results and history preserve cloned scoreStats',()=>{
  assert.equal(result.actors[0].scoreStats.captures,2);
  assert.equal(history.all()[0].players[0].scoreStats.captures,2);
  room.disconnect(1);room.join(2,'ignored','','',token);
- assert.deepEqual(find(room.drain(),'results',2).state.actors[0].scoreStats,{...stats,captures:99});
+  assert.deepEqual(find(room.drain(),'results',2).state.actors[0].scoreStats,{...stats,captures:99});
+});
+test('snapshot broadcast rate defaults to 30 Hz and is configurable',()=>{
+ const count=(options,steps)=>{
+  const room=new Room('r',rng(),options);
+  room.join(1,'A');room.host(1,{botCount:0,timeLimit:300},'crosswire');room.start(1);room.drain();
+  for(let i=0;i<steps;i++)room.tick(1/60);
+  return room.drain().filter(m=>m.msg.type==='snapshot').length;
+ };
+ assert.equal(count(undefined,60),30,'default broadcast is 30 Hz');
+ assert.equal(count({snapshotHz:20},60),20,'broadcast rate is configurable');
+});
+test('lag compensation transform history is opt-in and bounded',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:300},'crosswire');room.start(1);room.drain();
+ for(let i=0;i<5;i++)room.tick(1/60);
+ assert.equal(room.transformHistory.length,0,'history is disabled by default and changes no behavior');
+ room.enableLagCompensation(true);
+ for(let i=0;i<40;i++)room.tick(1/60);
+ assert.ok(room.transformHistory.length>0,'history records once enabled');
+ assert.ok(room.transformHistory.length<=room.transformHistoryLimit,'history stays bounded');
+ const frame=room.transformsAt(room.match.time);
+ assert.ok(frame,'latest frame is retrievable');
+ assert.equal(frame.actors.length,room.match.actors.length,'frame carries every actor transform');
+ assert.equal(room.transformsAt(room.transformHistory[0].time-1),null,'queries before the first frame return null');
+ room.enableLagCompensation(false);
+ room.tick(1/60);
+ assert.equal(room.transformHistory.length,0,'disabling clears history');
 });

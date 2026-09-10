@@ -88,3 +88,22 @@ Remaining for fully polished multiplayer: matchmaking, accounts/persistence, and
 | Abandoned rooms retired | `expireAll` runs `removeIfEmpty` after expiring seats; `local` never removed | Registry test + abrupt-disconnect E2E pass |
 | Room chat | Sanitized (control chars stripped, 200-char cap), rate-limited (300ms per peer) `{type:'chat'}` broadcast to the room only; spectators chat; bounded client `chatLog` + `onChat`; lobby panel + in-game overlay (`T`/`Enter` opens, `Enter` sends, `Escape` closes); solo untouched | 5 chat unit tests + room-scoping/live-match E2E pass |
 | Local verification | test:game 38/38, test:server 48/48, typecheck, production build, rendered response test | Complete |
+
+## Combat feel, Warthog, arena rebuild and visuals 1.3 — 2026-09-10
+
+Five parallel research subagents (Quake/Source movement and gunfeel, browser-shooter netcode, the Halo M12 Warthog, Blood Gulch/CTF level design, Three.js rendering budgets) produced a prioritized backlog. Six implementation subagents then worked in two non-overlapping waves (maps/renderer/vehicles/net, then core sim/input), with cross-agent seams reconciled and verified.
+
+| Milestone | Outcome | Verification status |
+|---|---|---|
+| Movement rewrite | Quake/Source ground friction (6) + acceleration (10), air acceleration (1.0) with strafe acceleration, terminal cap, variable jump + apex hang (`gravity 26`, `jump 8.6`), sprint (×1.375), crouch (×0.4, eye 1.45→0.95), slide + slide-hop; coyote/buffer preserved | `arena-movement` tests + full game suite pass |
+| Gunplay depth | Authoritative recoil aim-punch with per-weapon spray patterns, bloom growth/recovery, ADS, reload/auto-reload, holster/raise timing, retuned recoil/bloom/reload data; Pulse TTK ≈0.81 s | `weapon-simulation`, `gameplay`, `powerups` tests pass |
+| Warthog | Recognizable M12 model (cage, bed, turret, corner tires) + lateral-slip drift, handbrake, boost, suspension/slope alignment, body roll/pitch, 360° turret, run-over splatter, paired-muzzle heat | `vehicles`, `vehicle-gameplay`, server vehicle tests pass |
+| Blood Gulch rebuild | 160×70 m box canyon: central hill, two sniper ridges, two wall caves, multi-route bases with roof teleporters, warm sandstone palette, two Warthogs | `blood-gulch` tests pass; runtime CTF smoke clean |
+| New CTF maps | Frostline, Derelict Station and Ashen Rift (three-lane, readable bases, flank routes, vehicles where themed) registered and navigation-connected | `maps` tests + runtime smoke pass |
+| Visual overhaul | Directional shadows, PMREM IBL environment, procedural FBM albedo/roughness/normal textures, vertex/triangle variation, gradient sky + instanced mountains/scatter, tiered bloom/vignette/SMAA | `view` tests, typecheck and production build pass |
+| Input + HUD | Sprint/crouch/ADS/reload bindings through a shared `controlsFromState` on solo and net paths; spread crosshair, hitmarker, reload bar, posture chip, low-ammo warning | `input`/`hud` tests pass |
+| Netcode | Adaptive interpolation delay ~100 ms (90–160), jitter-adaptive snapshot buffer (4–16), server snapshots 20→30 Hz, reload edge + stance flags forwarded | `net`/`room` tests pass |
+| Integration seams | Body-relative turret convention matched between sim/view/net; net `resyncVehicles` and local shadow carry turret/roll/pitch; server forwards sprint/crouch/ADS/reload; camera reflects recoil/crouch | Full game + server suites green |
+| Local verification | test:game 293/293, test:server 80/80, typecheck, production build, rendered response test; runtime CTF smoke on all 14 maps | Complete |
+
+Remaining known limitation: the pre-existing `ironfall-megastructure` and `longreach-plateau` platform maps have partially disconnected bot-navigation components (their upper shelves lack return routes), so bot CTF can stall there. This predates 1.3 and needs map-specific return links, not a navigation-engine change (a bidirectional-link attempt routed bots backward through one-way launchers and was reverted).

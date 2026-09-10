@@ -1,5 +1,72 @@
 # TOKEN ARENA verification report
 
+## Combat feel, Warthog, arena rebuild and visual overhaul - 2026-09-10
+
+Scope: a "make it not feel generic" pass built from five parallel research
+subagents (Quake/Source movement + gunfeel, browser-shooter netcode, Halo M12
+Warthog, Blood Gulch/CTF level design, Three.js rendering budgets) and six
+implementation subagents in two non-overlapping file-ownership waves.
+
+Implemented:
+
+- **Movement** (`game/core.mjs`): Quake/Source ground friction (6) and
+  acceleration (10), air acceleration (1.0) so strafe jumps build speed, terminal
+  cap, variable jump with apex hang (`gravity 26`, `jump 8.6`), sprint (×1.375),
+  crouch (×0.4), momentum-preserving slide + slide-hop. Coyote .10 s / buffer
+  .12 s retained. `MOVE` constants are exported for tests.
+- **Gunplay** (`game/core.mjs`, `game/data.mjs`): authoritative recoil aim-punch
+  with per-weapon spray patterns, bloom spread with recovery, ADS, reload /
+  auto-reload, weapon holster/raise, retuned recoil/bloom/reload per weapon
+  (Pulse TTK ≈0.81 s). Camera applies `punchYaw`/`punchPitch` and `eyeHeight`.
+- **Warthog** (`game/vehicles.mjs`, `game/view.mjs`): recognizable M12 model and
+  arcade physics (engine/drag, speed-sensitive steering, lateral-slip drift,
+  handbrake, boost, four-wheel suspension/slope alignment, body roll/pitch, 360°
+  turret, paired-muzzle heat); deterministic run-over splatter in `Match.step`.
+- **Maps** (`game/blood-gulch.mjs`, new `game/ctf-maps.mjs`): Blood Gulch rebuilt
+  to a 160×70 m box canyon (central hill, two sniper ridges, two caves, multi-route
+  bases with roof teleporters, two Warthogs); new Frostline, Derelict Station and
+  Ashen Rift CTF maps registered in `game/maps.mjs`.
+- **Graphics** (`game/view.mjs`, new `game/textures.mjs`, `game/environment.mjs`):
+  directional shadows, PMREM IBL environment, deterministic FBM albedo/roughness/
+  normal textures, vertex/triangle color variation, gradient sky with instanced
+  mountains and terrain scatter, tiered bloom/vignette/SMAA postprocessing
+  (bypassed by the software renderer and reduced-motion).
+- **Input/HUD** (`app/page.tsx`, `game/input.mjs`, `game/hud.mjs`,
+  `app/globals.css`): Shift sprint, Ctrl/C crouch, R reload, RMB ADS, shared
+  `controlsFromState` on solo and net paths; spread crosshair, hitmarker, reload
+  bar, posture chip, low-ammo warning.
+- **Netcode** (`game/net.mjs`, `server/room.mjs`): adaptive interpolation delay
+  ~100 ms (floor 90 / ceiling 160), jitter-adaptive snapshot buffer (4–16),
+  server snapshot rate 20→30 Hz (configurable), reload one-shot edge and
+  sprint/crouch/ADS flags forwarded.
+
+Automated evidence (run on this machine, 2026-09-10):
+
+| Gate | Command | Result |
+|---|---|---|
+| Game logic, maps, movement, weapons, vehicles, view, input, HUD, net | `npm run test:game` | **293/293 pass** |
+| Rooms, chairs/grace, voice, history, server vehicle | `npm run test:server` | **80/80 pass** |
+| TypeScript | `npx tsc --noEmit` | clean |
+| Production Worker/RSC build | `npm run build` | succeeds |
+| Rendered response | `node --test tests/*.test.mjs` | pass |
+| Runtime smoke (all 14 maps, CTF, 3 bots, 300 s) + Warthog drive/turret/run-over | scripted `Match` harness | no NaN positions, no floor desync, captures/vehicles/projectiles behave |
+
+Integration seams fixed and re-verified: the turret yaw is body-relative in
+sim/view/net; `NetClient.resyncVehicles` and the local shadow carry
+`turretYaw`/`roll`/`pitchBody`; `server/room.mjs` forwards `sprint`/`crouch`/`ads`
+and a `reload` edge; the first-person camera applies recoil and crouch eye height;
+`server/vehicle.test.mjs` was updated for the rebuilt Blood Gulch spawns.
+
+Unverified / limits: shadows, bloom and procedural textures compile and pass
+mocked view tests, but GPU frame pacing still needs a hardware browser playtest
+(the CPU fallback intentionally disables them). The pre-existing
+`ironfall-megastructure` and `longreach-plateau` maps retain partially
+disconnected bot-navigation components (missing return routes on upper shelves);
+a bidirectional-link navigation change was attempted and reverted because it let
+bots route backward through one-way launchers and tripped the platform-map
+traversal test. Pre-existing `@typescript-eslint/no-explicit-any` lint errors
+remain project-wide; lint is not part of `npm test`.
+
 ## Voice HUD ergonomics and relay reliability - 2026-09-08
 
 - The in-match voice panel now collapses to a compact status pill (`VOICE · MIC

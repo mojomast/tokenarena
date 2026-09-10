@@ -1,4 +1,5 @@
 import {modeRule} from './config.mjs';
+import {terrainSupportAt} from './terrain.mjs';
 const point=(x,z,id,rules,radius=3.5,y=0)=>({id,x,z,radius,owner:null,captureTeam:null,progress:0,captureSeconds:rules.objective?.captureSeconds??5,y});
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
 
@@ -10,14 +11,15 @@ const authoredObjectivePoints={
   foundry:[[-10,0,3.5,0.95],[0,-9,3.5,3.8],[10,0,3.5,0.95]],
   launchpad:[[-18,0,3.5,0],[0,8,3.5,0],[18,0,3.5,0]],
   citadel:[[-12,0,3.5,0],[0,-9,3.5,0],[12,0,3.5,0]],
-  'blood-gulch':[[-20,0,3.5,0],[0,-7,3.5,0],[20,0,3.5,0]],
+  'blood-gulch':[[-20,0,3.5,0],[0,0,3.5,0],[20,0,3.5,0]],
   skybreak:[[-21,-18,3.5,0],[0,3,2,0],[21,18,3.5,0]],
   aether:[[-17,-18,2,0],[0,3,2,0],[17,18,2,0]],
   'sunscar-canyon':[[-28,0,3.5,0],[0,-7,3.5,0],[28,0,3.5,0]],
   'ironfall-megastructure':[[-43,-8,3.5,0],[0,0,3.5,0],[43,8,3.5,0]],
   'longreach-plateau':[[-52,-10,3.5,0],[0,0,3.5,0],[52,10,3.5,0]],
 };
-const toPoints=(values,ids,rules)=>values?.map(([x,z,radius,y=0],i)=>point(x,z,ids[i],rules,radius,y));
+const terrainHeight=(arena,x,z)=>{if(!arena.terrain)return null;const support=terrainSupportAt(x,z,arena.terrain,arena.terrain.maxSlope??.9);return support?support.y:null;};
+const toPoints=(values,ids,rules,arena)=>values?.map(([x,z,radius,y=0],i)=>{const ground=arena?terrainHeight(arena,x,z):null;return point(x,z,ids[i],rules,radius,ground===null?y:ground);});
 const obstructedByBlocks=(arena,x,z,y,radius)=> (arena.blocks||[]).some(block=>Math.abs(x-block.x)<block.w/2+radius&&Math.abs(z-block.z)<block.d/2+radius&&y<block.h-1e-6);
 const onPlatform=(arena,x,z,radius)=> (arena.platforms||[]).some(platform=>Math.abs(x-platform.x)<=platform.w/2-radius&&Math.abs(z-platform.z)<=platform.d/2-radius);
 const candidatePoints=(arena,ids,rules)=>{
@@ -27,7 +29,7 @@ const candidatePoints=(arena,ids,rules)=>{
   const safe=candidates.filter(candidate=>Number.isFinite(candidate.x)&&Number.isFinite(candidate.z)&&(!arena.platforms?.length||onPlatform(arena,candidate.x,candidate.z,radius))&&!obstructedByBlocks(arena,candidate.x,candidate.z,candidate.y??0,radius));
   return ids.map((id,index)=>{const candidate=safe[index%safe.length]||{x:b.minX+(b.maxX-b.minX)/2,z:b.minZ+(b.maxZ-b.minZ)/2,y:0};return point(candidate.x,candidate.z,id,rules,radius,candidate.y??0);});
 };
-const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.id],ids,rules)||(
+const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.id],ids,rules,arena)||(
   Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length
     ? ids.map((id,index)=>{const source=arena.objectiveZones[index];return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);})
     : candidatePoints(arena,ids,rules));

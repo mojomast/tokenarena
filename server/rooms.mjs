@@ -7,8 +7,9 @@ export class RoomRegistry {
   this.random = options.random ?? Math.random;
   this.graceMs = options.graceMs;
   this.history = options.history ?? null;
+  this.snapshotHz = options.snapshotHz;
   this.rooms = new Map();
-  this.defaultRoom = this.add(new Room('local', this.random, { name: 'Local', graceMs: this.graceMs, history: this.history }));
+  this.defaultRoom = this.add(new Room('local', this.random, { name: 'Local', graceMs: this.graceMs, history: this.history, snapshotHz: this.snapshotHz }));
  }
  add(room) {
   this.rooms.set(room.id, room);
@@ -24,7 +25,7 @@ export class RoomRegistry {
  }
  create(name = '') {
   const id = this.generateCode();
-  return this.add(new Room(id, this.random, { name: String(name ?? '').trim() || id, graceMs: this.graceMs, history: this.history }));
+  return this.add(new Room(id, this.random, { name: String(name ?? '').trim() || id, graceMs: this.graceMs, history: this.history, snapshotHz: this.snapshotHz }));
  }
  get(roomId) { return this.rooms.get(roomId) ?? null; }
  has(roomId) { return this.rooms.has(roomId); }

@@ -425,3 +425,28 @@
   .command-panel + .ctf-objective { top: 242px; max-width: calc(100% - 24px); }
   .scores-overlay { top: calc(var(--safe-top) + 8px); max-height: calc(100dvh - var(--safe-top) - var(--safe-bottom) - 16px); padding: 12px; }
 }
+
+/* Aim feedback: dynamic crosshair gap, hitmarkers, reload bar and posture chip. */
+.crosshair:not(.shape-dot) span:nth-child(1) { transform: translateY(calc(-1 * var(--crosshair-gap, 0px))); }
+.crosshair:not(.shape-dot) span:nth-child(2) { transform: translateY(var(--crosshair-gap, 0px)); }
+.crosshair:not(.shape-dot) span:nth-child(3) { transform: translateX(calc(-1 * var(--crosshair-gap, 0px))); }
+.crosshair:not(.shape-dot) span:nth-child(4) { transform: translateX(var(--crosshair-gap, 0px)); }
+.hitmarker { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; transform: translate(-50%, -50%); pointer-events: none; filter: drop-shadow(0 0 2px #000); }
+.hitmarker span { position: absolute; left: 50%; top: 50%; width: 16px; height: 2px; background: #f4fffb; box-shadow: 0 0 6px #ffffff99; }
+.hitmarker span:first-child { transform: translate(-50%, -50%) rotate(45deg); }
+.hitmarker span:last-child { transform: translate(-50%, -50%) rotate(-45deg); }
+.hitmarker.kill span { width: 21px; background: #ff6b6b; box-shadow: 0 0 9px #ff6b6bcc; }
+.hitmarker.hit { animation: hitmarker-in .12s ease-out; }
+.reload-indicator { position: absolute; left: 50%; top: calc(50% + 26px); transform: translateX(-50%); display: grid; gap: 5px; justify-items: center; pointer-events: none; text-shadow: 0 1px 3px #000; }
+.reload-label { color: #ffd9a0; font: 11px monospace; letter-spacing: 2px; }
+.reload-track { display: block; width: 74px; height: 4px; background: #0a1717d9; border: 1px solid #ffd9a066; overflow: hidden; }
+.reload-track > i { display: block; height: 100%; background: #ffd9a0; transition: width .08s linear; }
+.posture-chip { position: absolute; left: 50%; bottom: calc(var(--safe-bottom) + 128px); transform: translateX(-50%); padding: 3px 9px; border: 1px solid #83f4d566; background: #081818cf; color: #caffeb; font: 10px monospace; letter-spacing: 2px; pointer-events: none; text-shadow: 0 1px 3px #000; }
+.ammo-warning.pulse { animation: ammo-pulse 1s ease-in-out infinite; }
+@keyframes hitmarker-in { from { opacity: .35; transform: translate(-50%, -50%) scale(1.35); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes ammo-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .hitmarker.hit { animation: none; }
+  .ammo-warning.pulse { animation: none; }
+  .reload-track > i { transition: none; }
+}

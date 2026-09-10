@@ -2,6 +2,9 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {getMap,MAPS} from './maps.mjs';
 import {EXPANSION_MAPS} from './expansion-maps.mjs';
+import {CTF_MAPS} from './ctf-maps.mjs';
+import {floorAt,moveActor,obstructed} from './core.mjs';
+import {createVehicle} from './vehicles.mjs';
 import {nextArenaSelection} from './replay.mjs';
 
 const launchpad=MAPS.find(map=>map.id==='launchpad');
@@ -59,5 +62,71 @@ test('all new map pickups, spawns, flags and traversal objects are in bounds',()
     for(const point of Object.values(map.flagSpawns||{}))assert.ok(within(map,point.x,point.z),`${map.id} flag`);
     for(const route of map.traversal?.trampolines||[])assert.ok(within(map,route.x,route.z),`${map.id} trampoline`);
     for(const route of map.traversal?.boostLaunchers||[])assert.ok(within(map,route.x,route.z),`${map.id} launcher`);
+  }
+});
+
+test('the three CTF maps are canonical, unique, deeply frozen, and in rotation',()=>{
+  assert.deepEqual(CTF_MAPS.map(map=>map.id),['frostline','derelict-station','ashen-rift']);
+  assert.equal(new Set(CTF_MAPS.map(map=>map.id)).size,3);
+  for(const map of CTF_MAPS){
+    const index=MAPS.indexOf(map);
+    assert.ok(index>=0,map.id);
+    assert.equal(getMap(map.id),map);
+    assert.ok(Object.isFrozen(map)&&Object.isFrozen(map.blocks)&&Object.isFrozen(map.pickups)&&Object.isFrozen(map.traversal));
+    assert.equal(nextArenaSelection(map.id,()=>0).mapId,MAPS[(index+1)%MAPS.length].id);
+  }
+});
+
+test('CTF maps are large, three-lane layouts with valid bounds and geometry',()=>{
+  for(const map of CTF_MAPS){
+    assert.ok(map.bounds.maxX-map.bounds.minX>=160,map.id);
+    assert.ok(map.bounds.maxZ-map.bounds.minZ>=70,map.id);
+    assert.ok(Object.values(map.flagSpawns).length>=2,map.id);
+    assert.ok(map.teamSpawns[0].length>=2&&map.teamSpawns[1].length>=2,map.id);
+    assert.ok(map.spawns.length>=6&&map.navNodes.length>=8&&map.landmarks.length>=3,map.id);
+    assert.ok(map.description.toLowerCase().includes('ctf'),map.id);
+    for(const block of map.blocks)assert.ok(within(map,block.x-block.w/2,block.z-block.d/2)&&within(map,block.x+block.w/2,block.z+block.d/2),`${map.id} block`);
+    for(const [,x,z] of map.pickups)assert.ok(within(map,x,z),`${map.id} pickup`);
+    for(const [x,z] of map.spawns)assert.ok(within(map,x,z),`${map.id} spawn`);
+    for(const route of map.traversal.trampolines)assert.ok(within(map,route.x,route.z),`${map.id} trampoline`);
+    for(const route of map.traversal.boostLaunchers)assert.ok(within(map,route.x,route.z),`${map.id} launcher`);
+  }
+});
+
+test('CTF maps have grounded spawns, flags, pickups, and valid vehicles',()=>{
+  for(const map of CTF_MAPS){
+    for(const [x,z] of map.spawns){
+      const y=floorAt(x,z,map);
+      assert.notEqual(y,null,`${map.id} spawn support`);
+      assert.equal(obstructed(x,y,z,.65,map),false,`${map.id} spawn clearance`);
+    }
+    for(const [x,z] of Object.values(map.teamSpawns).flat()){
+      const y=floorAt(x,z,map);
+      assert.notEqual(y,null,`${map.id} team spawn support`);
+      assert.equal(obstructed(x,y,z,.65,map),false,`${map.id} team spawn clearance`);
+    }
+    for(const flag of Object.values(map.flagSpawns)){
+      const y=floorAt(flag.x,flag.z,map);
+      assert.notEqual(y,null,`${map.id} flag support`);
+      assert.equal(obstructed(flag.x,y,flag.z,.65,map),false,`${map.id} flag clearance`);
+    }
+    for(const [,x,z] of map.pickups)assert.notEqual(floorAt(x,z,map),null,`${map.id} pickup support`);
+    for(const vehicle of map.vehicles||[]){
+      assert.equal(createVehicle(vehicle).template,vehicle.id,map.id);
+      const y=floorAt(vehicle.x,vehicle.z,map);
+      assert.equal(y,vehicle.y,`${map.id} vehicle slot`);
+      assert.equal(obstructed(vehicle.x,y,vehicle.z,2.2,map),false,`${map.id} vehicle clearance`);
+    }
+  }
+});
+
+test('CTF map launchers deliver grounded actors to their targets',()=>{
+  for(const map of CTF_MAPS)for(const link of map.jumpLinks){
+    const actor={...link.source,vx:0,vy:0,vz:0,grounded:true,coyote:0,jumpBuffer:0};
+    moveActor(actor,{},1/60,map);
+    assert.equal(actor.traversalFlight,true,`${map.id} ${link.id}`);
+    for(let i=0;i<400&&!actor.grounded;i++)moveActor(actor,{},1/60,map);
+    assert.ok(actor.grounded,`${map.id} ${link.id} airborne`);
+    assert.ok(Math.hypot(actor.x-link.target.x,actor.z-link.target.z)<1,`${map.id} ${link.id} target`);
   }
 });

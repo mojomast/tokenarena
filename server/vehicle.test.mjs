@@ -8,8 +8,8 @@ test('Room forwards Puma interaction as a one-shot authoritative edge',()=>{
   room.join('peer','Driver','chatgpt','openclaw');
   room.host('peer',{mode:'ctf',botCount:0,respawn:1},'blood-gulch');
   room.start('peer');
-  const actor=room.match.actors[0];
-  Object.assign(actor,{x:-28.5,y:0,z:0,yaw:Math.PI/2,protection:0});
+  const actor=room.match.actors[0],vehicle=room.match.vehicles[0];
+  Object.assign(actor,{x:vehicle.position.x,y:vehicle.position.y,z:vehicle.position.z,yaw:vehicle.heading-Math.PI,protection:0});
   room.input('peer',{seq:1,x:0,z:0,interact:true});
   room.tick(1/60);
   assert.ok(actor.vehicleId);
@@ -25,6 +25,29 @@ test('Room forwards Puma interaction as a one-shot authoritative edge',()=>{
   assert.ok(!obstructed(actor.x,actor.y,actor.z,.52,room.match.arena));
 });
 
+test('Room drives the arcade Puma and exposes its deterministic dynamics fields',()=>{
+  const room=new Room('puma-dynamics',()=>.5);
+  room.join('peer','Driver','chatgpt','openclaw');
+  room.host('peer',{mode:'ctf',botCount:0,respawn:1},'blood-gulch');
+  room.start('peer');
+  const vehicle=room.match.vehicles[0];
+  for(const field of ['turretYaw','roll','pitchBody','speed'])assert.equal(vehicle[field],0);
+  assert.equal(vehicle.grounded,true);
+  assert.equal(vehicle.handbrake,false);
+  const actor=room.match.actors[0];
+  Object.assign(actor,{x:vehicle.position.x,y:vehicle.position.y,z:vehicle.position.z,yaw:vehicle.heading-Math.PI,protection:0});
+  room.input('peer',{seq:1,x:0,z:0,interact:true});
+  room.tick(1/60);
+  assert.equal(actor.vehicleId,vehicle.id);
+  room.input('peer',{seq:2,x:1,z:0,interact:false});
+  for(let i=0;i<30;i++)room.tick(1/60);
+  assert.ok(vehicle.speed>0,'driving builds forward speed');
+  assert.ok(vehicle.position.x>vehicle.spawn.x,'Puma advances along its heading');
+  assert.ok([vehicle.turretYaw,vehicle.roll,vehicle.pitchBody].every(Number.isFinite));
+  assert.ok(room.match.releaseVehicle(actor));
+  assert.equal(actor.vehicleId,null);
+});
+
 test('Blood Gulch room starts with accessible flags and safe bunker-side team spawns',()=>{
   const room=new Room('gulch-spawns',()=>.5);
   room.join('red','Red','chatgpt','openclaw');
@@ -35,9 +58,10 @@ test('Blood Gulch room starts with accessible flags and safe bunker-side team sp
   assert.equal(actors.length,2);
   for(const p of [...actors,...Object.values(flags)]){
     const y=floorAt(p.x,p.z,arena);
-    assert.equal(y,0);
+    assert.notEqual(y,null);
     assert.ok(!obstructed(p.x,y,p.z,.65,arena));
   }
   assert.equal(vehicles.length,2);
   assert.ok(vehicles.every(vehicle=>vehicle.position.y===floorAt(vehicle.position.x,vehicle.position.z,arena)));
+  assert.ok(vehicles.every(vehicle=>!obstructed(vehicle.position.x,vehicle.position.y,vehicle.position.z,.9,arena)));
 });

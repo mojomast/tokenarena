@@ -17,9 +17,9 @@ export function voiceConfig(peerId, env = process.env, now = Date.now()) {
 
 const VOICE_BUFFER_LIMIT = 64 * 1024;
 
-export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, historyPath = null } = {}) {
+export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, snapshotHz, historyPath = null } = {}) {
  const history = new MatchHistory(historyPath);
- const registry = new RoomRegistry({ random, graceMs, history });
+ const registry = new RoomRegistry({ random, graceMs, history, snapshotHz });
  const sockets = new Map();
  const socketPeer = new WeakMap();
  const peerRoom = new Map();

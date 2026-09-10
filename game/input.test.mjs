@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {hasAmmo, cycleWeapon, blocksGameplay} from './input.mjs';
+import {hasAmmo, cycleWeapon, blocksGameplay, posture, controlsFromState, INPUT_CODES} from './input.mjs';
 
 test('cycling accepts live and serialized unlimited ammo, skips empty slots and wraps', () => {
   assert.equal(hasAmmo(Infinity), true);
@@ -17,6 +17,44 @@ test('rapid cycling starts from pending selection and ignores zero or invalid de
   assert.equal(cycleWeapon(ammo, 0, 1, 1), 2);
   assert.equal(cycleWeapon(ammo, 2, 0, -1), 2);
   for (const delta of [0, -0, NaN, Infinity]) assert.equal(cycleWeapon(ammo, 0, 1, delta), -1);
+});
+
+test('posture reads sprint and crouch from held keys in sets or arrays', () => {
+  assert.deepEqual(posture(['KeyW']), {sprint:false,crouch:false});
+  assert.deepEqual(posture(['ShiftLeft','KeyW']), {sprint:true,crouch:false});
+  assert.deepEqual(posture(new Set(['ControlLeft'])), {sprint:false,crouch:true});
+  assert.deepEqual(posture(['KeyC','ShiftLeft']), {sprint:true,crouch:true});
+  assert.deepEqual(posture(undefined), {sprint:false,crouch:false});
+});
+
+test('input codes cover every movement, stance, interact and reload key', () => {
+  for (const code of ['ShiftLeft','ControlLeft','KeyC','KeyR','Space','KeyW','KeyA','KeyS','KeyD','KeyQ','KeyE']) assert.ok(INPUT_CODES.includes(code));
+});
+
+test('controlsFromState builds movement and only sets active flags', () => {
+  const forward = controlsFromState({keys:['KeyW'],look:{yaw:0,pitch:0}});
+  assert.equal(forward.z, -1);
+  assert.equal(forward.fire, false);
+  assert.equal(forward.jump, undefined);
+  assert.equal(forward.sprint, undefined);
+  const full = controlsFromState({keys:['KeyW','ShiftLeft','ControlLeft'],look:{yaw:0,pitch:0},fire:true,jump:true,power:true,interact:true,weapon:2,ads:true,reload:true});
+  assert.equal(full.sprint, true);
+  assert.equal(full.crouch, true);
+  assert.equal(full.ads, true);
+  assert.equal(full.reload, true);
+  assert.equal(full.jump, true);
+  assert.equal(full.power, true);
+  assert.equal(full.interact, true);
+  assert.equal(full.weapon, 2);
+  assert.equal(full.fire, true);
+});
+
+test('controlsFromState treats fireTap as fire and ignores negative weapon ids', () => {
+  const tapped = controlsFromState({keys:[],fireTap:true,weapon:-1});
+  assert.equal(tapped.fire,true);
+  assert.equal(tapped.weapon,undefined);
+  assert.ok(Math.abs(tapped.x) === 0);
+  assert.ok(Math.abs(tapped.z) === 0);
 });
 
 test('chat, spectator and editable focus or targets block gameplay', () => {

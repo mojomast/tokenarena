@@ -3,8 +3,13 @@ import {Match} from './core.mjs';
 import {RULES} from './data.mjs';
 
 export const DEFAULT_SERVER_URL = 'ws://localhost:4000';
-const RENDER_DELAY = 160;
-const MAX_BUFFER = 16;
+const RENDER_DELAY_DEFAULT = 100;
+const RENDER_DELAY_MIN = 90;
+const RENDER_DELAY_MAX = 160;
+const BUFFER_MIN = 4;
+const BUFFER_MAX = 16;
+const JITTER_REF = 50;
+const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const lerp = (a, b, t) => a + (b - a) * t;
 const turn = (a, b) => ((((b - a) % (Math.PI * 2)) + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
 
@@ -24,6 +29,7 @@ export class NetClient {
   this.onClose = null;
   this.onVoiceSignal = null;
   this.onVoiceConfig = null;
+  this.baseRenderDelay = clamp(Number(options.renderDelay) || RENDER_DELAY_DEFAULT, RENDER_DELAY_MIN, RENDER_DELAY_MAX);
   this.reset();
  }
  reset() {
@@ -53,6 +59,9 @@ export class NetClient {
    this.inputSeq = 0;
    this.pendingInputs = [];
    this.clockOffset = null;
+   this.renderDelay = this.baseRenderDelay;
+   this.bufferTarget = BUFFER_MIN;
+   this._resetTiming();
   this.lastError = '';
   this.chatLog = [];
   this.voiceIceServers = [{ urls: 'stun:stun.l.google.com:19302' }];
@@ -165,8 +174,10 @@ export class NetClient {
    msg.recvAt = performance.now();
    msg.serverTime = Number.isFinite(msg.state?.time) ? msg.state.time : null;
    if (msg.serverTime !== null) { const sample=msg.recvAt-msg.serverTime*1000;this.clockOffset=this.clockOffset===null?sample:lerp(this.clockOffset,sample,.08); }
+   this._observeArrival(msg);
    this.buffer.push(msg);
-  if (this.buffer.length > MAX_BUFFER) this.buffer.shift();
+   this._adapt();
+   while (this.buffer.length > this.bufferTarget) this.buffer.shift();
   this.state = msg.state;
   if (this.shadow && this.actorId !== null) {
    const own = msg.state.actors.find(a => a.id === this.actorId);
@@ -179,12 +190,49 @@ export class NetClient {
     }
   }
  }
+ _resetTiming() {
+  this._lastRecvAt = null;
+  this._lastSeq = null;
+  this._lastServerTime = null;
+  this._intervalMean = null;
+  this.jitter = 0;
+  this.lossRate = 0;
+ }
+ _observeArrival(msg) {
+  const seq = Number.isInteger(msg.seq) && msg.seq > 0 ? msg.seq : null;
+  if (this._lastRecvAt !== null) {
+   const gap = msg.recvAt - this._lastRecvAt;
+   let expected = this._intervalMean;
+   if (msg.serverTime !== null && this._lastServerTime !== null) {
+    const serverGap = (msg.serverTime - this._lastServerTime) * 1000;
+    if (serverGap > 1 && serverGap < 1000) expected = serverGap;
+   }
+   if (!(expected > 0)) expected = gap;
+   const deviation = Math.abs(gap - expected);
+   this.jitter = this.jitter + (deviation - this.jitter) * 0.15;
+   this._intervalMean = this._intervalMean === null ? expected : this._intervalMean + (expected - this._intervalMean) * 0.1;
+   const lost = seq !== null && this._lastSeq !== null && seq > this._lastSeq ? Math.min(10, seq - this._lastSeq - 1) : 0;
+   this.lossRate = this.lossRate + ((lost > 0 ? 1 : 0) - this.lossRate) * 0.2;
+  }
+  this._lastRecvAt = msg.recvAt;
+  this._lastSeq = seq;
+  if (msg.serverTime !== null) this._lastServerTime = msg.serverTime;
+ }
+ _adapt() {
+  const stress = clamp(this.jitter / JITTER_REF + this.lossRate, 0, 1);
+  const desiredDelay = RENDER_DELAY_MIN + (RENDER_DELAY_MAX - RENDER_DELAY_MIN) * stress;
+  this.renderDelay = clamp(this.renderDelay + (desiredDelay - this.renderDelay) * 0.1, RENDER_DELAY_MIN, RENDER_DELAY_MAX);
+  const desiredBuffer = Math.round(BUFFER_MIN + (BUFFER_MAX - BUFFER_MIN) * stress);
+  if (desiredBuffer > this.bufferTarget) this.bufferTarget = Math.min(desiredBuffer, this.bufferTarget + 1);
+  else if (desiredBuffer < this.bufferTarget) this.bufferTarget = Math.max(desiredBuffer, this.bufferTarget - 1);
+ }
  createShadow(mapId, config) {
    this.shadow = new Match('chatgpt', 'openclaw', Math.random, getMap(mapId).id, { ...(config || {}), humanCount: 1, botCount: 0 });
    this.resynced = false;
    this.inputSeq = 0;
    this.pendingInputs = [];
    this.clockOffset = null;
+   this._resetTiming();
  }
   resync(actor) {
   const p = this.shadow.actors[0];
@@ -205,6 +253,10 @@ export class NetClient {
     vehicle.heat = state.heat;
     vehicle.overheated = state.overheated;
     vehicle.respawnTimer = state.respawnTimer;
+    if (Number.isFinite(state.turretYaw)) vehicle.turretYaw = state.turretYaw;
+    if (Number.isFinite(state.roll)) vehicle.roll = state.roll;
+    if (Number.isFinite(state.pitchBody)) vehicle.pitchBody = state.pitchBody;
+    if (Number.isFinite(state.speed)) vehicle.speed = state.speed;
    }
   }
  predict(input) {
@@ -225,7 +277,7 @@ export class NetClient {
     vehicles = base.vehicles ?? [];
     rockets = base.rockets ?? [];
   } else {
-    const useServerClock=this.clockOffset!==null&&b.length>1&&b.every(m=>m.serverTime!==null),target=useServerClock?(now-this.clockOffset)/1000-RENDER_DELAY/1000:now-RENDER_DELAY;
+    const useServerClock=this.clockOffset!==null&&b.length>1&&b.every(m=>m.serverTime!==null),target=useServerClock?(now-this.clockOffset)/1000-this.renderDelay/1000:now-this.renderDelay;
     let hi = b.findIndex(m => useServerClock?m.serverTime>=target:m.recvAt>=target);
    if (hi < 0) hi = b.length - 1;
    const lo = Math.max(0, hi - 1);
@@ -258,7 +310,7 @@ export class NetClient {
     if (own.vehicleId !== null) {
      const local = this.shadow.vehicles.find(vehicle => vehicle.id === own.vehicleId);
      const idx = vehicles.findIndex(vehicle => vehicle.id === own.vehicleId);
-     if (local && idx >= 0) { const state = { id: local.id, kind: local.kind, x: local.position.x, y: local.position.y, z: local.position.z, vx: local.velocity.x, vz: local.velocity.z, yaw: local.heading, health: local.health, maxHealth: local.maxHealth, driver: local.driver, heat: local.heat, overheated: local.overheated, respawnTimer: local.respawnTimer }; vehicles = vehicles.slice(0, idx).concat(state, vehicles.slice(idx + 1)); }
+     if (local && idx >= 0) { const state = { id: local.id, kind: local.kind, x: local.position.x, y: local.position.y, z: local.position.z, vx: local.velocity.x, vz: local.velocity.z, yaw: local.heading, health: local.health, maxHealth: local.maxHealth, driver: local.driver, heat: local.heat, overheated: local.overheated, respawnTimer: local.respawnTimer, turretYaw: local.turretYaw, roll: local.roll, pitchBody: local.pitchBody, speed: local.speed }; vehicles = vehicles.slice(0, idx).concat(state, vehicles.slice(idx + 1)); }
     }
    }
    return { ...base, actors, vehicles, rockets, events: this.events };

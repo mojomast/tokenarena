@@ -1,6 +1,6 @@
 # TOKEN ARENA
 
-A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from eight arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from fourteen arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
 
 ## Run locally
 
@@ -47,10 +47,17 @@ Not yet included: accounts/matchmaking.
 - **Outdoor CTF arenas:** Skybreak Isles is a wide three-route skyway; Aether Ring
   is a diagonal island loop. Both have separated platforms, huge authored jumps,
   readable safe/risky routes, and a lethal void that drops carriers on recovery.
-- **Blood Gulch:** a semi-symmetric canyon CTF map with polygonal valley, hills,
-  walkable slopes, cliff walls, central cover, and two neutral Puma Warthog-style
-  vehicles. Each Puma has paired side-mounted chainguns; press **E** near one to
-  enter or exit. Flag carriers cannot enter a Puma.
+- **Blood Gulch:** a rebuilt 160×70 m canyon CTF arena modelled on Halo's box
+  canyon — a central hill, two diagonal sniper ridges, two wall caves, and
+  opposing bases with two ground entrances, ramp-accessible roofs, and roof
+  teleporters that launch into the open field. Two neutral Warthogs spawn on the
+  flanks; their driver can rotate a 360° turret and splatter infantry at speed.
+  Press **E** near one to enter or exit. Flag carriers cannot enter a Warthog.
+- **New large CTF maps:** Frostline (snow canyon with a frozen river and ice
+  caves), Derelict Station (indoor orbital decks linked by launch lifts), and
+  Ashen Rift (asymmetric volcanic high-fortress vs. low-refinery). Each has
+  three-lane flow, readable bases, flanking risk routes, and vehicles where the
+  theme allows.
 - **Expansion maps:** Sunscar Canyon, Ironfall Megastructure, and Longreach Plateau
   add large authored CTF routes with high shelves, broken industrial decks, wide
   causeways, launch links, and control-point-ready layouts.
@@ -79,10 +86,14 @@ Not yet included: accounts/matchmaking.
 | WASD | Move |
 | Mouse | Look |
 | Left click / hold | Fire |
-| Space | Jump |
+| Right click (hold) | Aim down sights (Pulse/Rail/Shock) |
+| Shift (hold) | Sprint (and vehicle boost) |
+| Ctrl / C (hold) | Crouch; crouch while sprinting to slide |
+| Space | Jump (handbrake while driving) |
+| R | Reload |
 | 1–8; mouse wheel | Switch available weapon |
 | Q | Activate harness |
-| E | Enter / exit nearby Puma |
+| E | Enter / exit nearby Warthog |
 | Tab | Hold scoreboard |
 | Escape | Pause and release mouse |
 
@@ -112,16 +123,20 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 - `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
 - `game/harness-profiles.mjs`: bounded harness passives, ability parameters, weapon affinities and bot hints.
 - `game/operator-profiles.mjs`: operator combat identities and bot weapon preferences.
-  - `game/maps.mjs`: canonical arena registry, CTF bases, polygon terrain, collision geometry, traversal routes, vehicles, spawns, supplies and expansion maps.
+  - `game/maps.mjs`: canonical arena registry, CTF bases, polygon terrain, collision geometry, traversal routes, vehicles, spawns, supplies, expansion maps and CTF maps.
+  - `game/blood-gulch.mjs`: the rebuilt Blood Gulch heightfield arena — central hill, sniper ridges, wall caves, multi-route bases and roof teleporters.
+  - `game/ctf-maps.mjs`: three large CTF arenas (Frostline, Derelict Station, Ashen Rift) with authored three-lane layouts and routes.
   - `game/expansion-maps.mjs`: three large outdoor/industrial arenas with authored routes and control-point coordinates.
   - `game/terrain.mjs`: deterministic triangle support, ray hits, cliff wall segments and terrain bounds.
-  - `game/vehicles.mjs`: bounded Puma arcade handling, paired-chaingun heat, enter/exit and respawn primitives.
-  - `game/core.mjs`: authoritative match state; movement and analytic collisions; ray/swept projectile combat; terrain, Puma vehicles, armor, powers, pickups, CTF/KOTH/Domination scoring, respawn and bot utility/navigation.
-  - `game/view.mjs`: Three.js procedural arena, polygon terrain, Puma models, control-zone markers, first-person weapons, effects and synthesized Web Audio.
-- `game/software.mjs`: CPU renderer of the same scene for browsers where WebGL2 is unavailable. This fallback is approximate and slower; hardware WebGL2 is the preferred path.
+  - `game/vehicles.mjs`: Warthog-style arcade handling — engine/drag, speed-sensitive steering, lateral-slip drift, handbrake, boost, four-wheel suspension/slope alignment, body roll/pitch, a 360° turret, paired-muzzle heat, enter/exit and respawn primitives.
+  - `game/core.mjs`: authoritative match state; Quake/Source-style movement with sprint/crouch/slide, analytic collisions; recoil/bloom/reload gunplay and ray/swept projectile combat; terrain, Warthog vehicles, run-over damage, armor, powers, pickups, CTF/KOTH/Domination scoring, respawn and bot utility/navigation.
+  - `game/view.mjs`: Three.js procedural arena with shadowed IBL lighting, procedural textures, sky/backdrop/scatter, tiered postprocessing, polygon terrain, the Warthog model, control-zone markers, first-person weapons, effects and synthesized Web Audio.
+  - `game/textures.mjs`: deterministic value-noise/FBM canvas albedo/roughness/normal texture generation with caching.
+  - `game/environment.mjs`: gradient sky dome, instanced distant mountains and instanced terrain scatter.
+- `game/software.mjs`: CPU renderer of the same scene for browsers where WebGL2 is unavailable. This fallback is approximate and slower and disables shadows/postprocessing; hardware WebGL2 is the preferred path.
 - `game/core.test.mjs`: consequential pure-logic checks and deterministic bot match.
-- `game/net.mjs`: browser-side NetClient — WebSocket protocol, sequenced 60Hz inputs, a shadow `Match` that predicts your own actor and replays unacknowledged inputs after authoritative snapshots, 20Hz server-time interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
-- `server/room.mjs`: socket-agnostic multiplayer room; joins, host control, sequenced per-peer input with one-shot edges, per-actor input acknowledgements, 60Hz authoritative tick, event deltas and 20Hz snapshot broadcast.
+- `game/net.mjs`: browser-side NetClient — WebSocket protocol, sequenced 60Hz inputs, a shadow `Match` that predicts your own actor and replays unacknowledged inputs after authoritative snapshots, adaptive ~100 ms server-time interpolation for remote actors and rockets, event accumulation and the render-state adapter for `ArenaView`.
+- `server/room.mjs`: socket-agnostic multiplayer room; joins, host control, sequenced per-peer input with one-shot edges (including reload), per-actor input acknowledgements, 60Hz authoritative tick, event deltas and a configurable 30 Hz snapshot broadcast.
 - `server/rooms.mjs`: room registry — one default `local` room plus rooms created on demand with a collision-checked 4-letter code; drives tick/grace/drain across every room and retires empty on-demand rooms.
 - `server/history.mjs`: per-server match history — every completed match recorded as `{id, roomId, mapId, mode, fragLimit, timeLimit, endedBy, duration, leader, players}` and persisted atomically to a JSON file (default `server/history.json`, capped at 50 entries, path injectable).
 - `server/game-server.mjs`: Node HTTP/WebSocket entry point for this machine.
@@ -156,6 +171,15 @@ Version 1.0 tunes launcher traversal from authored source-to-target ballistic li
 Version 1.1 adds Blood Gulch: immutable triangulated terrain supports interpolated valley floors, hills, walkable slopes and analytic cliff ray hits while preserving legacy box maps. Two neutral Puma vehicles spawn near the opposing bases; one driver can use forward/reverse arcade handling and paired side-mounted chainguns with authoritative heat, damage, destruction and respawn. Puma state is included in snapshots and local prediction, and `E` is a one-shot enter/exit input in multiplayer.
 
 Version 1.2 adds three large expansion maps, King of the Hill, Domination, authoritative control-point snapshots/events, world-space objective markers, objective-aware bots, objective-aware history, and a tactical HUD command layer that calls out the current team, score target, zone/flag state, route, and next action.
+
+Version 1.3 is the "make it not feel generic" pass, driven by research into Quake/Source movement, browser-shooter netcode, the Halo M12 Warthog, Blood Gulch/CTF level design, and Three.js rendering budgets:
+
+- Movement is rebuilt on a Quake/Source ground-friction + acceleration model with air acceleration (strafe jumps build speed), variable jump with apex hang, plus sprint, crouch and a momentum-preserving slide. Coyote time (.10 s) and jump buffering (.12 s) remain.
+- Gunplay adds authoritative recoil aim-punch with per-weapon spray patterns, bloom spread that grows while firing/moving and recovers at rest, ADS (spread/sensitivity), reload plus auto-reload, weapon holster/raise timing, and retuned per-weapon recoil/bloom/reload data. Recoil and crouch now move the first-person camera, and the HUD shows a spread-driven crosshair, hitmarker, reload bar, posture chip and low-ammo warning.
+- The Puma is now a recognizable Warthog with a roll cage, open bed, corner off-road tires and a 360° turret, driven by arcade physics with lateral-slip drifting, handbrake, boost, suspension/slope alignment and body roll/pitch; fast-moving vehicles splatter infantry.
+- Blood Gulch is rebuilt to a faithful 160×70 m box canyon, and three new large CTF maps (Frostline, Derelict Station, Ashen Rift) join the roster.
+- Rendering gains directional shadows, a PMREM image-based environment, deterministic procedural FBM textures, vertex/triangle color variation, a gradient sky with an instanced mountain backdrop and terrain scatter, and tiered bloom/vignette/SMAA postprocessing (all bypassed by the CPU fallback and reduced-motion).
+- Online play cuts interpolation delay from 160 ms to an adaptive ~100 ms, adds a jitter-adaptive snapshot buffer, raises server snapshots from 20 Hz to 30 Hz, and forwards the new stance/ADS/reload inputs.
 
 ## Source ZIPs
 

@@ -26,6 +26,11 @@ export class Room {
   this.roundOver = true;
   this.tickAcc = 0;
   this.broadcastAt = 0;
+  this.snapshotHz = Math.max(1, Math.min(120, Number(options.snapshotHz) || 30));
+  this.snapshotInterval = 1 / this.snapshotHz;
+  this.transformHistory = [];
+  this.transformHistoryLimit = Math.max(4, Math.min(240, Number(options.transformHistoryLimit) || 32));
+  this.lagCompEnabled = false;
   this.seq = 0;
   this.out = [];
  }
@@ -143,6 +148,9 @@ export class Room {
   if (Number.isFinite(i.yaw)) ext.yaw = i.yaw;
   if (Number.isFinite(i.pitch)) ext.pitch = Math.max(-1.45, Math.min(1.45, i.pitch));
   if (Number.isInteger(i.weapon)) ext.weapon = i.weapon;
+  if (i.sprint === true) ext.sprint = true;
+  if (i.crouch === true) ext.crouch = true;
+  if (i.ads === true) ext.ads = true;
     peer.latest = ext;
     peer.latestSeq = seq;
    if (ext.fire) peer.edgeFire = true;
@@ -152,6 +160,8 @@ export class Room {
    peer.lastPower = i.power === true;
    if (i.interact === true && !peer.lastInteract) peer.edgeInteract = true;
    peer.lastInteract = i.interact === true;
+   if (i.reload === true && !peer.lastReload) peer.edgeReload = true;
+   peer.lastReload = i.reload === true;
  }
  chat(peerId, text, now = Date.now()) {
   const peer = this.peers.get(peerId);
@@ -228,21 +238,41 @@ export class Room {
   if (this.hostId === peerId) this.hostId = this.nextConnectedHost();
   this.broadcast(this.lobby());
  }
+ enableLagCompensation(enabled = true) {
+  this.lagCompEnabled = enabled === true;
+  if (!this.lagCompEnabled) this.transformHistory = [];
+ }
+ recordTransforms(time) {
+  if (!this.lagCompEnabled || !this.match) return;
+  this.transformHistory.push({ time, actors: this.match.actors.map(a => ({ id: a.id, x: a.x, y: a.y, z: a.z })) });
+  while (this.transformHistory.length > this.transformHistoryLimit) this.transformHistory.shift();
+ }
+ transformsAt(time) {
+  let found = null;
+  for (const frame of this.transformHistory) {
+   if (frame.time <= time) found = frame;
+   else break;
+  }
+  return found;
+ }
  tick(dt) {
   if (!this.match || this.roundOver) return;
   this.tickAcc += Math.min(dt, .25);
   let steps = 0;
+  let broadcasted = false;
   while (this.tickAcc >= RULES.dt && steps < 5) {
      const inputs = {};
-     for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeFire || p.edgeJump || p.edgePower || p.edgeInteract)) {
+     for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeFire || p.edgeJump || p.edgePower || p.edgeInteract || p.edgeReload)) {
      const ext = { ...(p.latest ?? {}) };
      if (p.edgeFire) { ext.fire = true; p.edgeFire = false; }
     if (p.edgeJump) { ext.jump = true; p.edgeJump = false; }
      if (p.edgePower) { ext.power = true; p.edgePower = false; }
      if (p.edgeInteract) { ext.interact = true; p.edgeInteract = false; }
+     if (p.edgeReload) { ext.reload = true; p.edgeReload = false; }
     inputs[p.actorId] = ext;
    }
      this.match.step(RULES.dt, { inputs });
+     if (this.lagCompEnabled) this.recordTransforms(this.match.time);
     for (const p of this.peers.values()) if (p.actorId !== null && p.latest) p.appliedSeq = p.latestSeq;
    this.tickAcc -= RULES.dt;
    steps++;
@@ -251,7 +281,7 @@ export class Room {
      if (items.length) { p.lastSerial = items[items.length - 1].id; this.send(p.id, { type: 'events', items }); }
     }
     this.broadcastAt += RULES.dt;
-     if (this.broadcastAt >= .05) { this.broadcastAt = 0; const acks = {}; for (const p of this.peers.values()) if (p.actorId !== null) acks[p.actorId] = p.appliedSeq; this.broadcast({ type: 'snapshot', seq: ++this.seq, acks, state: this.match.snapshot() }); }
+     if (!broadcasted && this.broadcastAt >= this.snapshotInterval) { broadcasted = true; this.broadcastAt = 0; const acks = {}; for (const p of this.peers.values()) if (p.actorId !== null) acks[p.actorId] = p.appliedSeq; this.broadcast({ type: 'snapshot', seq: ++this.seq, acks, state: this.match.snapshot() }); }
      if (this.match.over) {
       this.roundOver = true;
       const result = this.match.snapshot();

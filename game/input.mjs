@@ -17,3 +17,36 @@ export function isEditable(element) {
 export function blocksGameplay(chatOpen, spectate, target, activeElement) {
   return Boolean(chatOpen || spectate || isEditable(target) || isEditable(activeElement));
 }
+
+export const INPUT_CODES = Object.freeze(['Space', 'KeyW', 'KeyA', 'KeyS', 'KeyD', 'KeyQ', 'KeyE', 'ShiftLeft', 'ControlLeft', 'KeyC', 'KeyR']);
+
+function codeSet(keys) {
+  if (!keys) return new Set();
+  if (typeof keys.has === 'function') return keys;
+  if (typeof keys[Symbol.iterator] === 'function') return new Set(keys);
+  return new Set();
+}
+
+export function posture(keys) {
+  const codes = codeSet(keys);
+  return { sprint: codes.has('ShiftLeft'), crouch: codes.has('ControlLeft') || codes.has('KeyC') };
+}
+
+export function controlsFromState(state = {}) {
+  const codes = codeSet(state.keys), look = state.look || {};
+  const forward = (codes.has('KeyW') ? 1 : 0) - (codes.has('KeyS') ? 1 : 0);
+  const right = (codes.has('KeyD') ? 1 : 0) - (codes.has('KeyA') ? 1 : 0);
+  const yaw = Number.isFinite(state.yaw) ? state.yaw : Number.isFinite(look.yaw) ? look.yaw : 0;
+  const pitch = Number.isFinite(state.pitch) ? state.pitch : Number.isFinite(look.pitch) ? look.pitch : 0;
+  const controls = { x: -Math.sin(yaw) * forward + Math.cos(yaw) * right, z: -Math.cos(yaw) * forward - Math.sin(yaw) * right, yaw, pitch, fire: state.fire === true || state.fireTap === true };
+  const { sprint, crouch } = posture(codes);
+  if (sprint) controls.sprint = true;
+  if (crouch) controls.crouch = true;
+  if (state.ads) controls.ads = true;
+  if (state.reload) controls.reload = true;
+  if (state.jump) controls.jump = true;
+  if (state.power) controls.power = true;
+  if (state.interact) controls.interact = true;
+  if (Number.isInteger(state.weapon) && state.weapon >= 0) controls.weapon = state.weapon;
+  return controls;
+}

@@ -12,7 +12,7 @@ const v=(x=0,y=0,z=0)=>({x,y,z});
 const add=(a,b,s=1)=>v(a.x+b.x*s,a.y+b.y*s,a.z+b.z*s);
 const norm=a=>{const l=Math.hypot(a.x,a.y,a.z)||1;return v(a.x/l,a.y/l,a.z/l)};
 const finitePoint=p=>p&&Number.isFinite(p.x)&&Number.isFinite(p.y)&&Number.isFinite(p.z);
-export const eye=a=>v(a.x,a.y+1.45,a.z);
+export const eye=a=>v(a.x,a.y+(Number.isFinite(a.eyeHeight)?a.eyeHeight:1.45),a.z);
 export const aim=(yaw,pitch=0)=>v(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch));
 export const BLOCKS=MAPS[0].blocks;
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
@@ -26,6 +26,9 @@ const linkFor=(arena,id)=>{const link=(arena.jumpLinks||[]).find(item=>(item.tra
   const segmentDistance=(x,z,a,b)=>{const dx=b.x-a.x,dz=b.z-a.z,length=dx*dx+dz*dz;if(length<=1e-9)return Math.hypot(x-a.x,z-a.z);const t=clamp(((x-a.x)*dx+(z-a.z)*dz)/length,0,1);return Math.hypot(x-(a.x+dx*t),z-(a.z+dz*t));};
   const terrainObstructed=(x,y,z,r,arena)=>arena.terrain?.walls?.length>0&&terrainWallSegments(arena.terrain).some(({a,b})=>y<Math.max(a.y,b.y)-1e-6&&y+RULES.height>Math.min(a.y,b.y)+1e-6&&segmentDistance(x,z,a,b)<r);
  export function obstructed(x,y,z,r=RULES.radius,arena=MAPS[0]){return arena.blocks.some(b=>Math.abs(x-b.x)<b.w/2+r&&Math.abs(z-b.z)<b.d/2+r&&y<b.h-1e-6&&y+RULES.height>0)||terrainObstructed(x,y,z,r,arena);}
+export const MOVE={friction:6,stopSpeed:2,groundAccel:10,airAccel:1,airCap:.75,sprint:1.375,crouch:.4,slideBoost:9.6,slideMin:.35,slideFriction:2.5,slideCooldown:.5,terminal:1.6,eyeStanding:1.45,eyeCrouch:.95,baseHeight:1.8};
+const canStand=(x,y,z,r,arena)=>!arena.blocks.some(b=>Math.abs(x-b.x)<b.w/2+r&&Math.abs(z-b.z)<b.d/2+r&&y<b.h-1e-6&&b.h<y+MOVE.baseHeight);
+const accelerate=(a,ix,iz,wishSpeed,accel,dt)=>{const add=wishSpeed-(a.vx*ix+a.vz*iz);if(add<=0)return;const amount=Math.min(accel*dt*wishSpeed,add);a.vx+=ix*amount;a.vz+=iz*amount;};
 export function moveActor(a,input,dt,arena=MAPS[0],config={speed:1,gravity:1}){
  // Recover corrected/older embedded state without lifting actors through tall solids.
  for(const b of arena.blocks)if(Math.abs(a.x-b.x)<b.w/2+RULES.radius&&Math.abs(a.z-b.z)<b.d/2+RULES.radius&&a.y<b.h-1e-6){
@@ -34,27 +37,49 @@ export function moveActor(a,input,dt,arena=MAPS[0],config={speed:1,gravity:1}){
     const bounds=boundsOf(arena);const p=candidates.filter(p=>{const floor=floorAt(p.x,p.z,arena);return p.x>=bounds.minX&&p.x<=bounds.maxX&&p.z>=bounds.minZ&&p.z<=bounds.maxZ&&floor!==null&&floor<=p.y+1e-6&&!obstructed(p.x,p.y,p.z,RULES.radius,arena);}).sort((p,q)=>dist(a,p)-dist(a,q))[0];
   if(p){if(p.x!==a.x)a.vx=0;if(p.z!==a.z)a.vz=0;if(p.y!==a.y)a.vy=0;Object.assign(a,p);}
  }
-   const speed=(a.moveSpeed??CHARACTERS.find(c=>c.id===a.character)?.stats.speed??RULES.speed)*config.speed*(a.harnessSpeedMultiplier||1)*(a.speedMultiplier||1)*(a.active>0&&a.harness==='hermes'?(a.activeSpeedMultiplier||1.6):1)*(a.slow>0?(a.slowMultiplier??.55):1),len=Math.hypot(input.x||0,input.z||0)||1;
-  const ix=(input.x||0)/len,iz=(input.z||0)/len,wishSpeed=speed*Math.min(1,len),horizontal=Math.hypot(a.vx,a.vz);
-  if(a.grounded){
-   a.coyote=.1;
-   if(ix||iz){const dx=ix*wishSpeed-a.vx,dz=iz*wishSpeed-a.vz,change=Math.hypot(dx,dz),scale=change?Math.min(1,55*dt/change):0;a.vx+=dx*scale;a.vz+=dz*scale;}
-   else if(horizontal){const scale=Math.max(0,horizontal-Math.max(speed,horizontal)*10*dt)/horizontal;a.vx*=scale;a.vz*=scale;}
-  }else{
-   a.coyote=Math.max(0,a.coyote-dt);
-   if(ix||iz){
-    // Add only along the wish direction; coasting never erases lateral momentum.
-    const projection=a.vx*ix+a.vz*iz,amount=Math.min(Math.max(0,wishSpeed-projection),(a.traversalFlight?8:16)*dt);
-    a.vx+=ix*amount;a.vz+=iz*amount;
-    // Steering may turn existing launch/knockback speed, but cannot compound it.
-    const limit=Math.max(horizontal,speed*1.1),next=Math.hypot(a.vx,a.vz);
-    if(next>limit){a.vx*=limit/next;a.vz*=limit/next;}
-   }
+ const speed=(a.moveSpeed??CHARACTERS.find(c=>c.id===a.character)?.stats.speed??RULES.speed)*config.speed*(a.harnessSpeedMultiplier||1)*(a.speedMultiplier||1)*(a.active>0&&a.harness==='hermes'?(a.activeSpeedMultiplier||1.6):1)*(a.slow>0?(a.slowMultiplier??.55):1);
+ const len=Math.hypot(input.x||0,input.z||0),ix=len?(input.x||0)/len:0,iz=len?(input.z||0)/len:0;
+ // Crouch is sticky while there is no headroom to stand.
+ let crouching=input.crouch===true;
+ if(!crouching&&a.crouching&&!canStand(a.x,a.y,a.z,RULES.radius,arena))crouching=true;
+ const sprint=input.sprint===true&&a.grounded&&!crouching&&len>0,ads=input.ads===true&&!sprint;
+ const maxSpeed=speed*(sprint?MOVE.sprint:1)*(crouching?MOVE.crouch:1)*(ads?.9:1),wishSpeed=maxSpeed*Math.min(1,len);
+ // Sprint + crouch converts into a slide that preserves horizontal momentum.
+ let horizontal=Math.hypot(a.vx,a.vz);
+ if(crouching&&a.grounded&&!a.sliding&&(a.slideCooldown||0)<=0&&(input.sprint===true||a.sprinting)&&horizontal>6){
+  a.sliding=true;a.slideTimer=MOVE.slideMin;
+  if(horizontal>1e-4&&horizontal<MOVE.slideBoost){const burst=MOVE.slideBoost/horizontal;a.vx*=burst;a.vz*=burst;}
+  else if(horizontal<=1e-4){a.vx=-Math.sin(a.yaw||0)*MOVE.slideBoost;a.vz=-Math.cos(a.yaw||0)*MOVE.slideBoost;}
+  horizontal=Math.hypot(a.vx,a.vz);
+ }
+ a.crouching=crouching;a.sprinting=sprint;a.ads=ads;a.eyeHeight=crouching||a.sliding?MOVE.eyeCrouch:MOVE.eyeStanding;a.baseHeight=MOVE.baseHeight;
+ a.sliding=a.sliding===true;a.slideTimer=Math.max(0,(a.slideTimer||0)-dt);a.slideCooldown=Math.max(0,(a.slideCooldown||0)-dt);
+ if(a.grounded){
+  a.coyote=.1;
+  const h=Math.hypot(a.vx,a.vz),friction=a.sliding?MOVE.slideFriction:MOVE.friction,control=Math.max(h,MOVE.stopSpeed),drop=control*friction*dt;
+  if(h>1e-9){const scale=Math.max(0,h-drop)/h;a.vx*=scale;a.vz*=scale;}
+  if(ix||iz)accelerate(a,ix,iz,wishSpeed,a.sliding?MOVE.groundAccel*.4:MOVE.groundAccel,dt);
+ }else{
+  a.coyote=Math.max(0,a.coyote-dt);
+  if(ix||iz){
+   // Add only along the wish direction; coasting never erases lateral momentum.
+   const before=Math.hypot(a.vx,a.vz),projection=a.vx*ix+a.vz*iz,add=Math.min(wishSpeed,MOVE.airCap)-projection;
+   if(add>0){const amount=Math.min(MOVE.airAccel*dt*wishSpeed,add);a.vx+=ix*amount;a.vz+=iz*amount;}
+   // Steering may turn existing launch/knockback speed, but cannot compound it.
+   const terminal=Math.max(maxSpeed*MOVE.terminal,before),next=Math.hypot(a.vx,a.vz);
+   if(next>terminal&&next>1e-9){const s=terminal/next;a.vx*=s;a.vz*=s;}
   }
+ }
+ let jumpTriggered=false;
+ if(a.grounded){a.jumpHeld=false;a.jumpCutArmed=false;}
  a.jumpBuffer=input.jump?.12:Math.max(0,a.jumpBuffer-dt);
- if(a.jumpBuffer>0&&a.coyote>0){a.vy=RULES.jump;a.grounded=false;a.jumpBuffer=0;a.coyote=0;}
+ if(a.jumpBuffer>0&&a.coyote>0){a.vy=RULES.jump;a.grounded=false;a.jumpBuffer=0;a.coyote=0;a.jumpHeld=true;a.jumpCutArmed=false;jumpTriggered=true;a.sliding=false;a.slideTimer=0;a.slideCooldown=Math.max(a.slideCooldown||0,MOVE.slideCooldown);}
+ if(a.jumpHeld&&input.jump===true&&!jumpTriggered)a.jumpCutArmed=true;
+ // Variable jump: releasing a held button early trims upward velocity. A single-frame tap stays a full hop.
+ if(a.jumpHeld&&input.jump!==true&&a.vy>0){if(a.jumpCutArmed)a.vy*=.45;a.jumpHeld=false;a.jumpCutArmed=false;}
+ const apex=!a.traversalFlight&&config.gravity>=1&&Math.abs(a.vy)<2.5,gravity=RULES.gravity*config.gravity*(apex?.6:1);
  // Small axis moves preserve sliding and prevent fast knockback tunneling.
- const steps=Math.max(1,Math.ceil(Math.max(Math.abs(a.vx*dt),Math.abs(a.vz*dt),Math.abs(a.vy*dt)+RULES.gravity*config.gravity*dt*dt)/.18)),step=dt/steps;
+ const steps=Math.max(1,Math.ceil(Math.max(Math.abs(a.vx*dt),Math.abs(a.vz*dt),Math.abs(a.vy*dt)+gravity*dt*dt)/.18)),step=dt/steps;
  for(let i=0;i<steps;i++){
  for(const axis of ['x','z']){
   const value=a[axis]+a[axis==='x'?'vx':'vz']*step;
@@ -64,13 +89,15 @@ export function moveActor(a,input,dt,arena=MAPS[0],config={speed:1,gravity:1}){
   if(a.grounded&&a.vy<=0)for(const b of arena.blocks)if(b.kind==='deck'&&Math.abs(nx-b.x)<b.w/2+RULES.radius&&Math.abs(nz-b.z)<b.d/2+RULES.radius&&Math.abs(b.h-a.y)<.25)ny=Math.max(ny,b.h);
     if((a.traversalFlight&&a.traversalTarget||!obstructed(nx,ny,nz,RULES.radius,arena))&&(f===null||f-a.y<.3)){a[axis]=value;a.y=ny;}else a[axis==='x'?'vx':'vz']=0;
  }
-  a.vy-=RULES.gravity*config.gravity*step;const nextY=a.y+a.vy*step;let f=floorAt(a.x,a.z,arena);
+  a.vy-=gravity*step;const nextY=a.y+a.vy*step;let f=floorAt(a.x,a.z,arena);
   // A solid top is a landing surface only when the feet cross it while falling.
   for(const b of arena.blocks)if(Math.abs(a.x-b.x)<b.w/2+RULES.radius&&Math.abs(a.z-b.z)<b.d/2+RULES.radius&&a.y>=b.h-1e-6&&nextY<=b.h)f=Math.max(f??-Infinity,b.h);
-   if(f!==null&&nextY<=f){a.y=f;a.vy=0;a.grounded=true;a.traversalFlight=false;a.traversalTarget=null;}else{a.y=nextY;a.grounded=false;}
+   if(f!==null&&nextY<=f){a.y=f;a.vy=0;a.grounded=true;a.sliding=a.sliding&&input.crouch===true;a.traversalFlight=false;a.traversalTarget=null;}else{a.y=nextY;a.grounded=false;}
    const target=a.traversalTarget,targetFloor=target&&floorAt(target.x,target.z,arena);if(a.traversalFlight&&target&&targetFloor!==null&&a.vy<=0&&Math.hypot(a.x-target.x,a.z-target.z)<=.9&&a.y<=targetFloor+.35){a.x=target.x;a.z=target.z;a.y=targetFloor;a.vx=a.vy=a.vz=0;a.grounded=true;a.traversalFlight=false;a.traversalTarget=null;}
   const bounds=boundsOf(arena);a.x=clamp(a.x,bounds.minX,bounds.maxX);a.z=clamp(a.z,bounds.minZ,bounds.maxZ);
-  }
+ }
+ // Cancel a slide that dropped below its speed floor after the minimum duration.
+ if(a.sliding&&a.grounded&&(a.slideTimer||0)<=0&&Math.hypot(a.vx,a.vz)<3)a.sliding=false;
     const traversal=arena.traversal||arena.traversalMetadata||{},pads=[...(traversal.trampolines||arena.trampolines||[]).map((p,i)=>({...p,type:'trampoline',id:p.id??`t${i}`})),...(traversal.boostLaunchers||traversal.launchers||arena.boostLaunchers||[]).map((p,i)=>({...p,type:'boost',id:p.id??`b${i}`,target:p.target||linkFor(arena,p.id??`b${i}`)}))];
     const floor=floorAt(a.x,a.z,arena),pad=pads.find(p=>floor!==null&&Math.hypot(a.x-p.x,a.z-p.z)<.7&&Math.abs(a.y-floor)<.35&&a.grounded);
    if(pad&&a.traversalPad!==pad.id&&(a.traversalCooldown||0)<=0){
@@ -113,7 +140,7 @@ function applyHarnessProfile(a){const passive=harnessPassive(a.harness),ability=
 export class Match{
  visible(a,b){return visible(a,b,this.arena);}
  rayWorld(o,d,max){return rayWorld(o,d,max,this.arena);}
-   constructor(character='chatgpt',harness='openclaw',random=Math.random,mapId='exchange',options={}){this.config=normalizeConfig(options);this.humanCount=Math.max(1,Math.min(Math.round(options.humanCount??1),8));this.difficulty=DIFFICULTIES.find(d=>d.id===this.config.difficulty);this.arena=getMap(mapId);const nav=matchNavigation(this.arena);this.nav=nav.nodes;this.edges=nav.edges;this.spawns=this.arena.spawns.map(([x,z])=>v(x,floorAt(x,z,this.arena),z));this.random=random;this.time=0;this.over=false;this.events=[];this.feed=[];this.rockets=[];this.stats={shots:0,kills:0,pickups:0,powers:0,respawns:0,falls:0};this.serial=0;this.teamScores={0:0,1:0};
+   constructor(character='chatgpt',harness='openclaw',random=Math.random,mapId='exchange',options={}){this.config=normalizeConfig(options);this.humanCount=Math.max(1,Math.min(Math.round(options.humanCount??1),8));this.difficulty=DIFFICULTIES.find(d=>d.id===this.config.difficulty);this.arena=getMap(mapId);const nav=matchNavigation(this.arena);this.nav=nav.nodes;this.edges=nav.edges;this.spawns=this.arena.spawns.map(([x,z])=>v(x,floorAt(x,z,this.arena),z));this.random=random;this.time=0;this.over=false;this.events=[];this.feed=[];this.rockets=[];this.stats={shots:0,kills:0,pickups:0,powers:0,respawns:0,falls:0};this.serial=0;this.teamScores={0:0,1:0};this.vehicleHits=new Map();
    const defaults={0:this.arena.spawns.filter((_,i)=>i%2===0),1:this.arena.spawns.filter((_,i)=>i%2===1)};
    this.teamSpawns=teamPoints(this.arena.teamSpawns,defaults);
    this.flagSpawns=flagPoints(this.arena.flagSpawns,{0:this.teamSpawns[0][0],1:this.teamSpawns[1][0]});
@@ -124,7 +151,7 @@ export class Match{
  this.pickups=this.pickups.filter(p=>this.config.mode!=='instagib'&&(modeWeapon(this.config)===null||p.kind==='health'||p.kind==='armor'));
   this.actors=[this.actor(0,character,harness),...Array.from({length:this.humanCount-1},(_,i)=>this.actor(i+1,CHARACTERS[(CHARACTERS.findIndex(c=>c.id===character)+i+1)%CHARACTERS.length].id,HARNESSES[Math.floor(this.random()*HARNESSES.length)].id)),...Array.from({length:this.config.botCount},(_,i)=>this.actor(this.humanCount+i,CHARACTERS[(CHARACTERS.findIndex(c=>c.id===character)+this.humanCount+i)%CHARACTERS.length].id,HARNESSES[Math.floor(this.random()*HARNESSES.length)].id))];this.actors[0].name=this.config.playerName||this.actors[0].name;
    for(const a of this.actors){const loadout=options.loadouts?.[a.id];if(a.id<this.humanCount&&loadout){Object.assign(a,resolveLoadout(loadout.character,loadout.harness));a.name=CHARACTERS.find(c=>c.id===a.character).name;}applyHarnessProfile(a);this.spawn(a);}}
-      actor(id,character,harness){const l=resolveLoadout(character,harness),actor={id,...l,team:teamMode(this.config)?id%2:undefined,name:CHARACTERS.find(c=>c.id===l.character).name,frags:0,deaths:0,scoreStats:{captures:0,flagPickups:0,flagReturns:0,flagDrops:0,objectiveTime:0,objectiveCaptures:0,objectiveNeutralizations:0,objectiveContests:0},x:0,y:0,z:0,lastValid:null,vx:0,vy:0,vz:0,yaw:0,pitch:0,grounded:true,coyote:0,jumpBuffer:0,health:0,armor:0,dead:0,vehicleId:null,weapon:modeWeapon(this.config)??(this.config.mode==='arsenal'?0:this.config.startingWeapon),ammo:spawnInventory(this.config),cooldown:0,active:0,slow:0,slowMultiplier:.55,shotWait:0,protection:0,shots:0,traversalCooldown:0,traversalPad:null,traversalTarget:null,powerups:{},speedMultiplier:1,damageMultiplier:1,cooldownMultiplier:1,temporaryShield:0,activeSpeedMultiplier:1,harnessSpeedMultiplier:1,harnessResistance:0,bot:id<this.humanCount?null:{route:[],think:0,target:-1,memory:0,reaction:0,stuck:0,last:v(),state:'roam'}};applyHarnessProfile(actor);return actor;}
+      actor(id,character,harness){const l=resolveLoadout(character,harness),actor={id,...l,team:teamMode(this.config)?id%2:undefined,name:CHARACTERS.find(c=>c.id===l.character).name,frags:0,deaths:0,scoreStats:{captures:0,flagPickups:0,flagReturns:0,flagDrops:0,objectiveTime:0,objectiveCaptures:0,objectiveNeutralizations:0,objectiveContests:0},x:0,y:0,z:0,lastValid:null,vx:0,vy:0,vz:0,yaw:0,pitch:0,grounded:true,coyote:0,jumpBuffer:0,health:0,armor:0,dead:0,vehicleId:null,weapon:modeWeapon(this.config)??(this.config.mode==='arsenal'?0:this.config.startingWeapon),ammo:spawnInventory(this.config),cooldown:0,active:0,slow:0,slowMultiplier:.55,shotWait:0,protection:0,shots:0,traversalCooldown:0,traversalPad:null,traversalTarget:null,spread:0,punchYaw:0,punchPitch:0,punchVelYaw:0,punchVelPitch:0,reloading:false,reloadTimer:0,reloadDuration:0,reloadWeapon:-1,weaponSwitch:0,burst:0,burstTimer:0,sprinting:false,crouching:false,sliding:false,slideTimer:0,slideCooldown:0,eyeHeight:MOVE.eyeStanding,baseHeight:MOVE.baseHeight,ads:false,jumpHeld:false,jumpCutArmed:false,powerups:{},speedMultiplier:1,damageMultiplier:1,cooldownMultiplier:1,temporaryShield:0,activeSpeedMultiplier:1,harnessSpeedMultiplier:1,harnessResistance:0,bot:id<this.humanCount?null:{route:[],think:0,target:-1,memory:0,reaction:0,stuck:0,last:v(),state:'roam'}};applyHarnessProfile(actor);return actor;}
   emit(type,data={}){this.events.push({type,id:++this.serial,time:this.time,...data});if(this.events.length>300)this.events.shift();}
   vehicleById(id){return this.vehicles.find(vehicle=>vehicle.id===id)||null;}
   flagCarrier(a){return this.config.mode==='ctf'&&Object.values(this.flags).some(flag=>flag.carrier===a.id);}
@@ -133,11 +160,12 @@ export class Match{
   releaseVehicle(a,vehicle=this.vehicleById(a.vehicleId),reason='exit'){if(!vehicle)return false;const size=vehicle.config?.dimensions||GUNTRUCK.dimensions,right=v(Math.cos(vehicle.heading),0,-Math.sin(vehicle.heading)),candidates=[add(vehicle.position,right,size.width/2+RULES.radius+.18),add(vehicle.position,right,-(size.width/2+RULES.radius+.18)),add(vehicle.position,right,0)];let chosen=null;for(const candidate of candidates){const y=floorAt(candidate.x,candidate.z,this.arena);if(y!==null&&!obstructed(candidate.x,y,candidate.z,RULES.radius,this.arena)){chosen={x:candidate.x,y,z:candidate.z};break;}}vehicle.driver=null;a.vehicleId=null;if(chosen){Object.assign(a,chosen);a.lastValid={...chosen};}a.vx=a.vy=a.vz=0;a.grounded=true;this.emit('vehicle-exit',{actor:a.id,vehicle:vehicle.id,reason});return true;}
   enterVehicle(a){if(this.flagCarrier(a))return false;const vehicle=this.vehicles.find(candidate=>vehicleCanEnter(candidate,{...a,vehicle:a.vehicleId??null})&&Math.hypot(a.x-candidate.position.x,a.z-candidate.position.z)<2.4);if(!vehicle)return false;vehicle.driver=a.id;this.syncVehicleActor(a,vehicle);a.yaw=vehicle.heading-Math.PI;this.emit('vehicle-enter',{actor:a.id,vehicle:vehicle.id});return true;}
   damageVehicle(vehicle,amount,source){if(!vehicle||vehicle.health<=0||this.over)return 0;const actual=Math.min(vehicle.health,Math.max(0,amount*this.config.damage));vehicle.health-=actual;this.emit('vehicle-damage',{vehicle:vehicle.id,actor:source?.id,amount:actual,health:vehicle.health});if(vehicle.health<=0){const driver=this.actors.find(actor=>actor.id===vehicle.driver);if(driver){this.releaseVehicle(driver,vehicle,'destroyed');this.damage(driver,70,source);}vehicle.health=0;vehicle.respawnTimer=vehicle.config?.respawn??GUNTRUCK.respawn;vehicle.velocity.x=vehicle.velocity.z=0;this.emit('vehicle-destroyed',{vehicle:vehicle.id,actor:source?.id,pos:{...vehicle.position}});}return actual;}
-   fireVehicle(vehicle,a){if(!vehicle.lastStep?.fired)return;const gun=GUNTRUCK.mountedChaingun,origins=vehicleMuzzles(vehicle),base=aim(a.yaw,a.pitch);for(const barrel of vehicle.lastStep.muzzles||[0,1]){if(!origins[barrel]||!finitePoint(origins[barrel]))continue;const spread=.018,direction=norm(add(base,v((this.random()-.5)*spread,(this.random()-.5)*spread,(this.random()-.5)*spread)));if(!finitePoint(direction))continue;let range=this.rayWorld(origins[barrel],direction,gun.range),target=null;for(const other of this.actors)if(other!==a&&other.health>0&&(!teamMode(this.config)||other.team!==a.team)){const hit=hitActor(origins[barrel],direction,other,range);if(hit!==null){range=hit;target=other;}}if(target)this.damage(target,gun.damage,a);this.emit('vehicle-shot',{vehicle:vehicle.id,actor:a.id,barrel,weapon:0,from:origins[barrel],to:add(origins[barrel],direction,range),hit:target?.id??null});}a.shots+=2;this.stats.shots+=2;}
-  driveVehicle(a,controls,dt){const vehicle=this.vehicleById(a.vehicleId);if(!vehicle||vehicle.driver!==a.id){a.vehicleId=null;return false;}if(controls.interact){this.releaseVehicle(a,vehicle);return true;}const forward=v(-Math.sin(a.yaw),0,-Math.cos(a.yaw)),right=v(Math.cos(a.yaw),0,-Math.sin(a.yaw)),throttle=clamp((controls.x||0)*forward.x+(controls.z||0)*forward.z,-1,1),steer=clamp((controls.x||0)*right.x+(controls.z||0)*right.z,-1,1);stepVehicle(vehicle,{throttle,steer,fire:controls.fire===true},dt,next=>this.vehicleCollision(next,vehicle));this.syncVehicleActor(a,vehicle);this.fireVehicle(vehicle,a);return true;}
+   fireVehicle(vehicle,a){if(!vehicle.lastStep?.fired)return;const gun=GUNTRUCK.mountedChaingun,origins=vehicleMuzzles(vehicle),base=aim(a.yaw+(a.punchYaw||0),a.pitch+(a.punchPitch||0));for(const barrel of vehicle.lastStep.muzzles||[0,1]){if(!origins[barrel]||!finitePoint(origins[barrel]))continue;const spread=.018,direction=norm(add(base,v((this.random()-.5)*spread,(this.random()-.5)*spread,(this.random()-.5)*spread)));if(!finitePoint(direction))continue;let range=this.rayWorld(origins[barrel],direction,gun.range),target=null;for(const other of this.actors)if(other!==a&&other.health>0&&(!teamMode(this.config)||other.team!==a.team)){const hit=hitActor(origins[barrel],direction,other,range);if(hit!==null){range=hit;target=other;}}if(target)this.damage(target,gun.damage,a);this.emit('vehicle-shot',{vehicle:vehicle.id,actor:a.id,barrel,weapon:0,from:origins[barrel],to:add(origins[barrel],direction,range),hit:target?.id??null});}a.shots+=2;this.stats.shots+=2;}
+   vehicleGround(x,z){const y=floorAt(x,z,this.arena);if(y===null)return null;if(!this.arena.terrain)return y;const e=.6,yx=floorAt(x+e,z,this.arena),yz=floorAt(x,z+e,this.arena);if(yx!==null&&yz!==null)return {y,normal:norm(v(-(yx-y)/e,1,-(yz-y)/e))};return y;}
+   driveVehicle(a,controls,dt){const vehicle=this.vehicleById(a.vehicleId);if(!vehicle||vehicle.driver!==a.id){a.vehicleId=null;return false;}if(controls.interact){this.releaseVehicle(a,vehicle);return true;}const forward=v(-Math.sin(a.yaw),0,-Math.cos(a.yaw)),right=v(Math.cos(a.yaw),0,-Math.sin(a.yaw)),throttle=clamp((controls.x||0)*forward.x+(controls.z||0)*forward.z,-1,1),steer=clamp((controls.x||0)*right.x+(controls.z||0)*right.z,-1,1),look=aim(a.yaw,a.pitch),turretYaw=Math.atan2(look.x,look.z)-vehicle.heading;stepVehicle(vehicle,{throttle,steer,brake:controls.jump===true,boost:controls.sprint===true,fire:controls.fire===true,turretYaw},dt,next=>this.vehicleCollision(next,vehicle),(x,z)=>this.vehicleGround(x,z));this.syncVehicleActor(a,vehicle);this.fireVehicle(vehicle,a);return true;}
      spawn(a){if(a.vehicleId!==null)this.releaseVehicle(a,undefined,'respawn');const others=this.actors?.filter(b=>b!==a&&b.health>0)||[];const pool=teamMode(this.config)?this.teamSpawns[a.team]:this.spawns;let best=-Infinity,chosen=v();for(const s of pool){const sx=Array.isArray(s)?s[0]:s.x,sz=Array.isArray(s)?s[1]:s.z,pos=v(sx,floorAt(sx,sz,this.arena),sz);const score=(others.length?Math.min(...others.map(b=>dist(b,pos))):0)+this.random()*2;if(score>best){best=score;chosen=pos;}}
   const stats=CHARACTERS.find(c=>c.id===a.character).stats;
-      Object.assign(a,{...chosen,lastValid:{...chosen},vx:0,vy:0,vz:0,health:stats.health,maxHealth:stats.health,armor:stats.armor,moveSpeed:stats.speed,dead:0,weapon:modeWeapon(this.config)??(this.config.mode==='arsenal'?0:this.config.startingWeapon),ammo:spawnInventory(this.config),cooldown:0,active:0,slow:0,slowMultiplier:.55,shotWait:.25,protection:RULES.protection,grounded:true,jumpBuffer:0,coyote:0,traversalFlight:false,traversalTarget:null,yaw:Math.atan2(chosen.x,chosen.z),pitch:0,powerups:{},speedMultiplier:1,damageMultiplier:1,cooldownMultiplier:1,temporaryShield:0,activeSpeedMultiplier:1});applyHarnessProfile(a);
+      Object.assign(a,{...chosen,lastValid:{...chosen},vx:0,vy:0,vz:0,health:stats.health,maxHealth:stats.health,armor:stats.armor,moveSpeed:stats.speed,dead:0,weapon:modeWeapon(this.config)??(this.config.mode==='arsenal'?0:this.config.startingWeapon),ammo:spawnInventory(this.config),cooldown:0,active:0,slow:0,slowMultiplier:.55,shotWait:.25,protection:RULES.protection,grounded:true,jumpBuffer:0,coyote:0,spread:0,punchYaw:0,punchPitch:0,punchVelYaw:0,punchVelPitch:0,reloading:false,reloadTimer:0,reloadDuration:0,reloadWeapon:-1,weaponSwitch:0,burst:0,burstTimer:0,sprinting:false,crouching:false,sliding:false,slideTimer:0,slideCooldown:0,eyeHeight:MOVE.eyeStanding,baseHeight:MOVE.baseHeight,ads:false,jumpHeld:false,jumpCutArmed:false,traversalFlight:false,traversalTarget:null,yaw:Math.atan2(chosen.x,chosen.z),pitch:0,powerups:{},speedMultiplier:1,damageMultiplier:1,cooldownMultiplier:1,temporaryShield:0,activeSpeedMultiplier:1});applyHarnessProfile(a);
     if(a.bot)a.bot={route:[],think:0,target:-1,memory:0,reaction:0,stuck:0,last:v(a.x,a.y,a.z),state:'roam'};this.stats.respawns++;this.emit('spawn',{actor:a.id,pos:v(a.x,a.y+1,a.z)});} damage(target,amount,source){if(this.over||target.health<=0||target.protection>0)return 0;const guardrail=target.active>0&&target.harness==='claudecode'?.5:0,mitigation=Math.min(.5,Math.max(target.harnessResistance||0,guardrail));let damage=(this.config.mode==='instagib'?10000:amount*this.config.damage)*(source?.damageMultiplier||1)*(1-mitigation);const shield=Math.min(target.temporaryShield||0,damage);target.temporaryShield-=shield;damage-=shield;const absorb=Math.min(target.armor,damage*.6);target.armor-=absorb;damage-=absorb;const actual=Math.min(target.health,damage);target.health=Math.max(0,target.health-damage);if(this.config.lifeSteal&&source&&source!==target&&source.health>0)source.health=Math.min(source.maxHealth,source.health+actual*.25);this.emit('damage',{actor:target.id,source:source?.id,amount:shield+absorb+actual,shield:shield});
     if(target.health<=0){if(target.vehicleId!==null)this.releaseVehicle(target,undefined,'destroyed');target.deaths++;target.dead=this.config.respawn;target.active=0;target.cooldown=0;target.slow=0;target.vx=target.vy=target.vz=0;this.dropFlag(target);if(source)source.frags+=source.id===target.id?-1:1;this.stats.kills++;this.emit('death',{actor:target.id,pos:v(target.x,target.y+1,target.z),character:target.character});this.feed.unshift({killer:source?.name||'Arena',victim:target.name,self:source?.id===target.id,time:this.time});this.feed.length=Math.min(this.feed.length,5);if(this.config.mode==='teamdeathmatch'&&source&&source!==target){this.teamScores[source.team]++;if(this.teamScores[source.team]>=this.config.fragLimit)this.over=true;}if(!teamMode(this.config)&&source?.frags>=this.config.fragLimit)this.over=true;}return shield+absorb+actual;}
      dropFlag(a,pos=a){if(this.config.mode!=='ctf')return;for(const f of Object.values(this.flags))if(f.carrier===a.id){f.state='dropped';f.carrier=null;f.x=pos.x;f.z=pos.z;a.scoreStats.flagDrops++;this.emit('flag-drop',{actor:a.id,team:f.team,pos:{x:f.x,z:f.z}});}}
@@ -151,17 +179,39 @@ export class Match{
    if(a.harness==='cline'){const dir=aim(a.yaw,0),from={...a},bounds=boundsOf(this.arena),distance=ability.distance??h.magnitude;for(let step=.12;step<=distance;step+=.12){const x=from.x+dir.x*step,z=from.z+dir.z*step,y=floorAt(x,z,this.arena);if(y===null||x<bounds.minX||x>bounds.maxX||z<bounds.minZ||z>bounds.maxZ||obstructed(x,Math.max(a.y,y),z,.48,this.arena)||y-a.y>.25)break;a.x=x;a.z=z;a.y=Math.max(a.y,y);}a.vx=a.vz=0;this.emit('dash',{from:eye(from),to:eye(a),actor:a.id});}
   if(a.harness==='roo'){const range=ability.radius??ability.range??h.range,slow=ability.slow??h.magnitude;for(const b of this.actors)if(b!==a&&b.health>0&&!b.protection&&dist(a,b)<range&&this.visible(eye(a),eye(b))){b.slow=ability.duration??h.duration;b.slowMultiplier=slow;this.emit('jam',{actor:b.id,pos:eye(b)});}}
    if(a.harness==='openclaw'){const range=ability.radius??h.range,damage=ability.damage??h.damage,knockback=ability.knockback??h.magnitude,lift=ability.lift??4;for(const b of this.actors){const d=dist(a,b);if(b!==a&&b.health>0&&(!teamMode(this.config)||b.team!==a.team)&&d<range&&this.visible(eye(a),eye(b))){this.damage(b,damage,a);const dir=norm(v(b.x-a.x,0,b.z-a.z));b.vx+=dir.x*knockback;b.vz+=dir.z*knockback;b.vy+=lift;}}}return true;}
-   fire(a,direction=aim(a.yaw,a.pitch)){
-    if(this.over||a.health<=0||a.shotWait>0||!finitePoint(direction))return false;const locked=modeWeapon(this.config);if(locked!==null)a.weapon=locked;const attempted=Number.isInteger(a.weapon)&&a.weapon>=0&&a.weapon<WEAPONS.length?a.weapon:0;if(a.ammo[attempted]<=0){if(attempted!==0)this.emit('dryfire',{actor:a.id,weapon:attempted});a.weapon=0;}const w=WEAPONS[a.weapon],weapon=a.weapon,handling=harnessWeaponHandling(a.harness,weapon)||{},affinityDamage=handling.favored?handling.damage:1,activeFireRate=a.active>0&&a.harness==='opencode'?(1/(handling.activeFireRate??(harnessAbility(a.harness)?.fireRate||1))):1;a.shotWait=w.interval*(handling.interval??1)*(a.cooldownMultiplier||1)*activeFireRate+(a.bot?this.difficulty.fireDelay:0);a.ammo[weapon]--;a.protection=0;this.stats.shots++;a.shots++;
- for(let pellet=0;pellet<(w.pellets||1);pellet++){
-    const spread=(w.spread??0)*(handling.spread??1),o=eye(a),d=norm(w.pellets?add(direction,v((this.random()-.5)*spread,(this.random()-.5)*spread,(this.random()-.5)*spread)):direction);let range=this.rayWorld(o,d,w.range),target=null,vehicleTarget=null;for(const b of this.actors)if(b!==a&&b.health>0&&(!teamMode(this.config)||b.team!==a.team)){const t=hitActor(o,d,b,range);if(t!==null&&t<range){range=t;target=b;vehicleTarget=null;}}for(const vehicle of this.vehicles)if(vehicle.health>0&&vehicle.driver!==a.id){const t=hitVehicle(o,d,vehicle,range);if(t!==null&&t<range){range=t;target=null;vehicleTarget=vehicle;}}
- const goal=add(o,d,range),side=aim(a.yaw-Math.PI/2,0),muzzle=add(add(o,side,.24),d,.42);muzzle.y-=.24;
- const md=norm(v(muzzle.x-o.x,muzzle.y-o.y,muzzle.z-o.z)),ml=dist(o,muzzle),muzzleBlocked=this.rayWorld(o,md,ml)<ml-.01;
- if(muzzleBlocked){this.emit('shot',{actor:a.id,weapon,from:o,to:add(o,md,this.rayWorld(o,md,ml))});continue;}
- const trajectory=norm(v(goal.x-muzzle.x,goal.y-muzzle.y,goal.z-muzzle.z)),travel=dist(muzzle,goal),block=this.rayWorld(muzzle,trajectory,travel);
-   if(w.speed){this.rockets.push({id:++this.serial,owner:a.id,weapon,pos:muzzle,dir:trajectory,vy:trajectory.y*w.speed,damageMultiplier:affinityDamage,life:w.life??4,bounces:0});this.emit('launch',{actor:a.id,weapon,pos:muzzle});}
-   else{const clear=block>=travel-.1;if(clear){if(target)this.damage(target,w.damage*affinityDamage,a);else if(vehicleTarget)this.damageVehicle(vehicleTarget,w.damage*affinityDamage,a);}this.emit('shot',{actor:a.id,weapon,from:muzzle,to:add(muzzle,trajectory,Math.min(block,travel)),hit:target?.id??vehicleTarget?.id??false});}
- }return true;}
+   startReload(a,weapon=a.weapon){
+    const w=WEAPONS[weapon];if(!w)return false;
+    const reload=w.reload,cap=w.cap;
+    if(!(reload>0)||!Number.isFinite(reload)||!Number.isFinite(cap))return false;
+    if(a.reloading||(a.ammo[weapon]??0)>=cap)return false;
+    a.reloading=true;a.reloadTimer=reload;a.reloadDuration=reload;a.reloadWeapon=weapon;
+    this.emit('reload',{actor:a.id,weapon,state:'start',duration:reload});
+    return true;
+   }
+    fire(a,direction){
+     if(this.over||a.health<=0||a.shotWait>0||!Number.isFinite(a.shotWait)||a.reloading||(a.weaponSwitch||0)>0)return false;
+     if(direction!==undefined&&!finitePoint(direction))return false;
+     const locked=modeWeapon(this.config);if(locked!==null)a.weapon=locked;
+     const attempted=Number.isInteger(a.weapon)&&a.weapon>=0&&a.weapon<WEAPONS.length?a.weapon:0;
+     if(a.ammo[attempted]<=0){if(!this.startReload(a,attempted)&&attempted!==0)this.emit('dryfire',{actor:a.id,weapon:attempted});return false;}
+     const w=WEAPONS[a.weapon],weapon=a.weapon,handling=harnessWeaponHandling(a.harness,weapon)||{},affinityDamage=handling.favored?handling.damage:1,activeFireRate=a.active>0&&a.harness==='opencode'?(1/(handling.activeFireRate??(harnessAbility(a.harness)?.fireRate||1))):1;
+     a.shotWait=w.interval*(handling.interval??1)*(a.cooldownMultiplier||1)*activeFireRate+(a.bot?this.difficulty.fireDelay:0);a.ammo[weapon]--;a.protection=0;this.stats.shots++;a.shots++;
+     const bloom=w.bloom||{base:0,perShot:0,max:0,recovery:0,moveFactor:0},recoil=w.recoil||{kick:0,recover:12,pattern:[[0,0]]},pattern=recoil.pattern||[[0,0]],burst=a.burst||0,step=pattern[burst%pattern.length]||[0,0],speedFrac=Math.min(1,Math.hypot(a.vx||0,a.vz||0)/(a.moveSpeed||RULES.speed));
+     a.punchYaw=clamp((a.punchYaw||0)+step[0],-.4,.4);a.punchPitch=clamp((a.punchPitch||0)+step[1],-.4,.4);
+     a.punchVelYaw=clamp((a.punchVelYaw||0)+step[0]*6,-8,8);a.punchVelPitch=clamp((a.punchVelPitch||0)+(recoil.kick||0),-8,8);
+     a.burst=burst+1;a.burstTimer=.35;a.spread=Math.min(bloom.max??1,(a.spread||0)+bloom.perShot);
+     let spread=(w.spread??0)+bloom.base+(a.spread||0)+bloom.moveFactor*(a.ads?.5:1)*speedFrac;
+     if(a.ads)spread*=.35;if(a.sprinting)spread*=1.3;spread*=handling.spread??1;
+     const base=aim(a.yaw+(a.punchYaw||0),a.pitch+(a.punchPitch||0));
+  for(let pellet=0;pellet<(w.pellets||1);pellet++){
+     const o=eye(a),d=spread>0?norm(add(base,v((this.random()-.5)*spread,(this.random()-.5)*spread,(this.random()-.5)*spread))):base;let range=this.rayWorld(o,d,w.range),target=null,vehicleTarget=null;for(const b of this.actors)if(b!==a&&b.health>0&&(!teamMode(this.config)||b.team!==a.team)){const t=hitActor(o,d,b,range);if(t!==null&&t<range){range=t;target=b;vehicleTarget=null;}}for(const vehicle of this.vehicles)if(vehicle.health>0&&vehicle.driver!==a.id){const t=hitVehicle(o,d,vehicle,range);if(t!==null&&t<range){range=t;target=null;vehicleTarget=vehicle;}}
+  const goal=add(o,d,range),side=aim(a.yaw-Math.PI/2,0),muzzle=add(add(o,side,.24),d,.42);muzzle.y-=.24;
+  const md=norm(v(muzzle.x-o.x,muzzle.y-o.y,muzzle.z-o.z)),ml=dist(o,muzzle),muzzleBlocked=this.rayWorld(o,md,ml)<ml-.01;
+  if(muzzleBlocked){this.emit('shot',{actor:a.id,weapon,from:o,to:add(o,md,this.rayWorld(o,md,ml))});continue;}
+  const trajectory=norm(v(goal.x-muzzle.x,goal.y-muzzle.y,goal.z-muzzle.z)),travel=dist(muzzle,goal),block=this.rayWorld(muzzle,trajectory,travel);
+    if(w.speed){this.rockets.push({id:++this.serial,owner:a.id,weapon,pos:muzzle,dir:trajectory,vy:trajectory.y*w.speed,damageMultiplier:affinityDamage,life:w.life??4,bounces:0});this.emit('launch',{actor:a.id,weapon,pos:muzzle});}
+    else{const clear=block>=travel-.1;if(clear){if(target)this.damage(target,w.damage*affinityDamage,a);else if(vehicleTarget)this.damageVehicle(vehicleTarget,w.damage*affinityDamage,a);}this.emit('shot',{actor:a.id,weapon,from:muzzle,to:add(muzzle,trajectory,Math.min(block,travel)),hit:target?.id??vehicleTarget?.id??false});}
+  }return true;}
      explode(r,hit){const source=this.actors[r.owner],w=WEAPONS[r.weapon??1],affinityDamage=r.damageMultiplier||1;if(hit)this.damage(hit,w.damage*affinityDamage,source);for(const a of this.actors){const p=eye(a),d=dist(r.pos,p);if(a.health>0&&(a===source||!teamMode(this.config)||a.team!==source?.team)&&d<w.radius&&this.visible(r.pos,p)){this.damage(a,w.splash*affinityDamage*(1-d/w.radius),source);const n=norm(v(a.x-r.pos.x,.5,a.z-r.pos.z));a.vx+=n.x*8;a.vz+=n.z*8;a.vy+=4;}}for(const vehicle of this.vehicles){const d=Math.hypot(vehicle.position.x-r.pos.x,vehicle.position.z-r.pos.z);if(vehicle.health>0&&d<w.radius&&this.visible(r.pos,vehicle.position))this.damageVehicle(vehicle,w.splash*affinityDamage*(1-d/w.radius),source);}this.emit('explosion',{pos:{...r.pos},weapon:r.weapon??1});}
   useful(a,p){if(this.config.mode==='instagib'&&p.kind!=='health'&&p.kind!=='armor')return false;if(p.kind==='health')return a.health<a.maxHealth;if(p.kind==='armor')return a.armor<100;if(POWERUPS.some(x=>x.id===p.kind))return true;const n=pickupWeapon(p.kind);return n!==undefined&&a.ammo[n]<WEAPONS[n].cap;}
    collect(a,p){if(!this.useful(a,p))return false;const power=POWERUPS.find(x=>x.id===p.kind);if(p.kind==='health')a.health=Math.min(a.maxHealth,a.health+35);else if(p.kind==='armor')a.armor=Math.min(100,a.armor+40);else if(power){a.powerups[power.id]=power.duration;this.refreshPowerups(a);this.emit('powerup',{actor:a.id,kind:power.id,duration:a.powerups[power.id],effect:{...power.effect},pos:eye(a)});}else{const n=pickupWeapon(p.kind);a.ammo[n]=this.config.unlimitedAmmo?Infinity:Math.min(WEAPONS[n].cap,a.ammo[n]+WEAPONS[n].ammo);if(a.weapon===0)a.weapon=n;}p.wait=p.kind==='health'||p.kind==='armor'?12:15;this.stats.pickups++;this.emit('pickup',{actor:a.id,kind:p.kind,powerup:!!power});return true;}
@@ -198,18 +248,37 @@ export class Match{
   for(const p of this.pickups)p.wait=Math.max(0,p.wait-dt);
   for(const vehicle of this.vehicles){if(vehicle.respawnTimer>0){vehicle.respawnTimer=Math.max(0,vehicle.respawnTimer-dt);if(vehicle.respawnTimer===0){respawnVehicle(vehicle,vehicle.spawn,vehicle.heading);this.emit('vehicle-respawn',{vehicle:vehicle.id,pos:{...vehicle.position}});}}else if(vehicle.driver===null)stepVehicle(vehicle,{},dt);}
   for(const a of this.actors){if(this.over)break;if(a.health<=0){a.dead-=dt;if(a.dead<=0)this.spawn(a);continue;}
-  a.slow=Math.max(0,(a.slow||0)-dt);a.cooldown=Math.max(0,a.cooldown-dt);a.active=Math.max(0,a.active-dt);a.shotWait=Math.max(0,a.shotWait-dt);a.protection=Math.max(0,a.protection-dt);let expired=false;for(const id of Object.keys(a.powerups)){a.powerups[id]-=dt;if(a.powerups[id]<=0){delete a.powerups[id];expired=true;}}if(expired)this.refreshPowerups(a);
- const ext=given[a.id];
-  if(ext){if(Number.isFinite(ext.yaw))a.yaw=ext.yaw;if(Number.isFinite(ext.pitch))a.pitch=Math.max(-1.45,Math.min(1.45,ext.pitch));if(Number.isInteger(ext.weapon)&&ext.weapon>=0&&ext.weapon<WEAPONS.length&&a.ammo[ext.weapon]>0)a.weapon=ext.weapon;}
+  a.slow=Math.max(0,(a.slow||0)-dt);a.cooldown=Math.max(0,a.cooldown-dt);a.active=Math.max(0,a.active-dt);a.shotWait=Math.max(0,a.shotWait-dt);a.protection=Math.max(0,a.protection-dt);a.weaponSwitch=Math.max(0,(a.weaponSwitch||0)-dt);a.burstTimer=Math.max(0,(a.burstTimer||0)-dt);if(a.burstTimer<=0)a.burst=0;if(a.reloading){a.reloadTimer-=dt;if(a.reloadTimer<=0){const reloadWeapon=a.reloadWeapon,w=WEAPONS[reloadWeapon],cap=w?.cap;a.ammo[reloadWeapon]=this.config.unlimitedAmmo?Infinity:Math.min(Number.isFinite(cap)?cap:Infinity,(a.ammo[reloadWeapon]||0)+(w?.ammo??0));a.reloading=false;a.reloadTimer=0;a.reloadDuration=0;a.reloadWeapon=-1;this.emit('reload',{actor:a.id,weapon:reloadWeapon,state:'end'});}}const recoil=(WEAPONS[a.weapon]||WEAPONS[0]).recoil||{kick:0,recover:12},bloom=(WEAPONS[a.weapon]||WEAPONS[0]).bloom,recover=recoil.recover??12;a.punchPitch=(a.punchPitch||0)+(a.punchVelPitch||0)*dt;a.punchYaw=(a.punchYaw||0)+(a.punchVelYaw||0)*dt;a.punchVelPitch=(a.punchVelPitch||0)+(-a.punchPitch*recover*recover-(a.punchVelPitch||0)*2*recover)*dt;a.punchVelYaw=(a.punchVelYaw||0)+(-a.punchYaw*recover*recover-(a.punchVelYaw||0)*2*recover)*dt;a.punchPitch=clamp(a.punchPitch,-.4,.4);a.punchYaw=clamp(a.punchYaw,-.4,.4);a.spread=Math.max(0,(a.spread||0)-(bloom?.recovery??.1)*dt);let expired=false;for(const id of Object.keys(a.powerups)){a.powerups[id]-=dt;if(a.powerups[id]<=0){delete a.powerups[id];expired=true;}}if(expired)this.refreshPowerups(a);
+  const ext=given[a.id];
+   if(ext){if(Number.isFinite(ext.yaw))a.yaw=ext.yaw;if(Number.isFinite(ext.pitch))a.pitch=Math.max(-1.45,Math.min(1.45,ext.pitch));if(Number.isInteger(ext.weapon)&&ext.weapon>=0&&ext.weapon<WEAPONS.length&&a.ammo[ext.weapon]>0&&ext.weapon!==a.weapon){a.weapon=ext.weapon;a.weaponSwitch=.45;a.reloading=false;a.reloadTimer=0;a.reloadDuration=0;a.reloadWeapon=-1;this.emit('weapon-switch',{actor:a.id,weapon:ext.weapon});}}
   const controls=ext||(a.bot?this.botInput(a,dt):{});
     if(controls.interact){if(a.vehicleId!==null)this.releaseVehicle(a,undefined,'exit');else this.enterVehicle(a);}
     if(a.vehicleId!==null){if(!controls.interact)this.driveVehicle(a,controls,dt);}else if(!controls.interact)moveActor(a,controls,dt,this.arena,this.config);
     if(this.arena.voidY!==undefined&&a.y<this.arena.voidY){this.fall(a);continue;}this.objective(a);if(ext&&a.vehicleId===null){if(ext.power)this.power(a);if(ext.fire)this.fire(a);}
   for(const p of this.pickups)if(!p.wait&&dist(a,p)<1.05)this.collect(a,p);
   }
+  const stompOrder=[...this.actors].sort((x,y)=>x.id-y.id);
+  for(const vehicle of this.vehicles){
+   if(vehicle.health<=0||vehicle.driver===null)continue;
+   const vehicleSpeed=Math.abs(Number.isFinite(vehicle.speed)?vehicle.speed:Math.hypot(vehicle.velocity.x,vehicle.velocity.z));
+   if(vehicleSpeed<=5)continue;
+   const driver=this.actors.find(actor=>actor.id===vehicle.driver),radius=vehicleRadius(vehicle)*.9;
+   for(const target of stompOrder){
+    if(target.health<=0||target.protection>0||target.vehicleId!==null)continue;
+    if(driver&&teamMode(this.config)&&target.team===driver.team)continue;
+    if(Math.hypot(target.x-vehicle.position.x,target.z-vehicle.position.z)>radius)continue;
+    const key=`${vehicle.id}:${target.id}`;
+    if((this.vehicleHits.get(key)||0)>this.time)continue;
+    this.vehicleHits.set(key,this.time+.5);
+    this.damage(target,25*(vehicleSpeed-5),driver);
+    const dir=norm(v(target.x-vehicle.position.x,0,target.z-vehicle.position.z)),push=Math.min(14,vehicleSpeed*.7);
+    target.vx+=dir.x*push;target.vz+=dir.z*push;target.vy+=4;
+    this.emit('vehicle-splatter',{vehicle:vehicle.id,actor:target.id,source:driver?.id??null,speed:vehicleSpeed});
+   }
+  }
   const alive=[];for(const r of this.rockets){const w=WEAPONS[r.weapon??1];r.life-=dt;const velocity=w.gravity?v(r.dir.x*w.speed,(r.vy??r.dir.y*w.speed)-RULES.gravity*w.gravity*dt,r.dir.z*w.speed):v(r.dir.x*w.speed,r.dir.y*w.speed,r.dir.z*w.speed);if(w.gravity)r.vy=velocity.y;const travel=Math.hypot(velocity.x,velocity.y,velocity.z)*dt,direction=norm(velocity);let range=this.rayWorld(r.pos,direction,travel),hit=null;for(const a of this.actors)if(a.id!==r.owner&&a.health>0&&(!teamMode(this.config)||a.team!==this.actors[r.owner]?.team)){const t=hitActor(r.pos,direction,a,range);if(t!==null&&t<range){range=t;hit=a;}}
     const impact=add(r.pos,direction,range<travel?Math.max(0,range-.025):travel),floor=floorAt(impact.x,impact.z,this.arena);r.pos=impact;if(range<travel&&!hit&&w.bounce>0&&r.bounces<3&&floor!==null&&impact.y<=floor+.08){r.vy=Math.abs(r.vy)*w.bounce;r.bounces++;alive.push(r);}else if(range<travel||r.life<=0)this.explode(r,hit);else alive.push(r);}
    this.rockets=alive;this.updateObjectives(dt);if(this.time>=this.config.timeLimit)this.over=true;}
   leaders(){if(teamMode(this.config)){const max=Math.max(...Object.values(this.teamScores));return this.actors.filter(a=>this.teamScores[a.team]===max);}const max=Math.max(...this.actors.map(a=>a.frags));return this.actors.filter(a=>a.frags===max);}
-     snapshot(){const mode=GAME_MODES.find(m=>m.id===this.config.mode),leaders=this.leaders(),objective=this.config.mode==='ctf'?{nodes:this.arena.objectiveNodes||[],flags:Object.values(this.flags).map(f=>({...f})),winner:null,leaders:[...new Set(leaders.map(a=>a.team))]}:this.objectiveState?{kind:this.objectiveState.kind,zones:this.objectiveState.zones.map(z=>({...z})),winner:this.objectiveState.winner,leaders:[...new Set(leaders.map(a=>a.team))]}:null,teamMax=Math.max(...Object.values(this.teamScores)),winningTeams=[0,1].filter(team=>this.teamScores[team]===teamMax);return {config:{...this.config},modeName:mode.name,mapId:this.arena.id,mapName:this.arena.name,time:this.time,over:this.over,feed:this.feed.map(f=>({...f})),actors:this.actors.slice().sort((a,b)=>a.id-b.id).map(a=>({...a,scoreStats:{...a.scoreStats},bot:a.bot?{state:a.bot.state,route:[...a.bot.route]}:null,ammo:a.ammo.map(n=>Number.isFinite(n)?n:'∞')})),vehicles:this.vehicles.map(vehicle=>({id:vehicle.id,kind:vehicle.kind,x:vehicle.position.x,y:vehicle.position.y,z:vehicle.position.z,vx:vehicle.velocity.x,vz:vehicle.velocity.z,yaw:vehicle.heading,health:vehicle.health,maxHealth:vehicle.maxHealth,driver:vehicle.driver,heat:vehicle.heat,overheated:vehicle.overheated,respawnTimer:vehicle.respawnTimer})),pickups:this.pickups.map(p=>({...p})),flags:Object.values(this.flags).map(f=>({...f})),teamScores:{0:this.teamScores[0],1:this.teamScores[1]},winner:objective?.winner??(this.over&&teamMode(this.config)&&winningTeams.length===1?winningTeams[0]:null),objectives:objective,projectiles:this.rockets.length,rockets:this.rockets.map(r=>({...r,pos:{...r.pos}})),stats:{...this.stats},leaders:leaders.map(a=>a.name)};}
+     snapshot(){const mode=GAME_MODES.find(m=>m.id===this.config.mode),leaders=this.leaders(),objective=this.config.mode==='ctf'?{nodes:this.arena.objectiveNodes||[],flags:Object.values(this.flags).map(f=>({...f})),winner:null,leaders:[...new Set(leaders.map(a=>a.team))]}:this.objectiveState?{kind:this.objectiveState.kind,zones:this.objectiveState.zones.map(z=>({...z})),winner:this.objectiveState.winner,leaders:[...new Set(leaders.map(a=>a.team))]}:null,teamMax=Math.max(...Object.values(this.teamScores)),winningTeams=[0,1].filter(team=>this.teamScores[team]===teamMax);return {config:{...this.config},modeName:mode.name,mapId:this.arena.id,mapName:this.arena.name,time:this.time,over:this.over,feed:this.feed.map(f=>({...f})),actors:this.actors.slice().sort((a,b)=>a.id-b.id).map(a=>({...a,scoreStats:{...a.scoreStats},bot:a.bot?{state:a.bot.state,route:[...a.bot.route]}:null,ammo:a.ammo.map(n=>Number.isFinite(n)?n:'∞')})),vehicles:this.vehicles.map(vehicle=>({id:vehicle.id,kind:vehicle.kind,x:vehicle.position.x,y:vehicle.position.y,z:vehicle.position.z,vx:vehicle.velocity.x,vz:vehicle.velocity.z,yaw:vehicle.heading,roll:vehicle.roll,pitchBody:vehicle.pitchBody,turretYaw:vehicle.turretYaw,health:vehicle.health,maxHealth:vehicle.maxHealth,driver:vehicle.driver,heat:vehicle.heat,overheated:vehicle.overheated,respawnTimer:vehicle.respawnTimer})),pickups:this.pickups.map(p=>({...p})),flags:Object.values(this.flags).map(f=>({...f})),teamScores:{0:this.teamScores[0],1:this.teamScores[1]},winner:objective?.winner??(this.over&&teamMode(this.config)&&winningTeams.length===1?winningTeams[0]:null),objectives:objective,projectiles:this.rockets.length,rockets:this.rockets.map(r=>({...r,pos:{...r.pos}})),stats:{...this.stats},leaders:leaders.map(a=>a.name)};}
 }
