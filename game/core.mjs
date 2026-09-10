@@ -29,7 +29,7 @@ const linkFor=(arena,id)=>{const link=(arena.jumpLinks||[]).find(item=>(item.tra
   const segmentDistance=(x,z,a,b)=>{const dx=b.x-a.x,dz=b.z-a.z,length=dx*dx+dz*dz;if(length<=1e-9)return Math.hypot(x-a.x,z-a.z);const t=clamp(((x-a.x)*dx+(z-a.z)*dz)/length,0,1);return Math.hypot(x-(a.x+dx*t),z-(a.z+dz*t));};
   const terrainObstructed=(x,y,z,r,arena)=>arena.terrain?.walls?.length>0&&terrainWallSegments(arena.terrain).some(({a,b})=>y<Math.max(a.y,b.y)-1e-6&&y+RULES.height>Math.min(a.y,b.y)+1e-6&&segmentDistance(x,z,a,b)<r);
  export function obstructed(x,y,z,r=RULES.radius,arena=MAPS[0]){return arena.blocks.some(b=>Math.abs(x-b.x)<b.w/2+r&&Math.abs(z-b.z)<b.d/2+r&&y<b.h-1e-6&&y+RULES.height>0)||terrainObstructed(x,y,z,r,arena);}
-export const MOVE={friction:6,stopSpeed:2,groundAccel:10,airAccel:1,airCap:.75,sprint:1.375,crouch:.4,slideBoost:9.6,slideMin:.35,slideFriction:2.5,slideCooldown:.5,terminal:1.6,eyeStanding:1.45,eyeCrouch:.95,baseHeight:1.8};
+export const MOVE={friction:6,stopSpeed:2,groundAccel:10,airAccel:3.5,airCap:1.6,sprint:1.375,crouch:.4,slideBoost:9.6,slideMin:.35,slideFriction:2.5,slideCooldown:.5,terminal:2.2,eyeStanding:1.45,eyeCrouch:.95,baseHeight:1.8};
 const canStand=(x,y,z,r,arena)=>!arena.blocks.some(b=>Math.abs(x-b.x)<b.w/2+r&&Math.abs(z-b.z)<b.d/2+r&&y<b.h-1e-6&&b.h<y+MOVE.baseHeight);
 const accelerate=(a,ix,iz,wishSpeed,accel,dt)=>{const add=wishSpeed-(a.vx*ix+a.vz*iz);if(add<=0)return;const amount=Math.min(accel*dt*wishSpeed,add);a.vx+=ix*amount;a.vz+=iz*amount;};
 export function moveActor(a,input,dt,arena=MAPS[0],config={speed:1,gravity:1}){
@@ -59,16 +59,18 @@ export function moveActor(a,input,dt,arena=MAPS[0],config={speed:1,gravity:1}){
  a.sliding=a.sliding===true;a.slideTimer=Math.max(0,(a.slideTimer||0)-dt);a.slideCooldown=Math.max(0,(a.slideCooldown||0)-dt);
  if(a.grounded){
   a.coyote=.1;
-  const h=Math.hypot(a.vx,a.vz),friction=a.sliding?MOVE.slideFriction:MOVE.friction,control=Math.max(h,MOVE.stopSpeed),drop=control*friction*dt;
-  if(h>1e-9){const scale=Math.max(0,h-drop)/h;a.vx*=scale;a.vz*=scale;}
+  // A held or buffered hop landing this frame skips ground friction so repeated
+  // hops keep their speed instead of bleeding it on every landing.
+  const hopNow=(input.jump===true||a.jumpBuffer>0)&&a.coyote>0;
+  if(!hopNow){const h=Math.hypot(a.vx,a.vz),friction=a.sliding?MOVE.slideFriction:MOVE.friction,control=Math.max(h,MOVE.stopSpeed),drop=control*friction*dt;if(h>1e-9){const scale=Math.max(0,h-drop)/h;a.vx*=scale;a.vz*=scale;}}
   if(ix||iz)accelerate(a,ix,iz,wishSpeed,a.sliding?MOVE.groundAccel*.4:MOVE.groundAccel,dt);
  }else{
   a.coyote=Math.max(0,a.coyote-dt);
   if(ix||iz){
-   // Add only along the wish direction; coasting never erases lateral momentum.
+   // Quake-style air acceleration: the add cap stays low so a straight hold
+   // preserves speed while strafing turns it into gains. Coasting keeps momentum.
    const before=Math.hypot(a.vx,a.vz),projection=a.vx*ix+a.vz*iz,add=Math.min(wishSpeed,MOVE.airCap)-projection;
    if(add>0){const amount=Math.min(MOVE.airAccel*dt*wishSpeed,add);a.vx+=ix*amount;a.vz+=iz*amount;}
-   // Steering may turn existing launch/knockback speed, but cannot compound it.
    const terminal=Math.max(maxSpeed*MOVE.terminal,before),next=Math.hypot(a.vx,a.vz);
    if(next>terminal&&next>1e-9){const s=terminal/next;a.vx*=s;a.vz*=s;}
   }

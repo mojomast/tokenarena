@@ -49,6 +49,12 @@ test('controlsFromState builds movement and only sets active flags', () => {
   assert.equal(full.fire, true);
 });
 
+test('holding jump produces autohop while a one-shot tap still jumps', () => {
+  assert.equal(controlsFromState({keys:['Space']}).jump, true);
+  assert.equal(controlsFromState({keys:['KeyW'],jump:true}).jump, true);
+  assert.equal(controlsFromState({keys:['KeyW']}).jump, undefined);
+});
+
 test('controlsFromState treats fireTap as fire and ignores negative weapon ids', () => {
   const tapped = controlsFromState({keys:[],fireTap:true,weapon:-1});
   assert.equal(tapped.fire,true);

@@ -95,7 +95,7 @@ Not yet included: accounts/matchmaking.
 | Right click (hold) | Aim down sights (Pulse/Rail/Shock) |
 | Shift (hold) | Sprint (and vehicle boost) |
 | Ctrl / C (hold) | Crouch; crouch while sprinting to slide |
-| Space | Jump (handbrake while driving) |
+| Space | Jump — hold to auto-hop / bunnyhop (handbrake while driving) |
 | R | Reload |
 | 1–8; mouse wheel | Switch available weapon |
 | Q | Activate harness |
@@ -193,6 +193,11 @@ Version 1.4 is a feedback-and-flow pass:
 - Renderer feel: dynamic FOV (sprint widens, ADS narrows), pooled muzzle lights, a low-health screen overlay, and bounded camera shake on damage/death — all suppressed for reduced motion and the CPU fallback. Shared material/geometry caches cut per-model allocation and GPU state changes.
 - Bot AI: scan range now scales with map size and difficulty, bots always have a purposeful destination (objective or patrol), CTF defenders hold a post near their flag and attackers vary their approach, and long rotations detour to nearby vehicles. Large maps now produce kills and completed matches instead of 0–0 stalls.
 - The pre-existing Ironfall Megastructure and Longreach Plateau maps gained physical up/down return routes so their full bot-navigation graphs connect in both directions (previously stranded upper shelves).
+
+Version 1.5 fixes bunny-hopping and upgrades the sound:
+
+- **Bunny-hopping works now.** Holding jump auto-hops, and a held or buffered hop skips the landing frame's ground friction, so chained hops keep their momentum instead of bleeding ~10% per landing. Air acceleration is retuned (`airAccel 3.5`, `airCap 1.6`, terminal ×2.2) so strafe jumping turns speed into gains; forward hops preserve cruise speed.
+- **Richer synthesized audio.** Gunshots are now layered (filtered noise transient + tonal body + sub thump) with per-weapon character (rifle/heavy/zap/burst/plasma), plus improved explosions, reload clicks, weapon-switch, hit and kill feedback, footsteps and landing thuds, and a speed-tracking Warthog engine. Positional sounds use distance falloff and stereo panning.
 
 ## Source ZIPs
 

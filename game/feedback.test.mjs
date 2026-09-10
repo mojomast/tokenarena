@@ -31,28 +31,30 @@ test('pooled mesh traces honor widths and reset orientation and width on reuse',
  assert.equal(pool.add({from:to,to:from,size:.12,color:'#fff'}),trace);assert.equal(trace.scale.x,.12);assert.equal(trace.scale.y,.12);trace.updateMatrixWorld();assert.ok(new T.Vector3(0,0,1).applyMatrix4(trace.matrixWorld).distanceTo(from)<1e-10);
  pool.clear();pool.add({from,to:from,size:.1,color:'#fff'});assert.equal(trace.scale.z,0);assert.ok(trace.quaternion.toArray().every(Number.isFinite));pool.dispose();
 });
-test('audio uses passed player identity, distinct reports and one report per pellet burst',()=>{
- const audio=new SynthAudio(),calls=[];audio.tone=(...args)=>calls.push(args);
+test('audio routes local and remote shots with identity falloff and dedupes bursts',()=>{
+  const {audio}=audioFixture(),shots=[],clicks=[];
+  audio._gunshot=(e,local,pan,vol)=>shots.push({weapon:e.weapon,local,vol});
+  audio._click=(...args)=>clicks.push(args);
   for(let weapon=0;weapon<8;weapon++)audio.event({type:'shot',actor:7,weapon,time:weapon,from:{x:100,z:100}},player);
-  assert.equal(calls.length,8);assert.equal(new Set(calls.map(c=>c[0])).size,8);assert.ok(calls.every(c=>c[3]===.032));
-  audio.event({type:'shot',actor:7,weapon:7,time:7},player);assert.equal(calls.length,8);
-  audio.event({type:'shot',actor:0,weapon:0,time:8,from:{x:100,z:100}},player);assert.equal(calls.length,8);
-  audio.event({type:'pickup',actor:0},player);assert.equal(calls.length,8);audio.event({type:'pickup',actor:7},player);assert.equal(calls.length,9);
-  audio.event({type:'shot',actor:0,weapon:0,time:9,from:{x:0,z:0},pos:{x:100,z:100}},player);assert.equal(calls.length,10);assert.ok(calls.at(-1)[3]<.032);
-  audio.event({type:'dryfire',actor:7,weapon:2},player);assert.equal(calls.length,11);
- });
-test('actual local damage and adjacent lethal damage produce hit/kill feedback, not hit flags',()=>{
- const {audio}=audioFixture(),calls=[];audio.tone=(...args)=>calls.push(args);
- audio.event({type:'shot',actor:0,weapon:0,hit:{id:1},from:{x:100,z:100}},player);assert.equal(calls.length,0);
- audio.event({type:'damage',id:1,time:2,actor:0,source:7,amount:20},player);assert.equal(calls.at(-1)[0],1050);
- audio.event({type:'death',id:2,time:2,actor:0},player);assert.equal(calls.at(-1)[0],1500);
- const count=calls.length;audio.event({type:'death',id:3,time:2,actor:1},player);assert.equal(calls.length,count);
- audio.event({type:'damage',id:4,time:2,actor:1,source:0,amount:20},player);audio.event({type:'death',id:5,time:2,actor:1},player);assert.equal(calls.length,count);
- audio.event({type:'damage',actor:7,source:7,amount:20},player);assert.equal(calls.at(-1)[0],120);
+  assert.equal(shots.length,8);assert.equal(new Set(shots.map(s=>s.weapon)).size,8);assert.ok(shots.every(s=>s.local===true&&s.vol===1));
+  audio.event({type:'shot',actor:7,weapon:7,time:7,from:{x:100,z:100}},player);assert.equal(shots.length,8);
+  audio.event({type:'shot',actor:0,weapon:0,time:8,from:{x:100,z:100}},player);assert.equal(shots.length,8);
+  audio.event({type:'shot',actor:0,weapon:0,time:9,from:{x:0,z:0}},player);assert.equal(shots.length,9);assert.ok(shots.at(-1).local===false&&shots.at(-1).vol<1);
+  audio.event({type:'dryfire',actor:7,weapon:2},player);assert.equal(clicks.length,1);
+  audio.event({type:'dryfire',actor:0,weapon:2},player);assert.equal(clicks.length,1);
 });
-test('audio voices are capped, disconnected on end/disposal, and muted without allocation',()=>{
- const {audio,nodes}=audioFixture();audio.muted=true;audio.tone(100);assert.equal(nodes.length,0);audio.muted=false;
- for(let i=0;i<100;i++)audio.tone(100);assert.equal(audio.voices.size,24);assert.equal(nodes.length,48);
- nodes[0].onended();assert.equal(audio.voices.size,23);assert.ok(nodes[0].disconnected&&nodes[1].disconnected);audio.tone(200);assert.equal(audio.voices.size,24);
- const ctx=audio.ctx;audio.dispose();assert.equal(audio.voices.size,0);assert.ok(ctx.closed);assert.ok(nodes.every(n=>n.disconnected));
+test('local damage, player hits and player kills give feedback while unrelated events stay silent',()=>{
+  const {audio}=audioFixture(),plays=[];audio._play=(duration,pan)=>plays.push({duration,pan});audio._gunshot=()=>{};
+  audio.event({type:'shot',actor:0,weapon:0,hit:{id:1},from:{x:100,z:100}},player);assert.equal(plays.length,0);
+  audio.event({type:'damage',id:1,time:2,actor:7,source:0,amount:20},player);assert.equal(plays.length,1);
+  audio.event({type:'damage',id:2,time:2,actor:0,source:7,amount:20},player);assert.equal(plays.length,2);
+  audio.event({type:'death',id:3,time:2,actor:0,pos:{x:0,z:0}},player);assert.equal(plays.length,3);
+  const count=plays.length;
+  audio.event({type:'damage',id:4,time:2,actor:1,source:0,amount:20},player);assert.equal(plays.length,count);
+  audio.event({type:'death',id:5,time:2,actor:1},player);assert.equal(plays.length,count);
+});
+test('audio voices are capped, disconnected on disposal, and muted without allocation',()=>{
+  const {audio,nodes}=audioFixture();audio.muted=true;audio.tone(100);assert.equal(nodes.length,0);audio.muted=false;
+  for(let i=0;i<100;i++)audio.tone(100);assert.equal(audio.voices.size,30);assert.equal(nodes.length,90);
+  const ctx=audio.ctx;audio.dispose();assert.equal(audio.voices.size,0);assert.ok(ctx.closed);assert.ok(nodes.every(n=>n.disconnected));
 });

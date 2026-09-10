@@ -44,7 +44,8 @@ export function controlsFromState(state = {}) {
   if (crouch) controls.crouch = true;
   if (state.ads) controls.ads = true;
   if (state.reload) controls.reload = true;
-  if (state.jump) controls.jump = true;
+  // Holding jump auto-hops: the buffer re-arms on every landing frame.
+  if (state.jump || codes.has('Space')) controls.jump = true;
   if (state.power) controls.power = true;
   if (state.interact) controls.interact = true;
   if (Number.isInteger(state.weapon) && state.weapon >= 0) controls.weapon = state.weapon;

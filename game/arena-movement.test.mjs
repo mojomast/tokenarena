@@ -79,6 +79,20 @@ test('launcher speed coasts unchanged and steering cannot compound external mome
  moveActor(b,{z:1},RULES.dt,arena);close(speed(b),24);
 });
 
+test('bunny hopping preserves cruise speed and strafe hops build speed',()=>{
+  const run=()=>{const a=actor();for(let i=0;i<120;i++)moveActor(a,{x:1},RULES.dt,arena);return a;};
+  const cruise=speed(run());
+  const hop=run();
+  for(let i=0;i<300;i++)moveActor(hop,{x:1,jump:true},RULES.dt,arena);
+  assert.ok(speed(hop)>=cruise-1e-6,`forward autohop lost speed ${speed(hop)} < ${cruise}`);
+  const strafe=run();
+  for(let i=0;i<240;i++){
+    const s=speed(strafe)||1;
+    moveActor(strafe,{x:-strafe.vz/s,z:strafe.vx/s,jump:true},RULES.dt,arena);
+  }
+  assert.ok(speed(strafe)>cruise+.4,`strafe hop did not build speed: ${speed(strafe)}`);
+});
+
 test('variable jump trims a held release but keeps tap and coyote jumps',()=>{
  const held=actor({grounded:true,y:0}),tapped=actor({grounded:true,y:0});
  moveActor(held,{jump:true},RULES.dt,arena);moveActor(tapped,{jump:true},RULES.dt,arena);

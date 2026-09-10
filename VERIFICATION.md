@@ -1,5 +1,25 @@
 # TOKEN ARENA verification report
 
+## Bunny-hop fix and audio upgrade 1.5 - 2026-09-10
+
+- **Bunny-hopping**: previously each landing applied ground friction before the
+  buffered jump fired, so chained hops lost ~10% speed per landing, and holding
+  Space did not auto-hop. `moveActor` now skips ground friction on a frame where a
+  held/buffered hop is about to land, `controlsFromState` treats a held `Space` as
+  jump (autohop), and air acceleration was retuned (`MOVE.airAccel 3.5`,
+  `airCap 1.6`, `terminal 2.2`). Measured in a deterministic harness: forward
+  autohop holds 8.00 m/s, strafe autohop builds to ~9.3 m/s, standstill autohop
+  reaches ~6.9 m/s. New regression tests cover speed preservation and strafe gain.
+- **Audio**: `SynthAudio` was rewritten to layer filtered-noise transients with
+  tonal bodies and sub thumps (per-weapon rifle/heavy/zap/burst/plasma character),
+  plus improved explosions, reload/weapon-switch clicks, hit and kill cues,
+  per-surface-agnostic footsteps with landing thuds, a speed-tracking Warthog
+  engine, distance falloff and stereo panning. Remote events without a position
+  stay silent. Tests updated to the new engine's routing contract.
+
+Verification: `npm run test:game` 317/317, `npm run test:server` 80/80,
+`npx tsc --noEmit` clean, `npm run build` succeeds, rendered-HTML test passes.
+
 ## Live deployment and in-game source link - 2026-09-10
 
 Public site: https://arena.ussyco.de (nginx + wildcard TLS) proxying the
