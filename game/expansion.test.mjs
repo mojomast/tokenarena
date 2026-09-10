@@ -12,4 +12,19 @@ test('Context Jam applies only in range and line of sight; slow expires and deat
 test('Scattergun uses one shell for eight pellet traces and cover blocks them',()=>{const [m,a]=fixture();const b=m.actors[1];Object.assign(b,{x:0,z:5,y:0,health:100,protection:0});a.weapon=3;a.ammo[3]=2;m.fire(a);assert.equal(a.ammo[3],1);assert.equal(m.events.filter(e=>e.type==='shot'&&e.actor===0).length,8);assert.ok(b.health<100&&b.health>=36);a.shotWait=0;Object.assign(a,{x:0,z:3});Object.assign(b,{x:0,z:-3,health:100});m.fire(a);assert.equal(b.health,100);});
 test('Plasma Driver travels as a projectile, consumes ammo and damages on impact',()=>{const [m,a]=fixture();const b=m.actors[1];Object.assign(b,{x:0,z:5,y:0,health:100,protection:0});a.weapon=4;a.ammo[4]=2;m.fire(a);assert.equal(m.rockets[0].weapon,4);assert.equal(a.ammo[4],1);assert.equal(b.health,100);for(let i=0;i<6;i++)m.step(1/60);assert.ok(b.health<100);assert.ok(m.events.some(e=>e.type==='explosion'&&e.weapon===4));});
 test('classic maps have connected navigation, valid supplies, safe spawns and complete bot matches',()=>{for(const map of MAPS.filter(map=>!map.platforms)){const m=new Match('kimi','roo',seeded(),map.id);const seen=new Set([0]),q=[0];while(q.length)for(const n of m.edges[q.shift()])if(!seen.has(n)){seen.add(n);q.push(n);}assert.equal(seen.size,m.nav.length,map.id);for(const p of [...m.pickups,...m.spawns])assert.equal(obstructed(p.x,p.y,p.z,.42,m.arena),false,`${map.id} ${p.x},${p.z}`);for(const w of [1,2,3,4])assert.ok(m.pickups.some(p=>pickupWeapon(p.kind)===w));for(let i=0;i<18001&&!m.over;i++)m.step(1/60);assert.ok(m.over,map.id);assert.ok(m.stats.kills>=1,`${map.id} kills ${m.stats.kills}`);assert.ok(m.stats.shots>0,`${map.id} shots`);assert.ok(m.stats.pickups>4);assert.ok(m.stats.powers>2);console.log(map.id,m.time.toFixed(2),m.stats);}});
+test('large-map three-bot matches keep traversing and firing instead of idling',()=>{
+ for(const map of ['ironfall-megastructure','longreach-plateau']){
+  const m=new Match('chatgpt','openclaw',seeded(),map,{mode:'ctf',difficulty:'normal',botCount:3,timeLimit:60,fragLimit:3});
+  const bots=m.actors.filter(a=>a.bot),start=bots.map(a=>({x:a.x,z:a.z}));
+  for(let i=0;i<1500;i++)m.step(1/60);
+  assert.ok(m.actors.every(a=>[a.x,a.y,a.z].every(Number.isFinite)),`${map}: finite state`);
+  assert.ok(m.stats.shots>0,`${map}: bots fired`);
+  assert.ok(bots.filter((a,i)=>Math.hypot(a.x-start[i].x,a.z-start[i].z)>12).length>=2,`${map}: bots traversed`);
+  assert.ok(m.stats.falls<25,`${map}: ${m.stats.falls} falls`);
+  assert.ok(bots.some(a=>a.bot.destination&&Number.isFinite(a.bot.destination.x)&&Number.isFinite(a.bot.destination.z)),`${map}: objective destinations`);
+ }
+ const run=()=>{const m=new Match('chatgpt','openclaw',seeded(),'longreach-plateau',{mode:'ctf',difficulty:'normal',botCount:3,timeLimit:60,fragLimit:3});for(let i=0;i<900;i++)m.step(1/60);return m.snapshot();};
+ assert.deepEqual(run(),run());
+});
+
 test('simultaneous matches keep map collision independent and rematch resets new status',()=>{const [a]=fixture('cline','exchange'),[b]=fixture('codex','crosswire');assert.equal(floorAt(0,-12,a.arena),3.8);assert.equal(floorAt(0,-12,b.arena),0);assert.notEqual(a.rayWorld({x:0,y:2,z:5},{x:0,y:0,z:-1},10),b.rayWorld({x:0,y:2,z:5},{x:0,y:0,z:-1},10));a.actors[0].slow=2;a.actors[0].ammo[4]=20;const n=new Match('kimi','roo',seeded(),'foundry');assert.equal(n.arena.id,'foundry');assert.ok(n.actors.every(a=>a.slow===0&&a.ammo[4]===0&&a.cooldown===0));assert.equal(n.rockets.length,0);});

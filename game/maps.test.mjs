@@ -3,7 +3,7 @@ import test from 'node:test';
 import {getMap,MAPS} from './maps.mjs';
 import {EXPANSION_MAPS} from './expansion-maps.mjs';
 import {CTF_MAPS} from './ctf-maps.mjs';
-import {floorAt,moveActor,obstructed} from './core.mjs';
+import {floorAt,moveActor,navigation,obstructed} from './core.mjs';
 import {createVehicle} from './vehicles.mjs';
 import {nextArenaSelection} from './replay.mjs';
 
@@ -116,6 +116,18 @@ test('CTF maps have grounded spawns, flags, pickups, and valid vehicles',()=>{
       const y=floorAt(vehicle.x,vehicle.z,map);
       assert.equal(y,vehicle.y,`${map.id} vehicle slot`);
       assert.equal(obstructed(vehicle.x,y,vehicle.z,2.2,map),false,`${map.id} vehicle clearance`);
+    }
+  }
+});
+
+test('every platform map navigation graph is fully connected in both directions',()=>{
+  for(const map of MAPS.filter(map=>map.platforms)){
+    const graph=navigation(map),incoming=graph.edges.map(()=>[]);
+    graph.edges.forEach((list,from)=>list.forEach(to=>incoming[to].push(from)));
+    for(const [label,edges] of [['forward',graph.edges],['return',incoming]]){
+      const seen=new Set([0]),queue=[0];
+      while(queue.length)for(const next of edges[queue.shift()])if(!seen.has(next)){seen.add(next);queue.push(next);}
+      assert.equal(seen.size,graph.nodes.length,`${map.id} ${label} connectivity`);
     }
   }
 });

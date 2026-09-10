@@ -107,3 +107,13 @@ Five parallel research subagents (Quake/Source movement and gunfeel, browser-sho
 | Local verification | test:game 293/293, test:server 80/80, typecheck, production build, rendered response test; runtime CTF smoke on all 14 maps | Complete |
 
 Remaining known limitation: the pre-existing `ironfall-megastructure` and `longreach-plateau` platform maps have partially disconnected bot-navigation components (their upper shelves lack return routes), so bot CTF can stall there. This predates 1.3 and needs map-specific return links, not a navigation-engine change (a bidirectional-link attempt routed bots backward through one-way launchers and was reverted).
+
+## Feedback, bot flow and platform-map connectivity 1.4 — 2026-09-10
+
+| Milestone | Outcome | Verification status |
+|---|---|---|
+| Combat feedback HUD | Floating damage numbers, directional damage indicator, kill/death banner, weapon/ammo panel with reload state, and a match/objective announcer, all from existing snapshot/event data with pure `game/hud.mjs` helpers | 25 HUD/input tests pass; typecheck + build green |
+| Renderer feel | Dynamic FOV (sprint/ADS), pooled muzzle lights, low-health overlay, bounded camera shake; shared material/geometry caches reduce per-model allocation | 29 view/feedback tests pass; build green |
+| Bot engagement and objectives | Scan range scales with map size and difficulty (per-actor cached), purposeful destinations replace idle roam, CTF defenders hold a post and attackers vary approach, long rotations detour to vehicles | `expansion`/`gameplay`/`core`/`stats` tests pass; large-map smoke yields kills |
+| Platform-map return routes | Ironfall and Longreach gained physical up/down launcher pairs; both nav graphs fully connected in both directions | New connectivity assertions in `maps`/`expansion-maps` tests pass; runtime smoke no longer stalls 0-0 |
+| Local verification | test:game 315/315, test:server 80/80, typecheck, production build, rendered response test | Complete |

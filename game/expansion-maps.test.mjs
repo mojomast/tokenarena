@@ -77,6 +77,18 @@ test('team spawns can reach every objective and return to either base',()=>{
   }
 });
 
+test('every expansion navigation graph is fully connected in both directions',()=>{
+  for(const map of EXPANSION_MAPS){
+    const graph=navigation(map),incoming=graph.edges.map(()=>[]);
+    graph.edges.forEach((list,from)=>list.forEach(to=>incoming[to].push(from)));
+    for(const [label,edges] of [['forward',graph.edges],['return',incoming]]){
+      const seen=new Set([0]),queue=[0];
+      while(queue.length)for(const next of edges[queue.shift()])if(!seen.has(next)){seen.add(next);queue.push(next);}
+      assert.equal(seen.size,graph.nodes.length,`${map.id} ${label} connectivity`);
+    }
+  }
+});
+
 test('launcher endpoints have player clearance and platform support',()=>{
   for(const map of EXPANSION_MAPS)for(const pad of map.traversal.boostLaunchers)for(const p of [{x:pad.x,z:pad.z,y:pad.y},pad.target]){
     const floor=floorAt(p.x,p.z,map);

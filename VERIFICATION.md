@@ -1,5 +1,27 @@
 # TOKEN ARENA verification report
 
+## Combat feedback, bot flow and platform-map connectivity 1.4 - 2026-09-10
+
+A follow-up pass of four parallel subagents on non-overlapping files (maps, HUD/UI, renderer, bot AI), then reconciled and verified.
+
+- **Combat feedback HUD** (`game/hud.mjs`, `app/page.tsx`, `app/globals.css`): floating damage numbers (victim world position projected to CSS px through `view.camera`), a directional damage indicator, bright kill/death banners, a weapon/ammo panel with auto/semi and reload state, and a match/objective announcer. Pure helpers (`projectToScreen`, `damageBearing`, `killBanner`, `weaponTag`, `ammoText`, `matchStartBanner`, `scoreAnnouncer`) are unit-tested; rendering is bounded and reduced-motion aware.
+- **Renderer feel** (`game/view.mjs`, new `game/effects-fx.mjs`): dynamic FOV (sprint widens, ADS narrows to `max(55, fov*0.82)`), a two-light pooled muzzle flash, a low-health camera overlay, and bounded camera shake on local damage/death. A shared material cache and scoped geometry cache reduce per-model allocation/GPU state churn. All effects are disabled for `SoftwareRenderer` and `prefers-reduced-motion`.
+- **Bot AI** (`game/core.mjs`): per-actor scan range scales with difficulty and arena diagonal; roam always has a destination (objective or patrol); CTF defenders hold a post near their own flag, attackers vary approach routes, and long rotations detour to a nearby vehicle. Large maps now yield kills and ended matches instead of 0-0 stalls.
+- **Platform-map connectivity** (`game/expansion-maps.mjs`, tests): Ironfall Megastructure and Longreach Plateau gained physical up/down launcher pairs and re-aimed shelf launchers; both directed nav graphs are now a single connected component, so bots can cycle the map. No navigation-engine change was needed (the bidirectional-link approach remains rejected).
+
+Automated evidence (2026-09-10):
+
+| Gate | Command | Result |
+|---|---|---|
+| Game logic, AI, maps, movement, weapons, vehicles, view, HUD, net | `npm run test:game` | **315/315 pass** |
+| Rooms, voice, history, server vehicle | `npm run test:server` | **80/80 pass** |
+| TypeScript | `npx tsc --noEmit` | clean |
+| Production build | `npm run build` | succeeds |
+| Rendered response | `node --test tests/*.test.mjs` | pass |
+| Runtime smoke (all 14 maps, CTF, 3 bots, 300 s) | scripted `Match` harness | finite state; Ironfall/Longreach now score and end (were 0-0) |
+
+Known limits: damage numbers are emitted on the ~10 Hz HUD tick and smoothed by CSS, and camera projection uses the previous frame's camera (≤1 frame lag). Platform-map void falls remain the main rough edge (combat knockback near ledges). GPU frame pacing of the new overlays/lights still needs a hardware browser playtest.
+
 ## Combat feel, Warthog, arena rebuild and visual overhaul - 2026-09-10
 
 Scope: a "make it not feel generic" pass built from five parallel research

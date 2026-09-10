@@ -1,7 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ArenaView,vehicleModel,weaponModel} from './view.mjs';
+import {ArenaView,vehicleModel,weaponModel,robotModel} from './view.mjs';
 import {SoftwareRenderer} from './software.mjs';
+import {ModelAssets,CameraShake,MuzzleLightPool,LowHealthOverlay} from './effects-fx.mjs';
 import {DEFAULT_DISPLAY} from './config.mjs';
 import * as T from 'three';
 import BLOOD_GULCH from './blood-gulch.mjs';
@@ -192,4 +193,80 @@ test('every canonical arena has batched polish, faithful collision boxes and sof
  }
  assert.equal(signatures.size,MAPS.length,'all canonical maps have a distinct material/atmosphere identity');
  view.disposeObject(view.worldGroup);for(const resource of view.renderResources)resource.dispose();renderer.dispose();
+});
+
+function playable(t,{fov=80,reduced=false}={}){
+ const {view,renderer}=fixture(t);view.camera=new T.PerspectiveCamera(fov,1,.08,220);view.scene=new T.Scene();view.hands=new T.Group();view.camera.add(view.hands);view.scene.add(view.camera);view.actorModels=new Map();view.pickupModels=[];view.playerId=7;view.currentWeapon=-1;view.lastEvent=0;view.motionQuery={matches:reduced};view.display={...DEFAULT_DISPLAY,fov};renderer.render=()=>{};
+ return {view,renderer};
+}
+
+test('dynamic FOV lerps toward sprint and ADS targets and never drops below 55',t=>{
+ const {view}=playable(t,{fov:80});
+ const base={id:7,weapon:0,health:100,x:0,y:0,z:0,yaw:0,pitch:0,vx:0,vy:0,vz:0,grounded:true};
+ const frame=player=>view.render('playing',{actors:[player],pickups:[],rockets:[],time:1,events:[]},.05,1);
+ for(let i=0;i<120;i++)frame(base);assert.ok(Math.abs(view.camera.fov-80)<.01,'idle FOV stays at the configured value');
+ for(let i=0;i<120;i++)frame({...base,sprinting:true});assert.ok(view.camera.fov>84.5&&view.camera.fov<=85.0001,'sprint widens the field of view');
+ for(let i=0;i<160;i++)frame({...base,ads:true});assert.ok(view.camera.fov>=55&&view.camera.fov<66.5,'ADS narrows the field of view');
+ view.setAim(true);for(let i=0;i<160;i++)frame(base);assert.ok(view.camera.fov<66.5,'setAim drives ADS without a snapshot flag');
+ view.setAim(false);for(let i=0;i<200;i++)frame({...base,sprinting:true});assert.ok(view.camera.fov>84.5);
+ view.setDisplay({...DEFAULT_DISPLAY,fov:50});for(let i=0;i<240;i++)frame({...base,ads:true});assert.ok(view.camera.fov>=55,'FOV never drops below 55');
+});
+
+test('low health toggles the public flag and the camera vignette',t=>{
+ const {view}=playable(t,{fov:80});
+ const base={id:7,weapon:0,health:100,maxHealth:100,x:0,y:0,z:0,yaw:0,pitch:0,vx:0,vy:0,vz:0,grounded:true};
+ view.render('playing',{actors:[base],pickups:[],rockets:[],time:1,events:[]},.05,1);assert.equal(view.lowHealth,false);
+ view.render('playing',{actors:[{...base,health:20}],pickups:[],rockets:[],time:1,events:[]},.05,2);assert.equal(view.lowHealth,true);
+ view.render('playing',{actors:[{...base,health:0}],pickups:[],rockets:[],time:1,events:[]},.05,3);assert.equal(view.lowHealth,false,'dead players do not pulse');
+});
+
+test('camera shake responds to local damage and death but not reduced motion',t=>{
+ const {view}=playable(t,{fov:80});
+ view.effect({type:'damage',actor:7,amount:40});assert.ok(view.cameraShake.magnitude>0);
+ view.cameraShake.reset();view.effect({type:'damage',actor:8,amount:40});assert.equal(view.cameraShake.magnitude,0,'other actors never shake the local camera');
+ view.cameraShake.reset();view.effect({type:'death',actor:7});assert.ok(view.cameraShake.magnitude>0);
+ view.cameraShake.reset();view.motionQuery.matches=true;view.effect({type:'damage',actor:7,amount:40});assert.equal(view.cameraShake.magnitude,0);
+});
+
+test('shared model assets reuse robot materials and geometries across instances',()=>{
+ const assets=new ModelAssets(),first=robotModel('chatgpt',assets),before=assets.resources.size;
+ assert.ok(before>0);
+ const second=robotModel('chatgpt',assets);
+ assert.equal(assets.resources.size,before,'a duplicate robot allocates no new materials or geometries');
+ const geosA=new Set(),geosB=new Set();first.traverse(n=>n.geometry&&geosA.add(n.geometry));second.traverse(n=>n.geometry&&geosB.add(n.geometry));
+ assert.ok([...geosA].some(geometry=>geosB.has(geometry)),'duplicate robots share geometry instances');
+ let meshes=0;first.traverse(n=>{if(n.isMesh)meshes++;});
+ assert.ok(before<meshes*2,'resources are shared instead of one per mesh slot');
+ assets.dispose();
+});
+
+test('muzzle light pool stays fixed size, flashes colored light and disposes',()=>{
+ const scene=new T.Scene(),pool=new MuzzleLightPool(scene,2);
+ pool.flash('#ff0000',{x:1,y:2,z:3},.1);
+ assert.equal(scene.children.length,2);assert.equal(pool.lights[1].position.x,1);assert.equal(pool.lights[1].visible,true);
+ for(let i=0;i<40;i++)pool.flash('#00ff00',{x:0,y:0,z:0},.05);
+ assert.equal(scene.children.length,2,'pool never grows');
+ for(let i=0;i<10;i++)pool.update(.05);
+ assert.ok(pool.lights.every(light=>!light.visible&&light.intensity===0));
+ pool.dispose();assert.equal(scene.children.length,0);
+});
+
+test('camera shake is bounded, decays and is suppressed for reduced motion',()=>{
+ const camera=new T.PerspectiveCamera();camera.rotation.order='YXZ';
+ const shake=new CameraShake();
+ for(let i=0;i<40;i++)shake.add(.2);assert.ok(shake.magnitude<=1.4);
+ camera.position.set(1,2,3);camera.rotation.set(0,0,0,'YXZ');shake.apply(camera,2,false);
+ assert.ok(camera.position.x!==1||camera.position.y!==2,'shake perturbs the presentation camera');
+ shake.update(2);assert.equal(shake.magnitude,0);
+ shake.add(1);camera.position.set(1,2,3);camera.rotation.set(0,0,0,'YXZ');shake.apply(camera,2,true);
+ assert.deepEqual(camera.position.toArray(),[1,2,3]);assert.equal(camera.rotation.z,0);
+});
+
+test('low health overlay fades in under pressure and out on recovery',()=>{
+ const camera=new T.PerspectiveCamera(80,1.5,.08,220),overlay=new LowHealthOverlay(camera);
+ overlay.update(true,0,.1,false,camera);assert.equal(overlay.mesh.visible,true);assert.ok(overlay.opacity>0);assert.ok(overlay.mesh.scale.x>0);
+ overlay.update(true,0,.1,true,camera);assert.ok(overlay.opacity>0,'reduced motion keeps a static tint');
+ for(let i=0;i<120;i++)overlay.update(false,i*.1,.1,false,camera);
+ assert.ok(overlay.opacity<.01);assert.equal(overlay.mesh.visible,false);
+ overlay.dispose();assert.equal(camera.children.length,0);
 });

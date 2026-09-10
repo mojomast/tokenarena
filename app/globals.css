@@ -450,3 +450,33 @@
   .ammo-warning.pulse { animation: none; }
   .reload-track > i { transition: none; }
 }
+
+/* Combat feedback: floating damage, directional hit, kill banner and announcer. */
+.damage-numbers { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.damage-number { position: absolute; font: 700 20px monospace; color: #ffe9b0; text-shadow: 0 2px 6px #000; transition: opacity .08s linear, transform .08s linear; will-change: opacity, transform; }
+.damage-number.kill { color: #ff6b6b; font-size: 24px; text-shadow: 0 0 10px #ff6b6baa, 0 2px 6px #000; }
+.damage-direction { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform: rotate(var(--damage-angle, 0deg)); pointer-events: none; animation: damage-direction 0.8s ease-out forwards; }
+.damage-direction i { position: absolute; left: -14px; top: calc(-1 * min(34vh, 230px)); width: 0; height: 0; border-left: 14px solid transparent; border-right: 14px solid transparent; border-bottom: 18px solid #ff6b6b; filter: drop-shadow(0 0 6px #ff6b6baa); opacity: .92; }
+.damage-flash { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(circle at 50% 50%, #ff6b6b44, transparent 62%); animation: damage-flash 0.8s ease-out forwards; }
+.kill-banner { position: absolute; left: 50%; top: 30%; transform: translateX(-50%); padding: 8px 20px; border: 1px solid #ff6b6b66; background: #1b0e0ee6; color: #ffd9d9; font: 700 14px monospace; letter-spacing: 2px; white-space: nowrap; text-shadow: 0 2px 6px #000; pointer-events: none; animation: kill-banner 1.5s ease-out forwards; }
+.kill-banner.kill { border-color: #83f4d577; background: #081a1be6; color: #caffeb; }
+.kill-banner.death { border-color: #ff6b6b88; color: #ffb4b4; }
+.kill-banner.self { border-color: #ffd9a066; background: #1b160ee6; color: #ffe0a8; }
+.objective-announcer { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 6px; text-align: center; pointer-events: none; text-shadow: 0 3px 14px #000; animation: objective-announcer 2.6s ease-out forwards; }
+.objective-announcer strong { font: 800 clamp(30px, 6vw, 58px)/1 monospace; letter-spacing: .18em; color: #e8fff6; }
+.objective-announcer small { font: 12px monospace; letter-spacing: 3px; color: #9fd8c6; }
+.objective-announcer.score, .objective-announcer.capture { animation-duration: 1.6s; }
+.objective-announcer.score strong { color: #ffd9a0; font-size: clamp(22px, 4vw, 38px); }
+.objective-announcer.capture strong { color: #83f4d5; font-size: clamp(22px, 4vw, 38px); }
+.weapon-tag { display: inline-block; margin-left: 8px; padding: 1px 6px; border: 1px solid #83f4d555; background: #0d2420; color: #a6e5c9; font: 10px monospace; letter-spacing: 1px; vertical-align: middle; }
+@keyframes damage-direction { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes damage-flash { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes kill-banner { 0% { opacity: 0; transform: translate(-50%, -8px); } 12% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+@keyframes objective-announcer { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.94); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 78% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .damage-number { transition: none; }
+  .damage-direction { animation: none; }
+  .damage-flash { animation: none; opacity: .55; }
+  .kill-banner { animation: none; }
+  .objective-announcer { animation: none; }
+}

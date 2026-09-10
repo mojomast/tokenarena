@@ -181,6 +181,13 @@ Version 1.3 is the "make it not feel generic" pass, driven by research into Quak
 - Rendering gains directional shadows, a PMREM image-based environment, deterministic procedural FBM textures, vertex/triangle color variation, a gradient sky with an instanced mountain backdrop and terrain scatter, and tiered bloom/vignette/SMAA postprocessing (all bypassed by the CPU fallback and reduced-motion).
 - Online play cuts interpolation delay from 160 ms to an adaptive ~100 ms, adds a jitter-adaptive snapshot buffer, raises server snapshots from 20 Hz to 30 Hz, and forwards the new stance/ADS/reload inputs.
 
+Version 1.4 is a feedback-and-flow pass:
+
+- Combat feedback the game was missing: floating damage numbers, a directional damage indicator, kill/death banners, a weapon/ammo panel with auto/semi and reload state, and a match/objective announcer (`FIGHT · MODE · MAP`, `RED/BLUE SCORES`, `FLAG CAPTURED`). All driven by existing snapshot/event data with pure, tested helpers.
+- Renderer feel: dynamic FOV (sprint widens, ADS narrows), pooled muzzle lights, a low-health screen overlay, and bounded camera shake on damage/death — all suppressed for reduced motion and the CPU fallback. Shared material/geometry caches cut per-model allocation and GPU state changes.
+- Bot AI: scan range now scales with map size and difficulty, bots always have a purposeful destination (objective or patrol), CTF defenders hold a post near their flag and attackers vary their approach, and long rotations detour to nearby vehicles. Large maps now produce kills and completed matches instead of 0–0 stalls.
+- The pre-existing Ironfall Megastructure and Longreach Plateau maps gained physical up/down return routes so their full bot-navigation graphs connect in both directions (previously stranded upper shelves).
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.

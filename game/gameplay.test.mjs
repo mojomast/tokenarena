@@ -128,3 +128,35 @@ test('descending from above lands on a solid top',()=>{
  for(let i=0;i<30&&!a.grounded;i++)moveActor(a,{},1/60,arena,{speed:1.5,gravity:1});
  assert.equal(a.y,5);assert.equal(a.grounded,true);clear(a,arena);
 });
+
+test('bot engagement range scales with map size and difficulty then stays cached',()=>{
+ const small=new Match('chatgpt','openclaw',rng(),'exchange',{botCount:1,difficulty:'easy'}).actors[0].botScan;
+ const big=new Match('chatgpt','openclaw',rng(),'frostline',{botCount:1,difficulty:'easy'}).actors[0].botScan;
+ const hard=new Match('chatgpt','openclaw',rng(),'exchange',{botCount:1,difficulty:'hard'}).actors[0].botScan;
+ assert.ok(small>=33&&small<=44,`easy small ${small}`);
+ assert.ok(big>small,`large map ${big} should exceed ${small}`);
+ assert.ok(big<=44,`easy cap ${big}`);
+ assert.ok(hard>small,`hard ${hard} should exceed easy ${small}`);
+ const cached=new Match('chatgpt','openclaw',rng(),'exchange',{botCount:1,difficulty:'easy'}),bot=cached.actors[1];
+ const initial=bot.botScan;
+ for(let i=0;i<180;i++)cached.step(1/60);
+ assert.equal(bot.botScan,initial);
+});
+
+test('large-map roam always picks a finite purposeful patrol destination',()=>{
+ const m=new Match('chatgpt','openclaw',rng(),'ironfall-megastructure',{botCount:3,difficulty:'normal'}),bot=m.actors.filter(a=>a.bot)[0];
+ m.actors=[bot];m.pickups=[];Object.assign(bot,{x:0,y:0,z:0,vx:0,vy:0,vz:0});
+ m.botInput(bot,1/60);
+ assert.equal(bot.bot.state,'roam');
+ assert.ok(bot.bot.destination&&Number.isFinite(bot.bot.destination.x)&&Number.isFinite(bot.bot.destination.z));
+ for(let i=0;i<180;i++)m.step(1/60);
+ assert.ok(Math.hypot(bot.x,bot.z)>2,`roamer moved ${Math.hypot(bot.x,bot.z)}`);
+});
+
+test('ctf defenders hold a post between their flag base and the arena center',()=>{
+ const m=new Match('chatgpt','openclaw',rng(),'blood-gulch',{mode:'ctf',botCount:3,difficulty:'normal'}),bot=m.actors.filter(a=>a.bot)[0];
+ const base=m.flagSpawns[bot.team],post=m.defensivePost(bot),toBase=Math.hypot(post.x-base[0],post.z-base[1]);
+ assert.ok(toBase>0&&toBase<=12.01,`post ${toBase} from base`);
+ assert.ok(Math.hypot(post.x-m.center.x,post.z-m.center.z)<Math.hypot(base[0]-m.center.x,base[1]-m.center.z));
+ assert.ok([post.x,post.y,post.z].every(Number.isFinite));
+});

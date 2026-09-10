@@ -197,3 +197,14 @@ A quality pass driven by research into Quake/Source movement, browser-shooter ne
 ### Verification
 
 293 game tests and 80 server tests pass, alongside typecheck, the production build and the rendered-response test. A scripted runtime smoke ran full CTF matches with bots on all 14 maps plus a Warthog drive/turret/run-over scenario with no NaN positions, floor desync or crashes. Known limitation: the pre-existing `ironfall-megastructure` and `longreach-plateau` maps retain partially disconnected bot-navigation components; a bidirectional nav-link change was reverted because it routed bots backward through one-way launchers (the platform-map traversal test catches this). Shadows/bloom/textures are build- and mock-verified but not yet GPU-frame-pacing tested on hardware.
+
+## Feedback, bot flow and platform-map connectivity 1.4 — 2026-09-10
+
+- **Combat feedback [IMPLEMENTED]**: floating damage numbers, a directional damage indicator, kill/death banners, a weapon/ammo panel (auto/semi, `∞` ammo, reload state) and a match/objective announcer (`FIGHT · MODE · MAP`, `RED/BLUE SCORES`, `FLAG CAPTURED`). Derived client-side from existing snapshot and event data; the geometry/bearing/text helpers live in `game/hud.mjs` and are unit-tested.
+- **Renderer feel [IMPLEMENTED]**: dynamic FOV (sprint +5°, ADS `max(55, fov*0.82)`), a pooled muzzle light, a low-health camera overlay and bounded camera shake, all gated off for the CPU fallback and reduced motion. Shared material and scoped geometry caches reduce per-model allocation and GPU state changes.
+- **Bot engagement and objectives [IMPLEMENTED]**: scan range scales with difficulty and arena diagonal; bots always have a purposeful destination; CTF defenders hold a post near their flag and attackers vary their approach; long rotations detour to vehicles.
+- **Platform-map return routes [IMPLEMENTED]**: Ironfall and Longreach gained physical up/down launcher pairs; both directed navigation graphs are fully connected and bot matches complete instead of stalling 0-0.
+
+### Verification
+
+315 game tests and 80 server tests pass, with typecheck, production build and the rendered-response test green. New tests assert full two-way navigation connectivity on every platform map and bot activity on large maps; the runtime smoke confirms Ironfall/Longreach now score. Remaining limits: damage numbers render on the ~10 Hz HUD tick, projection lags one frame, platform-map void falls persist from combat knockback, and the new overlays/lights are not yet GPU-frame-pacing tested on hardware.

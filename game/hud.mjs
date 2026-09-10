@@ -52,3 +52,89 @@ export function hitMarker(hud, player) {
   if (killed) return 'kill';
   return hud?.hit ? 'hit' : null;
 }
+
+const matrixPoint = (elements, x, y, z) => ({
+  x: elements[0] * x + elements[4] * y + elements[8] * z + elements[12],
+  y: elements[1] * x + elements[5] * y + elements[9] * z + elements[13],
+  z: elements[2] * x + elements[6] * y + elements[10] * z + elements[14],
+  w: elements[3] * x + elements[7] * y + elements[11] * z + elements[15],
+});
+
+export function projectToScreen(camera, rect, position) {
+  const world = camera?.matrixWorldInverse?.elements, projection = camera?.projectionMatrix?.elements;
+  if (!world || !projection || !rect || !position) return null;
+  const x = Number(position.x), y = Number(position.y), z = Number(position.z);
+  if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) return null;
+  const view = matrixPoint(world, x, y, z), clip = matrixPoint(projection, view.x, view.y, view.z);
+  if (!Number.isFinite(clip.w) || clip.w <= 0) return null;
+  const ndcX = clip.x / clip.w, ndcY = clip.y / clip.w, ndcZ = clip.z / clip.w;
+  if (!Number.isFinite(ndcX) || !Number.isFinite(ndcY) || !Number.isFinite(ndcZ) || ndcZ < -1 || ndcZ > 1) return null;
+  const width = Number(rect.width) || 0, height = Number(rect.height) || 0;
+  return {x: (Number(rect.left) || 0) + (ndcX + 1) * .5 * width, y: (Number(rect.top) || 0) + (1 - ndcY) * .5 * height, depth: ndcZ};
+}
+
+export function damageNumberStyle(age, {lifetime = .6, rise = 28, reduced = false} = {}) {
+  const life = Number.isFinite(lifetime) && lifetime > 0 ? lifetime : .6;
+  const progress = Math.max(0, Math.min(1, (Number.isFinite(age) ? Math.max(0, age) : 0) / life));
+  return {opacity: 1 - progress * progress, dy: reduced || progress === 0 ? 0 : -rise * progress, done: progress >= 1};
+}
+
+export function boundList(list, item, cap = 12) {
+  const limit = Number.isFinite(cap) && cap > 0 ? Math.floor(cap) : 12;
+  const next = Array.isArray(list) ? list.slice() : [];
+  next.push(item);
+  return next.length > limit ? next.slice(next.length - limit) : next;
+}
+
+export function damageBearing(local, target) {
+  if (!local || !target) return null;
+  const dx = Number(target.x) - Number(local.x), dz = Number(target.z) - Number(local.z);
+  if (!Number.isFinite(dx) || !Number.isFinite(dz)) return null;
+  const yaw = Number.isFinite(Number(local.yaw)) ? Number(local.yaw) : 0;
+  let angle = Math.atan2(-dx, -dz) - yaw;
+  angle = Math.atan2(Math.sin(angle), Math.cos(angle));
+  return {angle, distance: Math.hypot(dx, dz)};
+}
+
+export function killBanner(hud, player) {
+  const latest = hud?.feed?.[0], when = Number(hud?.time), at = Number(latest?.time);
+  if (!latest || !player || !Number.isFinite(at) || !Number.isFinite(when)) return null;
+  const age = Math.max(0, when - at);
+  if (latest.self) return {kind: 'self', text: 'ELIMINATED', age};
+  if (latest.killer === player.name && latest.victim !== player.name) return {kind: 'kill', text: `YOU ELIMINATED ${latest.victim ?? ''}`.trim(), age};
+  if (latest.victim === player.name && latest.killer !== player.name) return {kind: 'death', text: `${latest.killer ?? 'ARENA'} ELIMINATED YOU`, age};
+  return null;
+}
+
+export function weaponTag(weapon) {
+  if (!weapon) return null;
+  const interval = Number(weapon.interval);
+  if (!Number.isFinite(interval)) return null;
+  return interval <= .3 ? 'AUTO' : 'SEMI';
+}
+
+export function ammoText(value) {
+  const n = Number(value);
+  return Number.isFinite(n) ? String(n) : '∞';
+}
+
+const teamLabel = team => Number(team) === 0 ? 'RED' : Number(team) === 1 ? 'BLUE' : `TEAM ${team}`;
+
+export function matchStartBanner(hud, duration = 2.6) {
+  const time = Number(hud?.time), limit = Number.isFinite(duration) && duration > 0 ? duration : 2.6;
+  if (!Number.isFinite(time) || time < 0 || time >= limit) return null;
+  const detail = [hud?.modeName, hud?.mapName].filter(Boolean).join(' · ').toUpperCase();
+  return {text: 'FIGHT', detail, age: time, duration: limit};
+}
+
+export function scoreAnnouncer(hud, prevScores) {
+  const scores = hud?.teamScores;
+  if (!scores || !prevScores) return null;
+  const mode = hud?.config?.mode ?? hud?.mode, capture = mode === 'ctf';
+  for (const team of [0, 1]) {
+    const before = Math.floor(Number(prevScores[team])), after = Math.floor(Number(scores[team]));
+    if (!Number.isFinite(before) || !Number.isFinite(after) || after <= before) continue;
+    return {team, kind: capture ? 'capture' : 'score', text: capture ? 'FLAG CAPTURED' : `${teamLabel(team)} SCORES`, score: after, amount: after - before};
+  }
+  return null;
+}
