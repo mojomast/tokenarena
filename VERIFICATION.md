@@ -1,5 +1,27 @@
 # TOKEN ARENA verification report
 
+## Bot personalities and mode balance 1.7 - 2026-09-10
+
+- **`game/bot-personalities.mjs`** blends the existing operator `role` and harness
+  `personality` tables into one bounded behavior descriptor (aggression, hold,
+  flank, objective, supply, vehicle, strafe, engagement `range`, `spacing`,
+  `retreat`) with deterministic per-id jitter. Covered by 6 tests.
+- **`game/core.mjs`** now uses that descriptor: varied target ranking (ally-lock
+  penalty, opportunist/ambusher biases), behaviour-driven engagement ranges and
+  strafing, gated vehicle use, spread supply selection, ground-only separation
+  steering, and `zoneSlot` perimeter positions that fall back to the zone centre
+  when a slot would sit over the void. Attackers keep advancing while firing.
+- **Balance:** `updateObjectives` now decays a holder's progress while the zone is
+  contested (faster neutralisation, no stalemate), while uncontested owners still
+  score. Regression tests: a seven-bot match fields >=5 distinct behaviors with
+  low clustering, objective slots are spread, contested control decays, and an
+  uncontested owner still scores. Measured: 7/7 distinct behaviors and ~0.25-1.3
+  bots within 2 m (peak 2-3) versus the previous shared behaviour.
+
+Verification: `npm run test:game` 348/348 (incl. 4 bot-behaviour and 6
+bot-personality tests), `npm run test:server` 80/80, `npx tsc --noEmit` clean,
+`npm run build` succeeds, `node --test tests/*.test.mjs` 1/1.
+
 ## Theater, cinematic camera and live menu showcase 1.6 - 2026-09-10
 
 - **`game/demo.mjs`** records snapshot keyframes at 18 Hz, interpolates

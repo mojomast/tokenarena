@@ -205,6 +205,13 @@ Version 1.6 adds a cinematic demo system and a living main menu:
 - **Variable camera angles.** A camera director offers seven rigs — orbit, chase, dolly, crane, tripod, follow and first-person — and auto-cuts to kills, explosions and captures. Pick a rig with `1`–`7` or the on-screen chips, cycle subjects with `[` / `]`, and play/pause with `SPACE`.
 - **Live menu showcase.** The main menu now renders a real bot match behind the UI, auto-directed by the same camera system, with the selected operator's 3D model composited into the customization panel. Toggle it under Graphics & settings → **Menu showcase**.
 
+Version 1.7 gives every bot a distinct brain and rebalances objective modes:
+
+- **Different bots play differently.** Each bot blends its operator `role` (adaptive, anchor, disruptor, connector, duelist, ambusher, flanker, orbiter, optimizer) with its harness `personality` (brawler, skirmisher, suppressor, sentinel, opportunist, flanker, controller) plus a stable per-slot jitter. A seven-bot match now fields seven distinct behavior profiles that choose different engagement ranges, aggression, flanking, supply priority and vehicle use.
+- **No more pile-ups.** Bots steer apart (`separation`), take distinct perimeter slots around objectives, spread across supplies, and deprioritize targets their teammates are already fighting. Aggressive bots push while defensive bots hold.
+- **Harder to hold ground.** A contested objective now decays the holder's control toward the challenger instead of freezing, so a lone camper can no longer lock a hill. Scoring still only accrues while a team holds the zone uncontested.
+- **Attackers keep pushing.** Bots now keep advancing on objectives while shooting instead of stopping to duel, which keeps CTF/Domination games flowing.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.
