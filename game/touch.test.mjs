@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {TOUCH_BUTTONS,applyLook,joystickVector,lookStep,moveAxis} from './touch.mjs';
+import {TOUCH_BUTTONS,applyLook,applyTouchAction,joystickVector,lookStep,moveAxis} from './touch.mjs';
 
 test('joystick vectors clamp to the unit circle',()=>{
  assert.deepEqual(joystickVector(0,0,50),{x:0,y:0,magnitude:0});
@@ -30,5 +30,39 @@ test('look steps accumulate yaw and clamp pitch',()=>{
  assert.equal(look.pitch,1.45);
  assert.deepEqual(lookStep(0,0,1),{yaw:0,pitch:0});
  assert.equal(applyLook(null,10,10),null);
- assert.equal(TOUCH_BUTTONS.length,8);
+ assert.equal(TOUCH_BUTTONS.length,9);
+ assert.ok(TOUCH_BUTTONS.includes('voice'));
+});
+
+test('applyTouchAction tracks held buttons and latches one-shot actions',()=>{
+ const runtime={voice:{talking:[],setPushToTalk(v){this.talking.push(v);}}};
+ applyTouchAction(runtime,'fire',true);
+ applyTouchAction(runtime,'ads',true);
+ applyTouchAction(runtime,'crouch',true);
+ applyTouchAction(runtime,'voice',true);
+ assert.equal(runtime.fire,true);
+ assert.equal(runtime.ads,true);
+ assert.equal(runtime.touch.crouch,true);
+ assert.deepEqual(runtime.voice.talking,[true]);
+ applyTouchAction(runtime,'jump',true);
+ applyTouchAction(runtime,'reload',true);
+ applyTouchAction(runtime,'power',true);
+ applyTouchAction(runtime,'interact',true);
+ assert.equal(runtime.jump,true);
+ assert.equal(runtime.reload,true);
+ assert.equal(runtime.power,true);
+ assert.equal(runtime.interact,true);
+ // Releasing one-shots must not re-arm them, and swap is handled by the caller.
+ applyTouchAction(runtime,'jump',false);
+ applyTouchAction(runtime,'swap',true);
+ assert.equal(runtime.jump,true);
+ applyTouchAction(runtime,'fire',false);
+ applyTouchAction(runtime,'ads',false);
+ applyTouchAction(runtime,'crouch',false);
+ applyTouchAction(runtime,'voice',false);
+ assert.equal(runtime.fire,false);
+ assert.equal(runtime.ads,false);
+ assert.equal(runtime.touch.crouch,false);
+ assert.deepEqual(runtime.voice.talking,[true,false]);
+ assert.equal(applyTouchAction(null,'fire',true),null);
 });

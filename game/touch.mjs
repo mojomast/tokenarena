@@ -3,7 +3,7 @@
 export const TOUCH_DEADZONE=.14;
 export const TOUCH_SPRINT=.9;
 export const TOUCH_LOOK_SCALE=.004;
-export const TOUCH_BUTTONS=Object.freeze(['fire','ads','jump','crouch','reload','power','interact','swap']);
+export const TOUCH_BUTTONS=Object.freeze(['fire','ads','jump','crouch','reload','power','interact','swap','voice']);
 // Screen-space joystick vector: x right, y down, magnitude clamped to 1.
 export function joystickVector(dx,dy,radius=1){
  const r=Math.max(1e-6,Number(radius)||1),nx=(Number(dx)||0)/r,ny=(Number(dy)||0)/r,magnitude=Math.hypot(nx,ny);
@@ -30,3 +30,21 @@ export function applyLook(look,dx,dy,sensitivity=1){
  return look;
 }
 export const isTouchDevice=()=>typeof window!=='undefined'&&(window.matchMedia?.('(pointer: coarse)')?.matches===true||(typeof navigator!=='undefined'&&navigator.maxTouchPoints>0));
+// Apply an on-screen button press/release to the imperative runtime. Held actions
+// (fire, ADS, crouch, voice) track the pointer; one-shot actions (jump, reload,
+// power, interact) only latch on press and are consumed by the simulation loop.
+export function applyTouchAction(runtime,action,pressed){
+ if(!runtime)return null;
+ runtime.touch??={};
+ if(action==='fire')runtime.fire=pressed;
+ else if(action==='ads')runtime.ads=pressed;
+ else if(action==='crouch')runtime.touch.crouch=pressed;
+ else if(action==='voice')runtime.voice?.setPushToTalk?.(pressed);
+ else if(pressed){
+  if(action==='jump')runtime.jump=true;
+  else if(action==='reload')runtime.reload=true;
+  else if(action==='power')runtime.power=true;
+  else if(action==='interact')runtime.interact=true;
+ }
+ return runtime;
+}

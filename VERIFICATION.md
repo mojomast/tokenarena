@@ -1,5 +1,23 @@
 # COCS verification report
 
+## Touch controls v2 2.19 - 2026-09-11
+
+- **Pure action mapping** (`game/touch.mjs`, `game/touch.test.mjs`): the on-screen
+  button behaviour moved into `applyTouchAction(runtime,action,pressed)`, which
+  tracks held actions (fire, ADS, crouch, voice push-to-talk) and latches one-shot
+  actions (jump, reload, power, interact). `TOUCH_BUTTONS` now includes `voice`.
+  A new test covers held tracking, one-shot latching, release behaviour and the
+  null-runtime guard.
+- **Right-zone look surface** (`app/globals.css`): the drag-look surface is now
+  constrained to the right 62% of the screen instead of the whole viewport, so the
+  left-hand HUD and thumbstick are not covered by an invisible touch target.
+- **Push-to-talk button** (`app/game-ui/touch-controls.tsx`): a `TALK` button joins
+  the action cluster and drives the existing voice push-to-talk gate; long-press
+  context menus are suppressed on the control layer.
+
+Verification: `npm run test:game` passing (touch tests included), typecheck,
+production build and the rendered response test green.
+
 ## Bot threat awareness 2.18 - 2026-09-11
 
 - **Hit reactions** (`game/core.mjs`): when a bot takes damage from another actor

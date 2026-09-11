@@ -1,13 +1,13 @@
 'use client';
 import {useRef} from 'react';
 import type {PointerEvent as ReactPointerEvent} from 'react';
-import {moveAxis} from '../../game/touch.mjs';
+import {applyTouchAction,moveAxis} from '../../game/touch.mjs';
 
 // On-screen mobile controls: a left thumbstick, a drag-anywhere look surface and
 // a cluster of action buttons. All state is written imperatively to the runtime
 // so the per-frame loop never re-renders React.
-const ACTIONS=['ads','jump','crouch','reload','power','interact','swap'];
-const LABELS:Record<string,string>={ads:'ADS',jump:'JUMP',crouch:'SLIDE',reload:'RELOAD',power:'POWER',interact:'USE',swap:'SWAP'};
+const ACTIONS=['ads','jump','crouch','reload','power','interact','swap','voice'];
+const LABELS:Record<string,string>={ads:'ADS',jump:'JUMP',crouch:'SLIDE',reload:'RELOAD',power:'POWER',interact:'USE',swap:'SWAP',voice:'TALK'};
 
 export function TouchControls({runtime,visible,onLook,onSwap,onPause}:{runtime:any;visible:boolean;onLook:(dx:number,dy:number)=>void;onSwap:()=>void;onPause:()=>void}){
  const stick=useRef<HTMLDivElement|null>(null),knob=useRef<HTMLDivElement|null>(null),state=useRef({stickId:null as number|null,lookId:null as number|null,center:{x:0,y:0},last:{x:0,y:0}});
@@ -20,11 +20,11 @@ export function TouchControls({runtime,visible,onLook,onSwap,onPause}:{runtime:a
  const lookDown=(e:ReactPointerEvent<HTMLDivElement>)=>{if(state.current.lookId!==null)return;state.current.lookId=e.pointerId;state.current.last={x:e.clientX,y:e.clientY};(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);};
  const lookMove=(e:ReactPointerEvent<HTMLDivElement>)=>{if(state.current.lookId!==e.pointerId)return;const dx=e.clientX-state.current.last.x,dy=e.clientY-state.current.last.y;state.current.last={x:e.clientX,y:e.clientY};if(dx||dy)onLook(dx,dy);};
  const lookUp=(e:ReactPointerEvent<HTMLDivElement>)=>{if(state.current.lookId===e.pointerId)state.current.lookId=null;};
- const press=(action:string)=>{const r=runtime.current;if(!r)return;r.touch??={};if(action==='fire')r.fire=true;else if(action==='ads')r.ads=true;else if(action==='crouch')r.touch.crouch=true;else if(action==='jump')r.jump=true;else if(action==='reload')r.reload=true;else if(action==='power')r.power=true;else if(action==='interact')r.interact=true;else if(action==='swap')onSwap();};
- const release=(action:string)=>{const r=runtime.current;if(!r)return;if(action==='fire')r.fire=false;else if(action==='ads')r.ads=false;else if(action==='crouch'){r.touch??={};r.touch.crouch=false;}};
+ const press=(action:string)=>{applyTouchAction(runtime.current,action,true);if(action==='swap')onSwap();};
+ const release=(action:string)=>{applyTouchAction(runtime.current,action,false);};
  const holdProps=(action:string)=>({onPointerDown:(e:ReactPointerEvent<HTMLButtonElement>)=>{e.preventDefault();e.stopPropagation();(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);press(action);},onPointerUp:(e:ReactPointerEvent<HTMLButtonElement>)=>{e.stopPropagation();release(action);},onPointerCancel:()=>release(action),onLostPointerCapture:()=>release(action)});
  if(!visible)return null;
- return <div className="touch-layer">
+ return <div className="touch-layer" onContextMenu={e=>e.preventDefault()}>
   <div className="touch-look" aria-hidden="true" onPointerDown={lookDown} onPointerMove={lookMove} onPointerUp={lookUp} onPointerCancel={lookUp} onLostPointerCapture={lookUp}/>
   <div className="touch-stick" ref={stick} aria-hidden="true" onPointerDown={stickDown} onPointerMove={stickMove} onPointerUp={stickUp} onPointerCancel={stickUp} onLostPointerCapture={stickUp}><i className="touch-knob" ref={knob}/></div>
   <div className="touch-buttons">

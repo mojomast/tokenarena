@@ -252,6 +252,12 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.19 improves the mobile touch controls:
+
+- **Right-zone look, no dead zones.** The drag-look surface is constrained to the right side of the screen, so the left-hand HUD and thumbstick are no longer covered by an invisible touch target.
+- **Push-to-talk on mobile.** A `TALK` button joins the action cluster and drives the same voice push-to-talk gate as the `V` key; long-press context menus are suppressed while playing.
+- **Tested action mapping.** The button behaviour lives in the pure `applyTouchAction` helper (`game/touch.mjs`), covering held actions (fire, ADS, crouch, talk) and latched one-shot actions (jump, reload, power, use).
+
 Version 2.18 makes bots react to fire they cannot see:
 
 - **Threat awareness.** A bot that takes damage now records the attacker as a remembered threat, snaps its attention toward the shot and briefly investigates the last-known position when the attacker is not visible (`game/core.mjs`). Previously a bot only reacted to targets it could currently see, so an unseen shooter could farm it for free.
