@@ -148,6 +148,10 @@ export function characterPose(state = {}) {
     pose.chest.x = lerp(pose.chest.x, -0.06, ads);
   }
 
+  // Bank into turns so sharp direction changes read as body language, not a spin.
+  const bank = clamp(state.bank ?? 0, -1, 1);
+  if (bank) { pose.torso.z += bank * 0.16; pose.hips.z += bank * 0.08; pose.chest.y -= bank * 0.08; }
+
   // Head and chest track the aim point relative to the body.
   const focusYaw = clamp(state.focusYaw ?? 0, -0.9, 0.9);
   const focusPitch = clamp(state.focusPitch ?? 0, -0.6, 0.6);
@@ -208,6 +212,7 @@ export class CharacterRig {
       forward: this.forward,
       focusYaw: state.focusYaw,
       focusPitch: state.focusPitch,
+      bank: state.bank,
       hit: this.hit,
       time: state.time,
     });

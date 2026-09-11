@@ -295,7 +295,7 @@ let delta=dest?v(dest.x-a.x,0,dest.z-a.z):v(0,0,0),l=Math.hypot(delta.x,delta.z)
  if(!b.reaction&&Math.abs(deltaYaw)<.2&&Math.abs(pitch-a.pitch)<.2)this.fire(a);
    const nearby=this.actors.filter(enemy=>enemy!==a&&enemy.health>0&&(!teamMode(this.config)||enemy.team!==a.team)&&dist(a,enemy)<(hints.range[1]||16)).length,shouldPower=hints.power==='close'?d<4.5:hints.power==='escape'?d>8:hints.power==='visible'?d<far&&a.ammo[a.weapon]>2:hints.power==='hurt'?a.health<a.maxHealth*hints.retreatHealth:hints.power==='approach'?d>9:hints.power==='cluster'?(d<7||nearby>1):d<far;
    if(!a.cooldown&&shouldPower)this.power(a);
- }else if(l>.2)a.yaw=Math.atan2(-delta.x,-delta.z);
+ }else if(l>.2){const roamTurn=(this.difficulty.id==='easy'?2.5:this.difficulty.id==='normal'?4:8);a.yaw=turnToward(a.yaw,Math.atan2(-delta.x,-delta.z),roamTurn*dt);}
  const sep=a.grounded?this.separation(a,behavior.spacing):{x:0,z:0};if(sep.x||sep.z){input.x=(input.x||0)+sep.x*.95;input.z=(input.z||0)+sep.z*.95;}const inputLength=Math.hypot(input.x||0,input.z||0);if(inputLength>1e-4){input.x/=inputLength;input.z/=inputLength;}
  b.stuck+=dt;if(b.stuck>1.3){if(dist(a,b.last)<.35){b.route=[];b.destination=this.nav[Math.floor(this.random()*this.nav.length)];b.recover=.6;b.think=0;}b.last=v(a.x,a.y,a.z);b.stuck=0;}
  if(b.recover>0){b.recover-=dt;input={x:Math.sin(a.id*2+this.time),z:Math.cos(a.id*2+this.time),jump:true};}
@@ -313,7 +313,7 @@ let delta=dest?v(dest.x-a.x,0,dest.z-a.z):v(0,0,0),l=Math.hypot(delta.x,delta.z)
   const controls=ext||(a.bot?this.botInput(a,dt):{});
      if(a.vehicleId!==null){if(controls.interact)this.releaseVehicle(a,undefined,'exit');else if(a.vehicleSeat==='driver')this.driveVehicle(a,controls,dt);else if(a.vehicleSeat==='gunner')this.gunnerVehicle(a,controls,dt);else{const ride=this.vehicleById(a.vehicleId);if(ride)this.syncVehicleActor(a,ride);}}
      else if(controls.interact)this.enterVehicle(a);
-     else moveActor(a,controls,dt,this.arena,this.config);const bodyTurn=(this.difficulty?.id==='nightmare'?10:this.difficulty?.id==='hard'?8:this.difficulty?.id==='normal'?6:4)*dt;a.bodyYaw=turnToward(a.bodyYaw??a.yaw,a.yaw,bodyTurn);
+     else moveActor(a,controls,dt,this.arena,this.config);const bodyTurn=(this.difficulty?.id==='nightmare'?10:this.difficulty?.id==='hard'?8:this.difficulty?.id==='normal'?6:4)*dt;const nextBody=turnToward(a.bodyYaw??a.yaw,a.yaw,bodyTurn);a.bodyYaw=Math.atan2(Math.sin(nextBody),Math.cos(nextBody));
     if(a.traversalEvent){const evt=a.traversalEvent;a.traversalEvent=null;this.emit(evt.type,{actor:a.id,id:evt.id,from:evt.from,to:evt.to});}
     if(this.arena.voidY!==undefined&&a.y<this.arena.voidY){this.fall(a);continue;}this.objective(a);if(ext&&a.vehicleId===null){if(ext.power)this.power(a);if(ext.fire)this.fire(a);}
   for(const p of this.pickups)if(!p.wait&&dist(a,p)<1.05)this.collect(a,p);
