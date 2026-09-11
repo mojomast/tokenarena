@@ -1,5 +1,33 @@
 # COCS verification report
 
+## Menu, playback, bot-posture and server-liveness batch 2.10 - 2026-09-11
+
+- **Menu navigation** (`app/page.tsx`): Escape now backs out of browse,
+  progression, theater-list and lobby; changing mode reconciles an incompatible
+  arena via the new pure `resolveMapForMode` (`game/arenas.mjs`). Assault gains a
+  sector-count rule (`app/game-ui/configuration.tsx`), a `SECTORS` goal and a live
+  command brief.
+- **Theater playback** (`game/demo.mjs`): `DemoPlayer.sample` now seeds from the
+  nearest prior keyframe and merges/prunes actors, vehicles and rockets by id, so
+  entities that spawn or despawn mid-recording play correctly; the recorder
+  enforces `maxSeconds`. New `demo` tests.
+- **Bot posture** (`game/core.mjs`): bots sprint on long rotations, aim down
+  sights at mid range, and slide when critically hurt and sprinting. New
+  `bot-behavior` tests; all mode/difficulty match tests still pass.
+- **Maps and objectives** (`game/levelgen.mjs`, `game/core.mjs`,
+  `game/assault.mjs`): the next-gen CTF map keeps its authored flag bases; zone
+  and sector occupancy now require proximity on the vertical axis; Assault
+  defenders win a round that reaches the timer without a breach. New
+  `nextgen-maps` and `extra-modes` assertions.
+- **Server liveness** (`server/game-server.mjs`, `server/room.mjs`): a 15s
+  heartbeat terminates unresponsive sockets, `TRAFFIC_BUFFER_LIMIT` drops sends
+  to a backing-up client, and spectators are capped at `SPECTATOR_LIMIT`. New
+  spectator-cap test.
+
+Verification: `npm run test:game` 494/494, `npm run test:server` 91/91,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Codebase-audit gap-fix batch 2.9 - 2026-09-11
 
 A five-domain audit of the simulation, content, UI, server and renderer produced

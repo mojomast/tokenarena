@@ -241,6 +241,16 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.10 continues the gap-fix work:
+
+- **Menus obey Escape.** Escape now backs out of the room browser, rank screen, theater list and lobby, matching the documented "Escape closes any overlay" behaviour.
+- **Mode and arena stay in sync.** Switching to a mode the selected arena does not support now auto-selects a compatible arena instead of silently launching a hidden, invalid map.
+- **A real Assault HUD.** Assault gets its sector-count rule in match setup, a `SECTORS` goal, and a live command panel that names the active sector, capture progress and whether you are attacking or holding. The Assault round now also ends in a defender win if time expires without a breach.
+- **Theater shows the whole fight.** Demo playback now includes projectiles, actors and vehicles that appear after the first keyframe (and removes the ones that despawn), instead of freezing the opening frame's cast. Recordings also respect their maximum duration.
+- **Bots move like players.** Bots sprint on long rotations, aim down sights at mid range, and slide when critically hurt and running.
+- **Map and capture correctness.** The next-gen CTF map keeps its authored flag bases instead of dropping them at a spawn corner, and objective capture ignores actors standing far above a zone (no more roof camping a ground point).
+- **Server liveness.** The game server now heartbeats sockets and terminates dead ones, caps buffered outbound traffic so a slow client cannot balloon server memory, and limits spectators per room.
+
 Version 2.9 is a five-pass gap-fix batch found by a full codebase audit:
 
 - **Objective modes actually work.** `objectiveTemplate` now dispatches on the mode's declared objective kind instead of hard-coded names, so **Combined Arms** finally gets its three Domination zones (and can score/end). Bots now treat `assault` and `combined-arms` as objective modes: Assault attackers push the active sector while defenders hold it. The KOTH hill is chosen as the authored zone nearest the arena center instead of a fixed array index, fixing off-center hills on the next-gen maps.
