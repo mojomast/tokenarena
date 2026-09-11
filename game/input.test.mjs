@@ -72,3 +72,14 @@ test('chat, spectator and editable focus or targets block gameplay', () => {
     assert.equal(blocksGameplay(false, false, null, element), true);
   }
 });
+test('analog touch move overrides keys and explicit posture flags register', () => {
+  const analog = controlsFromState({ move: { x: 1, y: 0 }, look: { yaw: 0 } });
+  assert.ok(Math.abs(analog.x - 1) < 1e-9 && Math.abs(analog.z) < 1e-9);
+  const backward = controlsFromState({ move: { x: 0, y: -1 }, look: { yaw: 0 } });
+  assert.ok(backward.z > 0);
+  const mixed = controlsFromState({ keys: ['KeyA'], move: { x: 0, y: -1 }, look: { yaw: 0 } });
+  assert.ok(Math.abs(mixed.z - 1) < 1e-9 && Math.abs(mixed.x) < 1e-9, 'analog wins over keys');
+  const held = controlsFromState({ sprint: true, crouch: true });
+  assert.equal(held.sprint, true);
+  assert.equal(held.crouch, true);
+});
