@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.18 makes bots react to fire they cannot see:
+
+- **Threat awareness.** A bot that takes damage now records the attacker as a remembered threat, snaps its attention toward the shot and briefly investigates the last-known position when the attacker is not visible (`game/core.mjs`). Previously a bot only reacted to targets it could currently see, so an unseen shooter could farm it for free.
+- **Bounded and safe.** The reaction opens a 1.4s suppression window and requests a prompt but bounded (60ms) re-plan, so sustained bot-vs-bot fire cannot trigger a navigation recompute every frame.
+
 Version 2.17 trims network payloads:
 
 - **Quantized snapshots.** The server now rounds every finite number in broadcast snapshots and event deltas to the millimetre (`game/quantize.mjs`), applied to a deep clone in `server/room.mjs`. Positions and angles to three decimals look identical but serialize several bytes smaller at the 30 Hz snapshot rate, and the authoritative simulation keeps full precision.

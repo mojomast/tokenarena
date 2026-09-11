@@ -1,5 +1,25 @@
 # COCS verification report
 
+## Bot threat awareness 2.18 - 2026-09-11
+
+- **Hit reactions** (`game/core.mjs`): when a bot takes damage from another actor
+  it now records the attacker as a remembered threat — refreshing `memory`,
+  storing the attacker's position in `seen`, setting `target`/`threat` and opening
+  a 1.4s `suppressed` window — and requests a prompt (but bounded, 60ms) re-plan.
+  The existing `pursue` plan then sends the bot toward the last-known attacker
+  position when the attacker is not currently visible, so it returns fire or
+  investigates instead of ignoring unseen shots. Suppression decays over time and
+  the bounded re-plan avoids recomputing the navigation path every frame under
+  sustained fire.
+- **State hygiene**: bot `suppressed`/`threat` are initialized on spawn and reset
+  on respawn.
+- **Tests** (`game/bot-suppression.test.mjs`): an unseen shot records the threat,
+  forces a prompt re-plan, and drives a `pursue` toward the last-known position
+  whose suppression decays; damaging a human writes no bot state.
+
+Verification: `npm run test:game` 528/528, `npm run test:server` passing,
+typecheck, production build and the rendered response test green.
+
 ## Snapshot quantization 2.17 - 2026-09-11
 
 - **Payload trimming** (`game/quantize.mjs`, `game/quantize.test.mjs`): a pure
