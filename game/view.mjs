@@ -372,12 +372,19 @@ export class ArenaView{
     for(const side of[-1,1]){const m=mesh(along==='x'?rail('rail-x'):rail('rail-z'),metal,s.x,s.y+(s.thickness??.5)+.45,s.z+(along==='x'?side*(wid/2-.1):0));m.rotation.y=(s.rot||0);m.scale.set(along==='x'?len:1,1,along==='x'?1:len);}
    }
   }
-  for(const p of props){
-   if(p.type==='rock'){const s=p.scale??1,seed=p.seed??1,g=geo(`rock|${s.toFixed(2)}|${seed}`,()=>{const g0=new T.IcosahedronGeometry(s,1),pos=g0.attributes.position;for(let i=0;i<pos.count;i++){const nx=pos.getX(i),ny=pos.getY(i),nz=pos.getZ(i),n=.72+.55*hash3(nx,ny,nz,seed);pos.setXYZ(i,nx*n,ny*n*.82,nz*n);}g0.computeVertexNormals();paintGeometry(g0,seed,.22);return g0;});mesh(g,stone,p.x,p.y+s*.42,p.z);}
-   else if(p.type==='tree'){const s=p.scale??1,trunk=geo(`trunk|${s.toFixed(2)}`,()=>new T.CylinderGeometry(.11*s,.17*s,1.7*s,8)),canopy=geo(`canopy|${s.toFixed(2)}`,()=>new T.ConeGeometry(1.1*s,2.3*s,10));mesh(trunk,wood,p.x,p.y+.85*s,p.z);mesh(canopy,leaf,p.x,p.y+2.15*s,p.z);}
-   else if(p.type==='crate'){const s=p.scale??1,g=geo(`crate|${s.toFixed(2)}`,()=>new T.BoxGeometry(1.2*s,1.2*s,1.2*s));mesh(g,wood,p.x,p.y+.6*s,p.z);}
-   else if(p.type==='barrel'){const s=p.scale??1,g=geo(`barrel|${s.toFixed(2)}`,()=>new T.CylinderGeometry(.5*s,.5*s,1.15*s,12));mesh(g,barrel,p.x,p.y+.58*s,p.z);}
-   else if(p.type==='ruin'){const s=p.scale??1,seg=2+((p.seed??0)%3),g=geo('ruinwall',()=>new T.BoxGeometry(2.6,2.4,.45));for(let i=0;i<seg;i++){const a=(p.seed??0)*.7+i*1.05,m=mesh(g,stone,p.x+Math.cos(a)*1.3*s,p.y+1.1*s,p.z+Math.sin(a)*1.3*s,(p.seed%7)*.05,a,0);m.scale.set(s,s*(.6+((p.seed+i)%3)*.22),s);}}
+  if(props.length){
+   // Batch the repeated organic props into instanced meshes: one draw call per
+   // prop family instead of one per rock/tree/crate.
+   const groups={rock:[],tree:[],crate:[],barrel:[]},ruins=[];
+   for(const p of props){if(groups[p.type])groups[p.type].push(p);else ruins.push(p);}
+   const instance=(geometry,mat,list,place)=>{if(!list.length)return null;const inst=new T.InstancedMesh(geometry,mat,list.length);inst.castShadow=true;inst.receiveShadow=true;const m=new T.Object3D();list.forEach((p,i)=>{place(p,m);m.updateMatrix();inst.setMatrixAt(i,m.matrix);});inst.instanceMatrix.needsUpdate=true;world.add(inst);return inst;};
+   instance(geo('prop-rock',()=>{const g0=new T.IcosahedronGeometry(1,1),pos=g0.attributes.position;for(let i=0;i<pos.count;i++){const nx=pos.getX(i),ny=pos.getY(i),nz=pos.getZ(i),n=.72+.55*hash3(nx,ny,nz,7);pos.setXYZ(i,nx*n,ny*n*.82,nz*n);}g0.computeVertexNormals();paintGeometry(g0,7,.22);return g0;}),stone,groups.rock,(p,m)=>{const s=p.scale??1;m.position.set(p.x,p.y+s*.42,p.z);m.rotation.set(0,(p.seed??0)*.7,0);m.scale.setScalar(s);});
+   instance(geo('prop-trunk',()=>new T.CylinderGeometry(.11,.17,1.7,8)),wood,groups.tree,(p,m)=>{const s=p.scale??1;m.position.set(p.x,p.y+.85*s,p.z);m.rotation.set(0,(p.seed??0)*.5,0);m.scale.setScalar(s);});
+   instance(geo('prop-canopy',()=>new T.ConeGeometry(1.1,2.3,10)),leaf,groups.tree,(p,m)=>{const s=p.scale??1;m.position.set(p.x,p.y+2.15*s,p.z);m.rotation.set(0,(p.seed??0)*.5,0);m.scale.setScalar(s);});
+   instance(geo('prop-crate',()=>new T.BoxGeometry(1.2,1.2,1.2)),wood,groups.crate,(p,m)=>{const s=p.scale??1;m.position.set(p.x,p.y+.6*s,p.z);m.rotation.set(0,(p.seed??0)*.4,0);m.scale.setScalar(s);});
+   instance(geo('prop-barrel',()=>new T.CylinderGeometry(.5,.5,1.15,12)),barrel,groups.barrel,(p,m)=>{const s=p.scale??1;m.position.set(p.x,p.y+.58*s,p.z);m.scale.setScalar(s);});
+   const ruinGeo=geo('ruinwall',()=>new T.BoxGeometry(2.6,2.4,.45));
+   for(const p of ruins){const s=p.scale??1,seg=2+((p.seed??0)%3);for(let i=0;i<seg;i++){const a=(p.seed??0)*.7+i*1.05,m=mesh(ruinGeo,stone,p.x+Math.cos(a)*1.3*s,p.y+1.1*s,p.z+Math.sin(a)*1.3*s,(p.seed%7)*.05,a,0);m.scale.set(s,s*(.6+((p.seed+i)%3)*.22),s);}}
   }
   // Every terrain map should carry at least one batched detail layer (floor seams
   // and route marks) so the world reads with the same polish as the legacy maps.
