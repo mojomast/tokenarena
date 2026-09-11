@@ -88,9 +88,19 @@ test('a critically hurt bot with no supplies backpedals from a visible threat',(
   const m=new Match('chatgpt','openclaw',seeded(),'exchange',{mode:'deathmatch',botCount:1,difficulty:'normal',timeLimit:120,fragLimit:40});
   m.pickups.length=0;
   const bot=m.actors.find(a=>a.bot),human=m.actors.find(a=>!a.bot);
-  Object.assign(bot,{health:bot.maxHealth*.15,x:0,z:0,vx:0,vz:0});
-  Object.assign(human,{health:human.maxHealth,x:2,z:0});
+  Object.assign(bot,{health:bot.maxHealth*.15,x:-11,z:10,vx:0,vz:0});
+  Object.assign(human,{health:human.maxHealth,x:-8,z:10});
   Object.assign(bot.bot,{target:human.id,memory:1.5,think:0,route:[],destination:null,state:'engage'});
   const input=m.botInput(bot,1/60)||{};
   assert.ok((input.x??0)<-0.2,`expected retreat away from the threat on -x, got ${input.x}`);
+});
+
+test('bots use the expanded arsenal when those weapons are available',()=>{
+  const m=new Match('chatgpt','openclaw',seeded(),'exchange',{mode:'arsenal',botCount:1,difficulty:'normal',timeLimit:120,fragLimit:40});
+  const bot=m.actors.find(a=>a.bot),human=m.actors.find(a=>!a.bot);
+  Object.assign(bot,{health:bot.maxHealth,x:-11,z:10,vx:0,vz:0});
+  Object.assign(human,{health:human.maxHealth,x:-11,z:6});
+  Object.assign(bot.bot,{target:human.id,memory:1.5,think:0,route:[],destination:null,state:'engage'});
+  m.botInput(bot,1/60);
+  assert.ok(bot.weapon>=5,`close-range bot should pick an expanded-arsenal weapon, got ${bot.weapon}`);
 });

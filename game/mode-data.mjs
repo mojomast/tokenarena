@@ -23,22 +23,43 @@ const terrainHeight=(arena,x,z)=>{if(!arena.terrain)return null;const support=te
 const toPoints=(values,ids,rules,arena)=>values?.map(([x,z,radius,y=0],i)=>{const ground=arena?terrainHeight(arena,x,z):null;return point(x,z,ids[i],rules,radius,ground===null?y:ground);});
 const obstructedByBlocks=(arena,x,z,y,radius)=> (arena.blocks||[]).some(block=>Math.abs(x-block.x)<block.w/2+radius&&Math.abs(z-block.z)<block.d/2+radius&&y<block.h-1e-6);
 const onPlatform=(arena,x,z,radius)=> (arena.platforms||[]).some(platform=>Math.abs(x-platform.x)<=platform.w/2-radius&&Math.abs(z-platform.z)<=platform.d/2-radius);
+const spreadPoints=(pool,count)=>{
+  const distinct=pool.filter((candidate,index)=>pool.findIndex(other=>other.x===candidate.x&&other.z===candidate.z)===index);
+  if(distinct.length<=count)return distinct;
+  const chosen=[distinct[0]];
+  while(chosen.length<count){
+    let best=null,bestDistance=-1;
+    for(const candidate of distinct){
+      if(chosen.includes(candidate))continue;
+      let nearest=Infinity;
+      for(const point of chosen)nearest=Math.min(nearest,Math.hypot(candidate.x-point.x,candidate.z-point.z));
+      if(nearest>bestDistance){bestDistance=nearest;best=candidate;}
+    }
+    if(!best)break;
+    chosen.push(best);
+  }
+  return chosen;
+};
 const candidatePoints=(arena,ids,rules)=>{
   const b=boundsOf(arena),radius=3.5;
   const candidates=[...(arena.navNodes||[]),...(arena.spawns||[]).map(([x,z])=>({x,z,y:0})),...(arena.pickups||[]).map(([,x,z])=>({x,z,y:0}))];
   if(!arena.terrain)candidates.push({x:b.minX+(b.maxX-b.minX)*.25,z:b.minZ+(b.maxZ-b.minZ)*.25,y:0},{x:b.maxX-(b.maxX-b.minX)*.25,z:b.maxZ-(b.maxZ-b.minZ)*.25,y:0});
   const safe=candidates.filter(candidate=>Number.isFinite(candidate.x)&&Number.isFinite(candidate.z)&&(!arena.platforms?.length||onPlatform(arena,candidate.x,candidate.z,radius))&&!obstructedByBlocks(arena,candidate.x,candidate.z,candidate.y??0,radius));
-  return ids.map((id,index)=>{const candidate=safe[index%safe.length]||{x:b.minX+(b.maxX-b.minX)/2,z:b.minZ+(b.maxZ-b.minZ)/2,y:0};return point(candidate.x,candidate.z,id,rules,radius,candidate.y??0);});
+  const spread=spreadPoints(safe,ids.length);
+  return ids.map((id,index)=>{const candidate=spread[index]||{x:b.minX+(b.maxX-b.minX)/2,z:b.minZ+(b.maxZ-b.minZ)/2,y:0};return point(candidate.x,candidate.z,id,rules,radius,candidate.y??0);});
 };
 const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.id],ids,rules,arena)||(
   Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length
     ? ids.map((id,index)=>{const source=arena.objectiveZones[index];return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);})
     : candidatePoints(arena,ids,rules));
 export function objectiveTemplate(mode,arena){
-  const rules=modeRule(mode);
-  const authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
-  if(mode==='koth'){const source=authored[1];return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};}
- if(mode==='domination')return {kind:'domination',zones:authored,winner:null};
- if(mode==='assault'){const template=assaultTemplate(arena);template.zones=template.sectors;return template;}
- return null;
+  const rules=modeRule(mode),kind=rules.objective?.kind,authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
+  if(kind==='koth'){
+    const b=boundsOf(arena),centerX=(b.minX+b.maxX)/2,centerZ=(b.minZ+b.maxZ)/2;
+    const source=authored.slice().sort((p,q)=>Math.hypot(p.x-centerX,p.z-centerZ)-Math.hypot(q.x-centerX,q.z-centerZ))[0];
+    return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};
+  }
+  if(kind==='domination')return {kind:'domination',zones:authored,winner:null};
+  if(kind==='assault'){const template=assaultTemplate(arena);template.zones=template.sectors;return template;}
+  return null;
 }

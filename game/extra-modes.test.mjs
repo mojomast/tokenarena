@@ -42,3 +42,19 @@ test('objective bot follows the selected nearby strategic pickup',()=>{
  m.pickups=[optional,strategic];b.bot.think=0;m.botInput(b,1/60);
  assert.equal(b.bot.state,'seek');assert.equal(b.bot.destination,strategic);
 });
+
+test('combined-arms establishes domination zones and routes bots to them',()=>{
+ const m=new Match('chatgpt','openclaw',rng,'titan-valley',{mode:'combined-arms',botCount:1});
+ assert.equal(m.objectiveState.kind,'domination');assert.equal(m.objectiveState.zones.length,3);
+ const b=m.actors[1];m.pickups=[];b.bot.think=0;m.botInput(b,1/60);
+ assert.equal(b.bot.state,'objective');
+ assert.ok(Number.isFinite(b.bot.destination?.x)&&Number.isFinite(b.bot.destination?.z));
+});
+
+test('assault bots push or hold the active sector',()=>{
+ const m=new Match('chatgpt','openclaw',rng,'rampart',{mode:'assault',botCount:1});
+ const b=m.actors[1];m.pickups=[];b.bot.think=0;m.botInput(b,1/60);
+ assert.ok(['objective','hold'].includes(b.bot.state),b.bot.state);
+ const active=m.objectiveState.sectors[0];
+ assert.ok(Math.hypot((b.bot.destination?.x??0)-active.x,(b.bot.destination?.z??0)-active.z)<12);
+});

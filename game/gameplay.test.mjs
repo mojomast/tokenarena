@@ -8,8 +8,16 @@ const rng=()=>{let n=42;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/429
 const actor=(arena,values={})=>Object.assign(new Match('chatgpt','openclaw',rng(),arena.id,{botCount:0}).actors[0],{vx:0,vy:0,vz:0,active:0,grounded:false},values);
 const clear=(a,arena)=>assert.equal(obstructed(a.x,a.y,a.z,RULES.radius,arena),false,`${arena.id}: ${JSON.stringify({x:a.x,y:a.y,z:a.z})}`);
 
-test('casual defaults preserve explicit saved difficulty and roster',()=>{
- assert.equal(DEFAULT_CONFIG.botCount,2);assert.equal(DEFAULT_CONFIG.difficulty,'easy');
+test('manual reload is consumed by the simulation and refills the magazine',()=>{
+ const m=new Match('chatgpt','openclaw',rng(),'exchange',{mode:'deathmatch',botCount:0}),a=m.actors[0];
+ a.weapon=1;a.ammo[1]=1;a.shotWait=0;a.protection=0;
+ m.step(1/60,{reload:true});
+ assert.equal(a.reloading,true,'R should start a reload');
+ for(let i=0;i<240;i++)m.step(1/60,{});
+ assert.ok(a.ammo[1]>1,`reload should add ammo (${a.ammo[1]})`);
+});
+
+test('casual defaults preserve explicit saved difficulty and roster',()=>{ assert.equal(DEFAULT_CONFIG.botCount,2);assert.equal(DEFAULT_CONFIG.difficulty,'easy');
  assert.deepEqual(normalizeConfig(),DEFAULT_CONFIG);
  assert.equal(new Match().actors.length,3);
  const saved=normalizeConfig(JSON.parse('{"botCount":4,"difficulty":"normal"}'));

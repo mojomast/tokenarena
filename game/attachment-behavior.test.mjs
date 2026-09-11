@@ -46,3 +46,17 @@ test('a homing beacon steers its rocket toward a nearby enemy', () => {
   assert.ok(rocket.dir.x > beforeX, 'homing rocket should curve toward the enemy');
 });
 
+test('magazine attachments raise the reload ceiling and quickdraw shortens the reload', () => {
+  const m = rig({magazine: 'extended-mag'}), a = m.actors[0];
+  a.weapon = 3; a.ammo[3] = 39; a.shotWait = 0;
+  const cap = m.weaponFor(a).cap;
+  assert.equal(cap, 42);
+  assert.equal(m.startReload(a, 3), true);
+  assert.equal(a.reloadCap, 42);
+  for (let i = 0; i < 200; i++) m.step(1 / 60, {});
+  assert.equal(a.ammo[3], 42, `reload should respect the extended capacity (${a.ammo[3]})`);
+  const g = rig({underbarrel: 'quickdraw-grip'}), b = g.actors[0];
+  b.weapon = 3; b.ammo[3] = 10; b.shotWait = 0;
+  g.startReload(b, 3);
+  assert.ok(Math.abs(b.reloadDuration - 2 * .82) < 1e-6, `quickdraw reload ${b.reloadDuration}`);
+});

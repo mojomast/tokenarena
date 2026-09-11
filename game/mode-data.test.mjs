@@ -7,6 +7,22 @@ import {RULES} from './data.mjs';
 
 const canonicalObjectiveMaps=['exchange','crosswire','foundry','launchpad','citadel','blood-gulch','skybreak','aether','sunscar-canyon','ironfall-megastructure','longreach-plateau'];
 
+test('objective modes dispatch on the mode rules, not the mode name',()=>{
+  const combined=objectiveTemplate('combined-arms',MAPS.find(map=>map.id==='titan-valley'));
+  assert.equal(combined.kind,'domination');
+  assert.equal(combined.zones.length,3);
+  const assault=objectiveTemplate('assault',MAPS.find(map=>map.id==='rampart'));
+  assert.equal(assault.kind,'assault');
+  assert.equal(assault.sectors.length,3);
+});
+
+test('KOTH places the hill at the authored center on next-gen maps',()=>{
+  for(const id of ['sunken-hill','colosseum','catacombs','forge']){
+    const map=MAPS.find(value=>value.id===id),hill=objectiveTemplate('koth',map).zones[0];
+    assert.ok(Math.hypot(hill.x,hill.z)<9,`${id} hill should stay near the arena center (${hill.x},${hill.z})`);
+  }
+});
+
 test('KOTH and Domination objectives use safe authored points on every canonical map',()=>{
   for(const id of canonicalObjectiveMaps){
     const map=MAPS.find(value=>value.id===id);
