@@ -1,5 +1,40 @@
 # COCS verification report
 
+## Codebase-audit gap-fix batch 2.9 - 2026-09-11
+
+A five-domain audit of the simulation, content, UI, server and renderer produced
+a ranked gap list; the highest-impact correctness bugs were fixed:
+
+- **Objective modes** (`game/mode-data.mjs`, `game/core.mjs`): `objectiveTemplate`
+  now keys off `modeRule(mode).objective.kind`, so Combined Arms gets Domination
+  zones; Assault and Combined Arms are objective-aware for bots; the KOTH hill is
+  the authored zone nearest the arena center. Verified by new `mode-data` and
+  `extra-modes` tests plus a probe (Combined Arms scores; Assault bots capture all
+  three sectors).
+- **Reload and arsenal** (`game/core.mjs`, `game/config.mjs`): the simulation
+  consumes the forwarded one-shot `reload`, `startingWeapon` accepts indices 0-9,
+  bots pick weapons 5-9, and the resolved attachment weapon drives reload cap,
+  reload duration and pickup caps. New `gameplay`, `config`, `attachment-behavior`
+  and `bot-behavior` assertions.
+- **Balance correctness** (`game/core.mjs`, `game/progression.mjs`,
+  `game/vehicles.mjs`): negative armour clamped at spawn and in absorption,
+  harness passive damage applied, vehicle friendly-fire rules (crew excepted),
+  mounted chainguns damage enemy vehicles, and vehicle speed/boost/traverse
+  skills are honoured. New `vehicles`, `vehicle-gameplay` and `gameplay` tests.
+- **Server hardening** (`server/rooms.mjs`, `server/room.mjs`,
+  `server/progression.mjs`): room names sanitized/bounded, mid-match join sets
+  `lastSerial` and becomes a spectator, gear writes reject spectators and are
+  throttled, and `ProgressionStore` touches on access so eviction is LRU. New
+  `rooms`/`room`/`progression` tests.
+- **Renderer** (`game/software.mjs`, `game/view.mjs`, `game/textures.mjs`): the
+  CPU renderer expands `InstancedMesh` instances, and surface textures are
+  disposed exactly once on rebuild. New `textures` suite and a `view` instancing
+  test.
+
+Verification: `npm run test:game` 483/483, `npm run test:server` 90/90,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Five-pass polish batch 2.8 - 2026-09-11
 
 - **Killstreak callouts** (`game/hud.mjs` `multikillLabel`/`spreeLabel`/`recentKills`/`killCallout`): rapid local kills produce DOUBLE/TRIPLE/OVERKILL/MONSTER/MEGA KILL labels and five-kill milestones produce spree names. `game/core.mjs` death events now include `killer`/`killerName`/`self` so the same pure logic serves solo and net. Covered by new `hud` tests plus the enriched-event path in `core`/`feedback`.

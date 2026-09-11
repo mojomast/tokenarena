@@ -1,6 +1,6 @@
 # COCS — Colosseum Of Competitive Slop
 
-A local Three.js first-person arena-shooter where nine famous language models settle their differences with guns. Select an AI operator, strap on one of seven agent harnesses, choose an arena, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+A local Three.js first-person arena-shooter where nine famous language models settle their differences with guns. Select an AI operator, strap on one of seven agent harnesses, choose an arena, and configure a match with zero to sixteen bots (mode-dependent). New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
 
 Every operator and harness blurb is affectionate parody — jokes about the vibes and internet lore around each tool, not claims about what they actually do. AI names represent fictional robots, not factual product comparisons.
 
@@ -99,7 +99,7 @@ Not yet included: accounts/matchmaking.
 | Ctrl / C (hold) | Crouch; crouch while sprinting to slide |
 | Space | Jump — hold to auto-hop / bunnyhop (handbrake while driving) |
 | R | Reload |
-| 1–8; mouse wheel | Switch available weapon |
+| 1–9/0; mouse wheel | Switch available weapon |
 | Q | Activate harness |
 | E | Enter / exit nearby Warthog |
 | Tab | Hold scoreboard |
@@ -130,7 +130,7 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 - `app/page.tsx`: game state menus, HUD, input, audio events and fixed-step accumulator. Rendering is RAF-driven; simulation advances at 60Hz with five-step catch-up bound.
 - `game/hud.mjs`: pure HUD derivations — vehicle prompts, reload/crosshair/ammo helpers, kill banners, the match/objective announcer, killstreak and multikill callouts, and post-match superlatives.
 - `game/radar.mjs`: pure yaw-relative projection of actors, objectives and flags onto the tactical radar, plus the default and colorblind palettes.
-- `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
+- `game/data.mjs`: roster, ten weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
 - `game/character-anim.mjs`: engine-free procedural character animation — damped gait phase, bounded pose solver and the joint rig used by the renderer, plus the bot facing helpers.
 - `game/levelgen.mjs`: deterministic next-generation level generator — heightfield terrain, cliff faces, buildings/tunnels/caverns/bridges and props, emitted as the existing map schema plus a smooth visual layer.
 - `game/nextgen-maps.mjs`: one generated map per game mode; the legacy arenas are unchanged.
@@ -241,6 +241,14 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.9 is a five-pass gap-fix batch found by a full codebase audit:
+
+- **Objective modes actually work.** `objectiveTemplate` now dispatches on the mode's declared objective kind instead of hard-coded names, so **Combined Arms** finally gets its three Domination zones (and can score/end). Bots now treat `assault` and `combined-arms` as objective modes: Assault attackers push the active sector while defenders hold it. The KOTH hill is chosen as the authored zone nearest the arena center instead of a fixed array index, fixing off-center hills on the next-gen maps.
+- **Reload and the whole arsenal.** Pressing **R** now actually reloads (the server already forwarded the input; the simulation now consumes it), the starting-weapon setting accepts all **ten** weapons instead of clamping at the Flak Cannon, and bots use the Shock Beam, Grenade Launcher, Flak Cannon, Marksman Rifle and SMG instead of only the first five guns. Magazine attachments now raise the real reload ceiling and Quickdraw speeds the real reload timer.
+- **Balance correctness.** Reduced-armour gear (Light Frame) can no longer turn into a hidden damage bonus, harness passive damage modifiers are applied to outgoing fire, team modes no longer let you destroy your own team's vehicle, mounted chainguns can damage enemy armour, and the Hermes/Cline/OpenCode vehicle perks (overdrive, nitro boost, faster turret) now do what they say.
+- **Server hardening.** Created room names are stripped of control characters and bounded; a late joiner no longer replays the whole buffered event history (and a mid-match player join becomes a spectator instead of a ghost seat); gear writes are blocked for spectators and rate-limited; progression eviction is now least-recently-used instead of insertion order.
+- **Renderer fixes.** The CPU software renderer now draws every instance of an `InstancedMesh` (next-gen rocks, trees, crates and barrels no longer vanish), and procedural surface textures are disposed correctly when a world is rebuilt instead of leaking normal/roughness maps.
+
 Version 2.8 is a five-pass polish batch:
 
 - **Killstreak callouts.** Consecutive local kills now announce themselves — DOUBLE / TRIPLE / OVERKILL / MONSTER / MEGA KILL for rapid chains, and KILLING SPREE / RAMPAGE / DOMINATING / UNSTOPPABLE / GODLIKE / LEGENDARY at each five-kill milestone. Death events now carry the killer, so solo and network matches share the same logic (`game/hud.mjs`).
@@ -299,7 +307,7 @@ The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZI
 
 ## Custom matches (0.3)
 
-Use **Mode & bot settings** on the loadout screen to jump to match setup. Settings persist on this device; the current match keeps its original rules. Play Again starts a fresh match with the same chosen configuration.
+Use **MATCH SETUP** on the loadout screen to jump to match setup. Settings persist on this device; the current match keeps its original rules. Play Again starts a fresh match with the same chosen configuration.
 
 | Mode | Rules |
 |---|---|
@@ -310,12 +318,12 @@ Use **Mode & bot settings** on the loadout screen to jump to match setup. Settin
 | Team Deathmatch | Shared team frag score; friendly fire is disabled. |
 | Instagib | Unlimited Rail Lance only; one unprotected hit kills. No supplies or powers. |
 | Rocket Arena | Unlimited rockets only; health and armor pickups remain. |
-| Full Arsenal | All eight weapons unlocked with unlimited ammo on every spawn. |
+| Full Arsenal | All ten weapons unlocked with unlimited ammo on every spawn. |
 
 Set 0–8 bots (zero is solo practice), Easy/Normal/Hard/Nightmare difficulty, capture/team-frag limits or 30–300 second objective targets, 1–15 minute timer, and 1–5 second respawns. Difficulty changes reaction delay, aim error, turning speed, decision interval, and firing cadence. Bots use their operator stats and the same match modifiers as players; difficulty does not grant extra health. During play, the Live Command panel identifies the current objective and recommended next move.
 
 Modifiers: 0.75–1.5× movement speed, normal/light/moon gravity, 0.5–2× damage, unlimited ammo for unlocked weapons, half ability cooldowns, and 25% life steal based on health damage actually dealt. Self-damage never heals. Instagib overrides damage and disables powers. Weapon-locked modes override the starting weapon and ammo controls.
 
-Customize your callsign (20 characters), 65–110° field of view, crosshair shape (cross/dot/ring), color and size, weapon visibility, FPS counter, sensitivity and audio. View settings are available in Controls & Settings and Pause and apply immediately. Match rules are edited from loadout. Reset buttons restore match or display defaults separately. No user account or cloud save is involved.
+Customize your callsign (20 characters), 65–110° field of view, crosshair shape (cross/dot/ring/chevron/split), color and size, weapon visibility, FPS counter, sensitivity and audio. View settings are available in Controls & Settings and Pause and apply immediately. Match rules are edited from loadout. Reset buttons restore match or display defaults separately. No user account or cloud save is involved.
 
 `game/config.mjs` validates persisted input and defines presets. `app/game-ui/configuration.tsx` contains the setup controls. `game/config.test.mjs` verifies the new rules and complete matches at all four difficulties.
