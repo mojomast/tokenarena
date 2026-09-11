@@ -70,14 +70,14 @@ test('remote inputs drive look, fire and events stream back as deltas',()=>{
   room.input(2,{seq:20,yaw:Math.PI,fire:true});
  for(let i=0;i<4;i++)room.tick(1/60);
  const msgs=room.drain();
- assert.equal(a.health,89);
- assert.equal(b.health,89);
+ assert.equal(a.health,88.78);
+ assert.equal(b.health,88.78);
  assert.ok(Math.abs(b.yaw-Math.PI)<1e-9);
  const ev1=find(msgs,'events',1).items,ev2=find(msgs,'events',2).items;
  assert.ok(ev1.some(e=>e.type==='damage'&&e.actor===1&&e.source===0));
  assert.ok(ev2.some(e=>e.type==='damage'&&e.actor===0&&e.source===1));
-  assert.ok(find(msgs,'snapshot').state.actors[1].health===89);
-  assert.ok(find(msgs,'snapshot').state.actors[0].health===89);
+  assert.ok(find(msgs,'snapshot').state.actors[1].health===88.78);
+  assert.ok(find(msgs,'snapshot').state.actors[0].health===88.78);
   assert.deepEqual(find(msgs,'snapshot').acks,{0:10,1:20});
 });
 test('start and rematch preserve every human validated loadout',()=>{
@@ -377,4 +377,26 @@ test('lag compensation transform history is opt-in and bounded',()=>{
  room.enableLagCompensation(false);
  room.tick(1/60);
  assert.equal(room.transformHistory.length,0,'disabling clears history');
+});
+test('a spectator joining mid-match does not replay buffered events',()=>{
+ const room=new Room('r',rng(),{graceMs:1000});
+ room.join(1,'Host');room.host(1,{botCount:2,timeLimit:60,fragLimit:5},'crosswire');room.start(1);
+ for(let i=0;i<180;i++)room.tick(1/60);
+ const serial=room.match.serial;
+ assert.ok(serial>0,'expected some match events before the join');
+ room.join(2,'Watcher','chatgpt','openclaw','',true);
+ room.drain();
+ room.tick(1/60);
+ const events=room.drain().filter(m=>m.to===2&&m.msg.type==='events').flatMap(m=>m.msg.items);
+ assert.ok(events.every(e=>e.id>serial),`spectator should not replay history (${events.map(e=>e.id).join(',')})`);
+});
+
+test('mid-match player joins become spectators instead of ghost seats',()=>{
+ const room=new Room('r',rng(),{graceMs:1000});
+ room.join(1,'Host');room.host(1,{botCount:1,timeLimit:60,fragLimit:5},'crosswire');room.start(1);
+ room.drain();
+ room.join(2,'Latecomer','chatgpt','openclaw');
+ const welcome=room.drain().find(m=>m.to===2&&m.msg.type==='welcome')?.msg;
+ assert.equal(welcome.spectate,true);
+ assert.equal(room.peers.get(2).actorId,null);
 });

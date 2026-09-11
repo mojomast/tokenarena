@@ -87,3 +87,11 @@ test('tick, expire and drain drivers iterate every room',()=>{
  assert.equal(a.peers.size,0,'expired seats leave room A');
  assert.equal(b.peers.size,0,'expired seats leave room B');
 });
+test('created room names are sanitized and bounded',()=>{
+ const reg=new RoomRegistry({random:rng()});
+ const room=reg.create('bad\n\r\u001b[31m'+'x'.repeat(200));
+ assert.ok(!/[\u0000-\u001f\u007f-\u009f]/.test(room.name),'control characters should be stripped');
+ assert.ok(room.name.length<=32,'room name should be bounded');
+ const fallback=reg.create('   ');
+ assert.equal(fallback.name,fallback.id);
+});

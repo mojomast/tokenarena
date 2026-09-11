@@ -24,11 +24,12 @@ export class ProgressionStore{
    }
   }catch{this.players=new Map();}
  }
- get(id){if(!validPlayerId(id)||!this.players.has(id))return null;const profile=this.players.get(id);return {...profile,gear:{...profile.gear},attachments:{...profile.attachments},unlocks:{...profile.unlocks}};}
+ touch(id){const profile=this.players.get(id);if(profile){this.players.delete(id);this.players.set(id,profile);}return profile;}
+ get(id){if(!validPlayerId(id)||!this.players.has(id))return null;const profile=this.touch(id);return {...profile,gear:{...profile.gear},attachments:{...profile.attachments},unlocks:{...profile.unlocks}};}
  ensure(id){
   if(!validPlayerId(id))return null;
-  if(!this.players.has(id))this.players.set(id,{...defaultProgression(),id});
-  return this.players.get(id);
+  if(!this.players.has(id)){this.players.set(id,{...defaultProgression(),id});this.trim();}
+  return this.touch(id);
  }
  setGear(id,gear,attachments){
   const profile=this.ensure(id);

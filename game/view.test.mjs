@@ -270,3 +270,23 @@ test('low health overlay fades in under pressure and out on recovery',()=>{
  assert.ok(overlay.opacity<.01);assert.equal(overlay.mesh.visible,false);
  overlay.dispose();assert.equal(camera.children.length,0);
 });
+test('the CPU renderer draws every instance of an InstancedMesh',t=>{
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'document');
+ const ctx={fillRect(){},fillText(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},stroke(){},fill(){}};
+ Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({getContext:()=>ctx})}});
+ t.after(()=>{if(previous)Object.defineProperty(globalThis,'document',previous);else delete globalThis.document;});
+ const renderer=new SoftwareRenderer({width:320,height:180,getContext:()=>ctx});
+ const scene=new T.Scene();scene.background=new T.Color('#000');
+ const geometry=new T.BoxGeometry(1,1,1),material=new T.MeshBasicMaterial({color:'#ffffff'});
+ const camera=new T.PerspectiveCamera(82,320/180,.1,100);camera.position.set(0,0,5);camera.lookAt(0,0,0);
+ const singles=[];
+ for(let i=0;i<4;i++){const mesh=new T.Mesh(geometry,material);mesh.position.set((i-1.5)*1.2,0,0);scene.add(mesh);singles.push(mesh);}
+ renderer.render(scene,camera);const separate=renderer.info.render.triangles;
+ assert.ok(separate>0,'plain meshes draw');
+ for(const mesh of singles)scene.remove(mesh);
+ const instanced=new T.InstancedMesh(geometry,material,4),dummy=new T.Object3D();
+ for(let i=0;i<4;i++){dummy.position.set((i-1.5)*1.2,0,0);dummy.updateMatrix();instanced.setMatrixAt(i,dummy.matrix);}
+ instanced.instanceMatrix.needsUpdate=true;scene.add(instanced);
+ renderer.render(scene,camera);
+ assert.equal(renderer.info.render.triangles,separate,`instanced mesh should match the same four separate meshes (${separate} -> ${renderer.info.render.triangles})`);
+});

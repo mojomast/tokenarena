@@ -69,3 +69,26 @@ test('a completed room awards persistent progression to its players',()=>{
  const reloaded=new ProgressionStore(file);
  assert.equal(reloaded.get(ID).xp,store.get(ID).xp);
 });
+test('spectators cannot write gear and writes are rate limited',()=>{
+ const store=new ProgressionStore(null),room=new Room('r',()=>.5,{progression:store});
+ room.join(1,'Host','chatgpt','openclaw','',false,ID);room.join(2,'Watcher','chatgpt','openclaw','',true,ID);
+ room.drain();
+ room.setGear(2,{primary:'light-frame'},undefined,1000);
+ assert.equal(room.drain().filter(m=>m.to===2&&m.msg.type==='progression').length,0,'spectator gear write should be ignored');
+ room.setGear(1,{primary:'light-frame'},undefined,1000);
+ assert.equal(room.drain().filter(m=>m.to===1&&m.msg.type==='progression').length,1,'first write should apply');
+ room.setGear(1,{primary:'light-frame'},undefined,1200);
+ assert.equal(room.drain().filter(m=>m.to===1&&m.msg.type==='progression').length,0,'rapid write should be throttled');
+ room.setGear(1,{primary:'light-frame'},undefined,1600);
+ assert.equal(room.drain().filter(m=>m.to===1&&m.msg.type==='progression').length,1,'write after the window should apply');
+});
+
+test('progression eviction prefers the least recently used player',()=>{
+ const store=new ProgressionStore(null,{max:2});
+ store.ensure('player-0001');store.ensure('player-0002');
+ store.get('player-0001');
+ store.ensure('player-0003');
+ assert.ok(store.get('player-0001'),'recently used player should survive');
+ assert.equal(store.get('player-0002'),null,'least recently used player should be evicted');
+ assert.ok(store.get('player-0003'));
+});

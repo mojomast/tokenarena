@@ -36,7 +36,7 @@ const LAYERS={
 
 const cache=new Map();
 
-export function clearSurfaceTextures(){cache.clear();}
+export function clearSurfaceTextures(){for(const textures of cache.values())for(const texture of Object.values(textures))texture?.dispose?.();cache.clear();}
 
 export function surfaceTextures(kind='concrete',{size=96,seed=1,repeat=[1,1],normal=true,roughness=true}={}){
  const key=`${kind}|${size}|${seed}|${repeat[0]},${repeat[1]}|${normal?1:0}|${roughness?1:0}`;

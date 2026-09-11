@@ -26,7 +26,8 @@ export class RoomRegistry {
  }
  create(name = '') {
   const id = this.generateCode();
-  return this.add(new Room(id, this.random, { name: String(name ?? '').trim() || id, graceMs: this.graceMs, history: this.history, progression: this.progression, snapshotHz: this.snapshotHz }));
+  const safeName = String(name ?? '').replace(/[\u0000-\u001f\u007f-\u009f]/g, '').trim().slice(0, 32) || id;
+  return this.add(new Room(id, this.random, { name: safeName, graceMs: this.graceMs, history: this.history, progression: this.progression, snapshotHz: this.snapshotHz }));
  }
  get(roomId) { return this.rooms.get(roomId) ?? null; }
  has(roomId) { return this.rooms.has(roomId); }
