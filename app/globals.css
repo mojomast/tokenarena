@@ -289,6 +289,18 @@
 .match-awards small { font: 10px monospace; letter-spacing: 2px; color: #9fd8c6; }
 .match-awards strong { font: 15px monospace; color: #e8fff6; }
 .match-awards em { font: 12px monospace; font-style: normal; color: #ffd9a0; letter-spacing: 1px; }
+/* Tactical radar: yaw-relative contacts, objectives and flags. */
+.radar { position: absolute; right: 30px; top: 112px; width: 172px; height: 172px; border: 1px solid #83f4d544; border-radius: 50%; background: radial-gradient(circle at 50% 50%, #0a1b1acc, #061214e6); box-shadow: 0 10px 30px #0008, inset 0 0 30px #0b2b2422; pointer-events: none; overflow: hidden; }
+.radar svg { display: block; width: 100%; height: 100%; }
+.radar-ring { fill: none; stroke: #83f4d533; stroke-width: .02; }
+.radar-axis { stroke: #83f4d522; stroke-width: .014; }
+.radar-view { fill: #8dffb0; }
+.radar-sweep { stroke: #83f4d5aa; stroke-width: .022; transform-origin: 0 0; animation: radar-sweep 3.2s linear infinite; }
+.radar-dead { opacity: .28; }
+.kill-feed { top: 300px; }
+@keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@media (max-width: 600px) { .radar { width: 118px; height: 118px; top: 104px; right: 14px; } .kill-feed { top: 236px; } }
+@media (prefers-reduced-motion: reduce) { .radar-sweep { animation: none; } }
 .next-arena-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
 .next-arena-button small { display: block; font: 12px monospace; line-height: 1.5; color: #a4bdb1; margin-top: 6px; }
 .ammo-warning { padding: 6px 10px; background: #241c13ed; border: 1px solid #ffc48970; color: #ffce9c; font: 12px monospace; line-height: 1.5; text-align: center; }
