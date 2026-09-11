@@ -192,3 +192,20 @@ export function matchAwards(hud) {
   if ((Number(generous.deaths) || 0) > 0) awards.push({id: 'deaths', label: 'FEED PROVIDER', name: generous.name, value: `${Number(generous.deaths) || 0} DEATHS`});
   return awards;
 }
+
+// Weapon range identity: a coarse SHORT/MID/LONG band plus the effective
+// (full-damage) distance and, when the weapon falls off, the retained fraction.
+export function weaponRangeInfo(weapon) {
+  const range = Number(weapon?.range) || 0;
+  const falloff = weapon?.falloff;
+  const start = falloff ? Number(falloff.start) || 0 : range;
+  const end = falloff ? Number(falloff.end) || range : range;
+  const band = range <= 26 ? 'SHORT' : range <= 60 ? 'MID' : 'LONG';
+  return { band, start, end, range, factor: falloff && Number.isFinite(Number(falloff.min)) ? Number(falloff.min) : 1 };
+}
+
+export function weaponRangeLabel(weapon) {
+  const info = weaponRangeInfo(weapon);
+  const span = info.factor < 1 ? `${Math.round(info.start)}–${Math.round(info.end)}m · ${Math.round(info.factor * 100)}%` : `${Math.round(info.range)}m`;
+  return `${info.band} · ${span}`;
+}

@@ -1,5 +1,19 @@
 # COCS verification report
 
+## Weapon range readout 2.20 - 2026-09-11
+
+- **Pure helpers** (`game/hud.mjs`, `game/hud.test.mjs`): `weaponRangeInfo` returns
+  a SHORT/MID/LONG band, the full-damage `start` and falloff `end`, and the
+  retained fraction; `weaponRangeLabel` formats it (e.g. `SHORT · 6–24m · 40%`).
+  A new test covers falloff and non-falloff weapons and the empty case.
+- **Settings/arsenal UI** (`app/page.tsx`, `app/globals.css`): the Graphics &
+  settings arsenal list now shows each weapon's range band and effective distance,
+  making the new falloff legible when choosing a loadout. The control reference
+  gains a touch-controls row (`Left stick move · drag right to look · TALK to talk`).
+
+Verification: `npm run test:game` passing (HUD tests included), typecheck,
+production build and the rendered response test green.
+
 ## Touch controls v2 2.19 - 2026-09-11
 
 - **Pure action mapping** (`game/touch.mjs`, `game/touch.test.mjs`): the on-screen

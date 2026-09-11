@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.20 makes weapon range legible:
+
+- **Range badges.** Graphics & settings now labels every weapon with its range band and effective distance — `SHORT · 6–24m · 40%`, `LONG · 16–70m · 62%` — derived by the pure `weaponRangeInfo`/`weaponRangeLabel` helpers in `game/hud.mjs`, so the falloff added in 2.15 is visible when picking a loadout.
+- **Touch controls documented.** The in-game control reference gains a mobile row describing the stick, look surface and `TALK`.
+
 Version 2.19 improves the mobile touch controls:
 
 - **Right-zone look, no dead zones.** The drag-look surface is constrained to the right side of the screen, so the left-hand HUD and thumbstick are no longer covered by an invisible touch target.

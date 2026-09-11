@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -221,4 +221,12 @@ test('matchAwards stays silent for solo practice and malformed input', () => {
   assert.deepEqual(matchAwards({actors:[awardActor(0, 'ChatGPT', 9, 2)]}), []);
   assert.deepEqual(matchAwards({}), []);
   assert.deepEqual(matchAwards(null), []);
+});
+
+test('weapon range labels expose band, effective range and falloff', () => {
+  assert.equal(weaponRangeLabel({range: 24, falloff: {start: 6, end: 24, min: .4}}), 'SHORT · 6–24m · 40%');
+  assert.equal(weaponRangeLabel({range: 90}), 'LONG · 90m');
+  assert.equal(weaponRangeLabel({range: 52, falloff: {start: 14, end: 52, min: .5}}), 'MID · 14–52m · 50%');
+  assert.equal(weaponRangeLabel({range: 70, falloff: {start: 16, end: 70, min: .62}}), 'LONG · 16–70m · 62%');
+  assert.deepEqual(weaponRangeInfo({}), {band: 'SHORT', start: 0, end: 0, range: 0, factor: 1});
 });
