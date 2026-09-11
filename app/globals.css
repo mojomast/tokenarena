@@ -618,3 +618,50 @@ a.icon-button.github-link>span{position:absolute;width:1px;height:1px;overflow:h
 .arsenal-list small{display:block;font-size:10px;line-height:1.4;color:#7f9d90;letter-spacing:0;margin-top:3px}
 @media(prefers-reduced-motion:reduce){.title-letter{animation:none;opacity:1;transform:none}}
 @media(max-width:600px){.title-logo{gap:8px}.title-letter b{font-size:clamp(52px,17vw,110px)}.title-letter i{font-size:8px;letter-spacing:.5px}.wordmark-full{display:none}}
+
+/* HUD v2.7 — readouts scale with the viewport, with cinematic announcement effects. */
+.game-hud{--hud-1:clamp(13px,1.1vw + .25vh,20px);--hud-2:clamp(20px,2.1vw,40px);--hud-3:clamp(32px,3.6vw,68px)}
+.match-top>div:first-child strong{font-size:var(--hud-1);letter-spacing:.2em}
+.match-top .eyebrow{font-size:clamp(11px,.85vw,15px);letter-spacing:.22em}
+.match-clock{font-size:var(--hud-3);text-shadow:0 0 22px #83f4d544,0 3px 12px #000}
+.frag-counter strong{font-size:var(--hud-3);text-shadow:0 0 22px #ffd9a033,0 3px 12px #000}
+.match-clock small,.frag-counter small{font-size:clamp(10px,.8vw,14px)}
+.vitals{padding:clamp(14px,1.4vw,26px);gap:clamp(18px,1.8vw,42px);min-width:clamp(180px,22vw,420px);border:1px solid #afebcb3a;background:linear-gradient(180deg,#0a2020d9,#061314c9);box-shadow:0 10px 34px #0008,inset 0 0 34px #0b2b2418}
+.health>span{font-size:clamp(24px,2.2vw,44px)}
+.health strong{font-size:clamp(34px,3.5vw,66px);text-shadow:0 0 24px #a6f7d344}
+.armor strong{font-size:clamp(24px,2.4vw,48px)}
+.health-track{height:6px}.health-track i{box-shadow:0 0 12px #a6f7d3aa}
+.ability-hud strong{font-size:clamp(14px,1.15vw,21px)}
+.ability-hud small,.weapon-hud small{font-size:clamp(10px,.82vw,14px)}
+.ability-q{font-size:clamp(14px,1.2vw,22px);padding:8px 9px}
+.weapon-hud strong{font-size:clamp(30px,3.1vw,60px);text-shadow:0 0 20px #c4f7ab33}
+.weapon-hud>div:last-child>span{font-size:clamp(13px,1.1vw,19px)}
+.weapon-slots>span{font-size:clamp(11px,.82vw,14px)}
+.kill-feed>div{font-size:clamp(12px,.95vw,16px);padding:10px 14px;border-left:3px solid #83f4d5;background:#071718e6;backdrop-filter:blur(6px);box-shadow:0 6px 18px #0007;animation:feedSlide .22s ease-out}
+.kill-feed span:first-child{font-weight:700}
+.kill-feed small{color:#ffcf9a}
+.command-panel{width:min(780px,calc(100% - 24px));padding:clamp(14px,1.4vw,22px) clamp(18px,2vw,30px);box-shadow:0 16px 44px #0009,inset 0 0 40px #0b2b2414}
+.command-panel h2{font-size:clamp(19px,2vw,34px);letter-spacing:.02em}
+.command-panel p{font-size:clamp(13px,1vw,17px)}
+.command-meta strong{font-size:clamp(12px,.95vw,16px)}
+/* Announcements: a big, glowing, sweeping banner rather than a small caption. */
+.objective-announcer{z-index:3;top:30%;gap:10px}
+.objective-announcer strong{font-size:clamp(40px,7.2vw,96px);letter-spacing:.14em;text-shadow:0 0 34px #83f4d5aa,0 5px 24px #000}
+.objective-announcer small{font-size:clamp(12px,1.1vw,18px);letter-spacing:.42em}
+.objective-announcer.start strong{color:#c9ffd9}
+.objective-announcer.capture strong,.objective-announcer.score strong{color:#ffd9a0}
+.objective-announcer.score strong{font-size:clamp(26px,4.6vw,58px)}
+.objective-announcer::before{content:'';position:absolute;inset:-14% -12vw;z-index:-1;background:radial-gradient(ellipse at center,#83f4d522,transparent 68%);animation:announceGlow 1.3s ease-out}
+.objective-announcer::after{content:'';position:absolute;left:50%;bottom:-14px;width:min(70vw,820px);height:2px;transform:translateX(-50%);background:linear-gradient(90deg,transparent,#83f4d5e6,transparent);animation:announceSweep 1.6s ease-out}
+.kill-banner{font-size:clamp(15px,1.5vw,24px);padding:11px 28px;letter-spacing:.2em;box-shadow:0 10px 30px #0008;animation:killPop 1.5s ease-out forwards}
+.hitmarker{width:clamp(26px,2vw,42px);height:clamp(26px,2vw,42px)}
+.hitmarker span{box-shadow:0 0 10px #ffffffbb}
+.damage-number{font-size:clamp(22px,1.9vw,34px)}
+.damage-number.kill{font-size:clamp(26px,2.3vw,42px)}
+.posture-chip{font-size:clamp(10px,.85vw,13px);padding:5px 13px}
+@keyframes feedSlide{from{opacity:0;transform:translateX(26px)}to{opacity:1;transform:none}}
+@keyframes announceGlow{0%{opacity:0;transform:scale(.6)}40%{opacity:1}100%{opacity:0;transform:scale(1.25)}}
+@keyframes announceSweep{0%{opacity:0;transform:translateX(-50%) scaleX(.2)}35%{opacity:1}100%{opacity:0;transform:translateX(-50%) scaleX(1.1)}}
+@keyframes killPop{0%{opacity:0;transform:translate(-50%,12px) scale(.82)}15%{opacity:1;transform:translate(-50%,0) scale(1.06)}32%{transform:translate(-50%,0) scale(1)}100%{opacity:0;transform:translate(-50%,-10px) scale(1)}}
+@media(max-width:600px){.vitals{min-width:0;padding:10px}.health strong{font-size:clamp(28px,9vw,44px)}.match-clock,.frag-counter strong{font-size:clamp(22px,7vw,34px)}.weapon-hud strong{font-size:clamp(26px,8vw,42px)}.objective-announcer strong{font-size:clamp(30px,11vw,52px)}}
+@media(prefers-reduced-motion:reduce){.objective-announcer,.kill-banner,.kill-feed>div,.objective-announcer::before,.objective-announcer::after{animation:none}}

@@ -1,5 +1,25 @@
 # COCS verification report
 
+## Arena fall fix and HUD 2.7 - 2026-09-11
+
+- **Terrain edge free-fall fixed** (`game/core.mjs` `moveActor`): the horizontal
+  step could move an actor past the heightfield boundary, where `floorAt` returns
+  null; the vertical pass then never landed and the actor was clamped in-bounds
+  only afterwards, producing an endless fall. The position is now clamped to the
+  arena bounds *before* the floor query. `game/levelgen.mjs` also emits a
+  `voidY` kill-plane on next-gen maps so any impossible fall kills and respawns.
+  Verified by walking every edge of titan-valley / frost-gate / colosseum for
+  2000 ticks (minimum y stayed at terrain, zero spurious deaths).
+- **HUD v2.7** (`app/globals.css`): viewport-scaled readouts (`clamp()` on the
+  clock, frags, health, armor, ability, weapon and command panel), stronger panel
+  treatments, and cinematic announcement effects — glowing banner with a sweeping
+  underline, popping kill banners, sliding kill feed and larger hitmarkers/damage
+  numbers — all disabled under `prefers-reduced-motion`.
+
+Verification: `npm run test:game` 455/455, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Next-generation graphics overhaul 2.6 - 2026-09-11
 
 - **Articulated characters** (`game/character-anim.mjs`): engine-free pose solver

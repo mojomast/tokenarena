@@ -266,6 +266,8 @@ export function createLevel(spec) {
     objectiveZones: ctx.objectiveZones, vehicles: ctx.vehicles, traversal: ctx.traversal,
     structures: ctx.structures, props: ctx.props, roofs: ctx.roofs,
     group: spec.group, scale: spec.scale, mode: spec.mode, nextGen: true,
+    // A kill plane below the terrain so any impossible fall still resolves to a death.
+    voidY: spec.voidY ?? (terrain.base - terrain.amplitude - (spec.relief ?? 1.6) - 16),
   };
   if (ctx.teamSpawns[0].length) { map.teamSpawns = ctx.teamSpawns; }
   if (spec.flagSpawns) { map.flagSpawns = spec.flagSpawns; map.flags = spec.flagSpawns; }

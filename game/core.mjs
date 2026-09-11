@@ -102,6 +102,7 @@ export function moveActor(a,input,dt,arena=MAPS[0],config={speed:1,gravity:1}){
   if(a.grounded&&a.vy<=0)for(const b of arena.blocks)if(b.kind==='deck'&&Math.abs(nx-b.x)<b.w/2+RULES.radius&&Math.abs(nz-b.z)<b.d/2+RULES.radius&&Math.abs(b.h-a.y)<.25)ny=Math.max(ny,b.h);
     if((a.traversalFlight&&a.traversalTarget||!obstructed(nx,ny,nz,RULES.radius,arena))&&(f===null||f-a.y<.3)){a[axis]=value;a.y=ny;}else a[axis==='x'?'vx':'vz']=0;
  }
+  const hb=boundsOf(arena);a.x=clamp(a.x,hb.minX,hb.maxX);a.z=clamp(a.z,hb.minZ,hb.maxZ);
   a.vy-=gravity*step;const nextY=a.y+a.vy*step;let f=floorAt(a.x,a.z,arena);
   // A solid top is a landing surface only when the feet cross it while falling.
   for(const b of arena.blocks)if(Math.abs(a.x-b.x)<b.w/2+RULES.radius&&Math.abs(a.z-b.z)<b.d/2+RULES.radius&&a.y>=b.h-1e-6&&nextY<=b.h)f=Math.max(f??-Infinity,b.h);

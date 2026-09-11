@@ -239,6 +239,12 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.7 tightens the arenas and the HUD:
+
+- **No more endless falling.** A step past the terrain boundary made `floorAt` return null (no triangle out there), so the actor entered free-fall and was only clamped back in-bounds after the fact. Positions are now clamped before the vertical pass, so you always land at the edge. Next-gen maps also carry a kill-plane (`voidY`), so any impossible fall resolves to a death and a respawn instead of an infinite drop.
+- **A bigger, clearer HUD.** The match clock, frag counter, health, armor, ability, weapon and command readouts now scale with the viewport rather than sitting at fixed pixel sizes, with stronger panels and glows.
+- **Announcement effects.** Objective, score and capture announcements render as a large glowing banner with a sweeping underline; kill banners pop in, the kill feed slides in, and hitmarkers and damage numbers are larger. Every effect respects reduced motion.
+
 Version 2.6 is the next-generation graphics overhaul:
 
 - **Rounded, articulated operators.** The boxy robot is gone. Each operator is now built from smooth capsules and ball joints with a real joint hierarchy (hips, torso, chest, head, shoulders/elbows, hips/knees/ankles) in `game/character-anim.mjs`. A procedural rig drives an idle breath, a speed-scaled run cycle, contra-lateral arm/leg swing, torso lean, strafe roll and crouch/air/ADS poses — no texture rigging or downloaded assets required.
