@@ -66,6 +66,11 @@ export function arenaSupportsMode(mapId,mode){const meta=arenaMeta(mapId);if(!me
 export function maxBotsFor(mode){return modeRule(mode)?.maxBots??DEFAULT_MAX_BOTS;}
 export function recommendedBots(mode,mapId){const meta=arenaMeta(mapId);const cap=maxBotsFor(mode),base=meta?.scaleBots??ARENA_SCALES.skirmish.bots;return Math.max(0,Math.min(cap,base));}
 export function mapsForMode(mode,{legacy=false}={}){return MAPS.filter(map=>arenaSupportsMode(map.id,mode)&&(legacy||!arenaMeta(map.id).legacy));}
+export function resolveMapForMode(mapId,mode,options={}){
+ const available=mapsForMode(mode,options);
+ if(!available.length)return mapId;
+ return available.some(map=>map.id===mapId)?mapId:available[0].id;
+}
 export function activeMaps({legacy=false}={}){return legacy?[...MAPS]:MAPS.filter(map=>!arenaMeta(map.id).legacy);}
 export function groupedMaps(maps=MAPS){const groups=[];for(const group of ARENA_GROUPS){const entries=maps.filter(map=>(arenaMeta(map.id).group)===group.id);if(entries.length)groups.push({...group,maps:entries});}return groups;}
 export function arenaVariant(mapOrId,mode){const arena=typeof mapOrId==='string'?MAPS.find(map=>map.id===mapOrId):mapOrId;if(!arena)return null;const override=arena.variants?.[mode];if(!override)return arena;return {...arena,...override,id:arena.id,bounds:override.bounds??arena.bounds};}

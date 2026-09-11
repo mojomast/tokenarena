@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {MAPS} from './maps.mjs';
 import {GAME_MODES} from './config.mjs';
-import {ARENA_GROUPS,ARENA_SCALES,DEFAULT_MAX_BOTS,activeMaps,arenaMeta,arenaSupportsMode,arenaVariant,groupedMaps,mapsForMode,maxBotsFor,modeMapSummary,recommendedBots} from './arenas.mjs';
+import {ARENA_GROUPS,ARENA_SCALES,DEFAULT_MAX_BOTS,activeMaps,arenaMeta,arenaSupportsMode,arenaVariant,groupedMaps,mapsForMode,maxBotsFor,modeMapSummary,recommendedBots,resolveMapForMode} from './arenas.mjs';
 import {shuffleSelection,nextArenaSelection} from './replay.mjs';
 
 test('every arena has a valid group, scale and play list',()=>{
@@ -60,4 +60,12 @@ test('legacy gating excludes archived arenas from shuffle and rotation',()=>{
  const next=nextArenaSelection('warfront',()=>.4,{legacy:false}).mapId;
  assert.equal(arenaMeta(next).legacy,false);
  assert.equal(nextArenaSelection('exchange',()=>0,{legacy:true}).mapId,MAPS[1].id);
+});
+test('resolveMapForMode keeps a compatible arena and repairs an incompatible one',()=>{
+ assert.equal(resolveMapForMode('colosseum','deathmatch'),'colosseum');
+ const repaired=resolveMapForMode('colosseum','ctf');
+ assert.notEqual(repaired,'colosseum');
+ assert.ok(arenaSupportsMode(repaired,'ctf'));
+ assert.ok(!arenaMeta(repaired).legacy);
+ assert.equal(resolveMapForMode('launchpad','ctf',{legacy:true}),'launchpad');
 });

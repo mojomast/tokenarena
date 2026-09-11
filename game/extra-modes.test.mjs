@@ -58,3 +58,13 @@ test('assault bots push or hold the active sector',()=>{
  const active=m.objectiveState.sectors[0];
  assert.ok(Math.hypot((b.bot.destination?.x??0)-active.x,(b.bot.destination?.z??0)-active.z)<12);
 });
+test('assault snapshots expose the active sector, teams and breach state',()=>{
+ const m=new Match('chatgpt','openclaw',rng,'rampart',{mode:'assault',botCount:1,fragLimit:3});
+ const o=m.snapshot().objectives;
+ assert.equal(o.kind,'assault');
+ assert.equal(o.zones.length,3);
+ assert.equal(o.active,0);
+ assert.ok([0,1].includes(o.attacker));
+ assert.notEqual(o.attacker,o.defender);
+ assert.equal(o.breached,false);
+});

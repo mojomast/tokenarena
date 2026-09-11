@@ -14,6 +14,7 @@ const SCORE_RULES:any={
  teamFrags:{label:'Team-frag limit',objective:'TEAM FRAGS',min:5,max:50,step:5},
  hillTime:{label:'Hill time target',objective:'HILL CONTROL',min:30,max:300,step:10},
  zoneTime:{label:'Zone time target',objective:'CONTROL ZONES',min:30,max:300,step:10},
+ sectors:{label:'Sector count',objective:'SECTORS',min:1,max:9,step:1},
 };
 const scoreRule=(mode:any)=>SCORE_RULES[mode?.rules?.score]||SCORE_RULES.frags;
 const objectiveCopy=(score:string)=>({
