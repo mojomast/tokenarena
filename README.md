@@ -241,6 +241,14 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.12 makes combat deaths varied and readable:
+
+- **Eight death styles.** Kills now resolve into a `ragdoll` collapse, a `headpop` (head bursts, body topples), `gibs` (limbs fly apart), a `burst` gore cloud, a burning `combust`, an energy `vaporize`, a flattened `splatter`, or an `electrocute`. Void falls always collapse the body.
+- **Chosen from the kill, not at random.** A pure `game/deaths.mjs` recipe picks the style from the killing weapon's family, the headshot flag and how wildly the blow overkilled the target, seeded by actor/death so it is deterministic for the sim, the network, replays and tests. Massive overkill always gibs; precision headshots favour head pops; the same gun still varies shot to shot.
+- **Pooled debris.** `DeathPool` flings reusable limb and body chunks with gravity, spin and a ground splat decal, capped by a fixed slot budget so a pile-up of deaths cannot grow GPU resources. Gore particles reuse the existing effect pool.
+- **Corpses fall where they were hit.** The intact body topples away from the killing shot, hides its head on head pops, and is restored on respawn. Reduced-motion snaps the pose and trims the debris while keeping the death readable.
+- **Shared end to end.** Death events carry `style`, `seed` and the impact direction, so remote clients, spectators and Theater replays play the same death the shooter saw.
+
 Version 2.11 is a follow-up robustness and accessibility batch:
 
 - **Every CTF arena now authors flag bases.** Citadel, Trenchline, Signal Ridge and Sunken Hill previously advertised CTF while falling back to spawn corners for their flags. All four now define red/blue team spawns and distinct flag bases, and a test enforces that every CTF-capable arena does.

@@ -1,5 +1,27 @@
 # COCS verification report
 
+## Varied death effects 2.12 - 2026-09-11
+
+- **Deterministic recipes** (`game/deaths.mjs`, `game/deaths.test.mjs`): a pure
+  `deathPlan`/`deathStyleFor` maps weapon family, headshot and overkill to one of
+  eight styles seeded per actor/death. Tests cover determinism, distribution,
+  every weapon mapping to a valid plan, overkill escalating to gore, headshot
+  bias and void-fall collapse.
+- **Sim context** (`game/core.mjs`, `game/core.test.mjs`): `damage` and `fall`
+  emit `death` events carrying `style`, `seed`, `weapon`, `overkill` and impact
+  `direction`. New core tests assert the enriched event for a gore kill and a
+  void fall.
+- **Renderer** (`game/effects-fx.mjs`, `game/view.mjs`, `game/view.test.mjs`):
+  new pooled `DeathPool` flings bounded limb/body chunks with gravity and spin and
+  lays ground splats; `spawnDeath`/`poseCorpse`/`reviveCorpse` handle the debris
+  and the toppling corpse. A view test proves piece and splat pools stay bounded
+  and dispose cleanly.
+
+Verification: `npm run test:game` 506/506, `npx tsc --noEmit` clean,
+`npm run build` succeeds, `node --test tests/*.test.mjs` 1/1. `npm run
+test:server` unchanged at 94/94. The effects were not GPU-playtested in a
+browser in this pass.
+
 ## CTF bases, server bounds and shadow cadence 2.11 - 2026-09-11
 
 - **CTF bases** (`game/maps.mjs`, `game/arsenal-maps.mjs`,
