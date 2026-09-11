@@ -104,3 +104,31 @@ test('bots use the expanded arsenal when those weapons are available',()=>{
   m.botInput(bot,1/60);
   assert.ok(bot.weapon>=5,`close-range bot should pick an expanded-arsenal weapon, got ${bot.weapon}`);
 });
+test('bots sprint on long rotations and aim down sights at mid range',()=>{
+  const m=new Match('chatgpt','openclaw',seeded(),'exchange',{mode:'deathmatch',botCount:1,difficulty:'normal',timeLimit:120,fragLimit:40});
+  m.pickups.length=0;
+  const bot=m.actors.find(a=>a.bot),human=m.actors.find(a=>!a.bot);
+  Object.assign(bot,{health:bot.maxHealth,x:-11,y:0,z:10,vx:0,vz:0,grounded:true});
+  Object.assign(bot.bot,{target:-1,memory:0,think:0,route:[],destination:{x:-11,y:0,z:40},state:'roam'});
+  Object.assign(human,{health:human.maxHealth,x:60,y:0,z:60});
+  const retreat=m.botInput(bot,1/60)||{};
+  assert.equal(retreat.sprint,true,'a long rotation should sprint');
+  Object.assign(bot,{health:bot.maxHealth,vx:0,vz:0});
+  Object.assign(human,{x:-11,y:0,z:-1});
+  Object.assign(bot.bot,{target:human.id,memory:1.5,think:0,state:'engage'});
+  const engage=m.botInput(bot,1/60)||{};
+  assert.equal(engage.sprint,false,'engaging bots should not sprint');
+  assert.equal(engage.ads,true,'mid-range engaging bots should aim down sights');
+});
+
+test('a critically hurt bot slides away while sprinting',()=>{
+  const m=new Match('chatgpt','openclaw',seeded(),'exchange',{mode:'deathmatch',botCount:1,difficulty:'normal',timeLimit:120,fragLimit:40});
+  m.pickups.length=0;
+  const bot=m.actors.find(a=>a.bot),human=m.actors.find(a=>!a.bot);
+  Object.assign(bot,{health:bot.maxHealth*.15,x:-11,y:0,z:10,vx:0,vz:-8,grounded:true,slideCooldown:0});
+  Object.assign(bot.bot,{target:-1,memory:0,think:0,route:[],destination:{x:-11,y:0,z:40},state:'roam'});
+  Object.assign(human,{health:human.maxHealth,x:60,y:0,z:60});
+  const input=m.botInput(bot,1/60)||{};
+  assert.equal(input.sprint,true);
+  assert.equal(input.crouch,true,'a hurt bot at speed should slide');
+});

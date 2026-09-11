@@ -305,6 +305,7 @@ let delta=dest?v(dest.x-a.x,0,dest.z-a.z):v(0,0,0),l=Math.hypot(delta.x,delta.z)
    if(!a.cooldown&&shouldPower)this.power(a);
  }else if(l>.2){const roamTurn=(this.difficulty.id==='easy'?2.5:this.difficulty.id==='normal'?4:8);a.yaw=turnToward(a.yaw,Math.atan2(-delta.x,-delta.z),roamTurn*dt);}
  const sep=a.grounded?this.separation(a,behavior.spacing):{x:0,z:0};if(sep.x||sep.z){input.x=(input.x||0)+sep.x*.95;input.z=(input.z||0)+sep.z*.95;}const inputLength=Math.hypot(input.x||0,input.z||0);if(inputLength>1e-4){input.x/=inputLength;input.z/=inputLength;}
+const postured=Math.hypot(input.x||0,input.z||0)>.1;if(postured){input.sprint=!a.crouching&&(!canSee||dist(a,canSee?t:(b.destination||a))>22);if(!canSee&&a.health<a.maxHealth*hints.retreatHealth&&a.grounded&&(a.slideCooldown||0)<=0&&Math.hypot(a.vx||0,a.vz||0)>6)input.crouch=true;}if(canSee&&!input.sprint){const range=dist(a,t);input.ads=range>9&&range<34&&(a.ammo?.[a.weapon]??0)>0;}
  b.stuck+=dt;if(b.stuck>1.3){if(dist(a,b.last)<.35){b.route=[];b.destination=this.nav[Math.floor(this.random()*this.nav.length)];b.recover=.6;b.think=0;}b.last=v(a.x,a.y,a.z);b.stuck=0;}
  if(b.recover>0){b.recover-=dt;input={x:Math.sin(a.id*2+this.time),z:Math.cos(a.id*2+this.time),jump:true};}
  if(this.arena.voidY!==undefined&&b.recover<=0&&a.grounded&&a.vehicleId===null&&(input.x||input.z)){const len=Math.hypot(input.x,input.z)||1;if(floorAt(a.x+input.x/len*.9,a.z+input.z/len*.9,this.arena)===null)input={};}
