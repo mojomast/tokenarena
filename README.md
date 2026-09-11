@@ -129,6 +129,9 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 
 - `app/page.tsx`: game state menus, HUD, input, audio events and fixed-step accumulator. Rendering is RAF-driven; simulation advances at 60Hz with five-step catch-up bound.
 - `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
+- `game/character-anim.mjs`: engine-free procedural character animation — damped gait phase, bounded pose solver and the joint rig used by the renderer, plus the bot facing helpers.
+- `game/levelgen.mjs`: deterministic next-generation level generator — heightfield terrain, cliff faces, buildings/tunnels/caverns/bridges and props, emitted as the existing map schema plus a smooth visual layer.
+- `game/nextgen-maps.mjs`: one generated map per game mode; the legacy arenas are unchanged.
 - `game/harness-profiles.mjs`: bounded harness passives, ability parameters, weapon affinities and bot hints.
 - `game/operator-profiles.mjs`: operator combat identities and bot weapon preferences.
   - `game/maps.mjs`: canonical arena registry, CTF bases, polygon terrain, collision geometry, traversal routes, vehicles, spawns, supplies, expansion maps and CTF maps.
@@ -235,6 +238,14 @@ Version 2.0 adds progression, unlocks and gear:
 - **Unlocks.** Eight gear pieces and three weapon finishes unlock as you level, shown on a new **Rank** screen with your level, XP bar and career stats.
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
+
+Version 2.6 is the next-generation graphics overhaul:
+
+- **Rounded, articulated operators.** The boxy robot is gone. Each operator is now built from smooth capsules and ball joints with a real joint hierarchy (hips, torso, chest, head, shoulders/elbows, hips/knees/ankles) in `game/character-anim.mjs`. A procedural rig drives an idle breath, a speed-scaled run cycle, contra-lateral arm/leg swing, torso lean, strafe roll and crouch/air/ADS poses — no texture rigging or downloaded assets required.
+- **Bots move like they mean it.** Bots (and every actor) now carry a smoothed `bodyYaw`: their aim can snap but the body swivels toward it at a human rate, so turning reads naturally. The rig tracks the aim point with the head and chest and banks into turns.
+- **A new level system.** `game/levelgen.mjs` builds levels deterministically from a seed: heightfield terrain with biomes (canyon, forest, snow, volcanic, urban, ruins, cavern), cliff faces, buildings with walkable doorways and interiors, tunnels, domed caverns, bridges, arches, columns and props (rocks, trees, crates, barrels, ruins). The legacy hand-authored arenas remain untouched in the rotation.
+- **One next-gen map per mode** (`game/nextgen-maps.mjs`): The Colosseum (deathmatch), Frost Gate (CTF), Sunken Hill (KOTH), Riverbend (domination), Iron Fortress (assault), The Atrium (team deathmatch), The Catacombs (instagib), Slagworks (rockets), The Forge (arsenal) and Titan Valley (combined arms).
+- **The renderer draws the geometry, not the boxes.** Next-gen collision blocks become hidden proxies while the world renders smooth roofs, arches, columns, tube tunnels, cavern domes, displaced rocks and trees, emissive windows and cliff strata. A fast spatial-grid navigation graph with largest-component pruning keeps bots pathing on organic terrain.
 
 Version 2.5 rebrands the game as **COCS — Colosseum Of Competitive Slop** and rewrites the whole voice:
 

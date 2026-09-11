@@ -16,7 +16,7 @@ test('casual defaults preserve explicit saved difficulty and roster',()=>{
  assert.equal(saved.botCount,4);assert.equal(saved.difficulty,'normal');
 });
 
- for(const arena of MAPS.filter(arena=>!arena.platforms))for(const gravity of [1,.4])test(`${arena.id} gravity ${gravity}: solid landings, edges, recovery and turbo collision`,()=>{
+ for(const arena of MAPS.filter(arena=>!arena.platforms&&!arena.nextGen))for(const gravity of [1,.4])test(`${arena.id} gravity ${gravity}: solid landings, edges, recovery and turbo collision`,()=>{
  const config={speed:1.5,gravity};
  for(const b of arena.blocks.filter(b=>b.kind==='cover')){
   for(const offset of [0,b.w/2+RULES.radius-.01]){
@@ -50,7 +50,7 @@ test('casual defaults preserve explicit saved difficulty and roster',()=>{
 });
 
 test('low-gravity turbo jump crosses onto cover without embedding',()=>{
- for(const arena of MAPS){
+ for(const arena of MAPS.filter(arena=>!arena.nextGen)){
   const b=arena.blocks.find(b=>b.kind==='cover'),a=actor(arena,{x:b.x,z:b.z+b.d/2+2,y:0,vz:-1.8,grounded:true});
   let landed=false;
   for(let i=0;i<240;i++){

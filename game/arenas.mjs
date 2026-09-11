@@ -36,6 +36,17 @@ const AUTHOR={
  'signal-ridge':{group:'combined',scale:'warzone',play:['combined-arms','assault','ctf','teamdeathmatch','koth','domination','arsenal']},
  rampart:{group:'urban',scale:'battle',play:['assault','deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination']},
  'catwalk-breach':{group:'urban',scale:'battle',play:['assault','deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination']},
+ // Next-generation procedural maps (levelgen.mjs). One per mode.
+ colosseum:{group:'arena',scale:'battle',play:['deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination']},
+ 'frost-gate':{group:'outdoor',scale:'warzone',play:['ctf','teamdeathmatch','deathmatch','koth','domination','combined-arms','arsenal']},
+ 'sunken-hill':{group:'outdoor',scale:'battle',play:['koth','domination','deathmatch','teamdeathmatch','ctf','combined-arms']},
+ riverbend:{group:'urban',scale:'warzone',play:['domination','koth','deathmatch','teamdeathmatch','ctf','combined-arms','arsenal']},
+ fortress:{group:'indoor',scale:'warzone',play:['assault','deathmatch','teamdeathmatch','koth','domination','arsenal']},
+ atrium:{group:'indoor',scale:'battle',play:['teamdeathmatch','deathmatch','koth','domination','ctf','instagib','rockets','arsenal']},
+ catacombs:{group:'indoor',scale:'battle',play:['instagib','rockets','deathmatch','teamdeathmatch','arsenal','koth','domination']},
+ slagworks:{group:'urban',scale:'battle',play:['rockets','deathmatch','teamdeathmatch','koth','domination','arsenal','instagib']},
+ forge:{group:'arena',scale:'battle',play:['arsenal','deathmatch','teamdeathmatch','koth','domination','instagib','rockets']},
+ 'titan-valley':{group:'combined',scale:'warzone',play:['combined-arms','ctf','teamdeathmatch','deathmatch','koth','domination','arsenal','assault']},
 };
 
 const span=arena=>{

@@ -1,5 +1,28 @@
 # COCS verification report
 
+## Next-generation graphics overhaul 2.6 - 2026-09-11
+
+- **Articulated characters** (`game/character-anim.mjs`): engine-free pose solver
+  (idle/run/crouch/air/ADS, bounded joints, contra-lateral limbs) and a joint rig
+  applied to smooth capsule/ball operator models in `game/view.mjs`.
+- **Natural bot facing** (`game/core.mjs`): every actor has a damped `bodyYaw`
+  (difficulty-scaled turn rate) that trails their aim; exposed in snapshots and
+  consumed by the rig for head/chest tracking and turn banking.
+- **Procedural levels** (`game/levelgen.mjs`, `game/nextgen-maps.mjs`): ten
+  seeded maps, one per mode, with heightfield terrain biomes, cliff faces and
+  strata, enterable buildings, tunnels, caverns, bridges, arches, columns and
+  props. Legacy maps are unchanged.
+- **Renderer** (`game/view.mjs`): next-gen collision proxies (`cave`, `tunnel`,
+  `rock`, `tree`, `crate`, `column`) render as smooth geometry instead of boxes;
+  navigation uses a fast spatial-grid graph with largest-component pruning.
+
+Verification: `npm run test:game` 455/455, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1. New suites: `game/character-anim.test.mjs`, `game/bot-facing.test.mjs`,
+`game/nextgen-maps.test.mjs`. Legacy movement invariants are scoped to the
+legacy arenas; next-gen maps are covered by their own geometry, spawn-support,
+navigation-connectivity and full-match suites.
+
 ## COCS rebrand 2.5 - 2026-09-11
 
 - **Identity.** The game is now **COCS — Colosseum Of Competitive Slop**.
