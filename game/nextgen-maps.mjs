@@ -59,6 +59,8 @@ const sunkenHill = createLevel({
   group: 'outdoor', scale: 'battle', mode: 'koth', size: { w: 100, d: 100 }, biome: 'forest', amplitude: 6, relief: 1.5,
   description: 'A rounded hill dominates the field. Hold the crown, or fight through the cavern that runs beneath it.',
   layout(ctx, rng) {
+    ctx.teamSpawns = { 0: [[-38, -6], [-38, 6], [-30, -22], [-30, 22]], 1: [[38, 6], [38, -6], [30, 22], [30, -22]] };
+    ctx.flagSpawns = { 0: { x: -38, z: 0 }, 1: { x: 38, z: 0 } };
     ctx.addCavern({ x: 0, z: 0, radius: 15, height: 10 });
     ring(ctx, 0, 0, 30, 8, (c, x, z, a) => c.addBridge({ x, z, y: c.ground(x, z) + (a < Math.PI ? 0 : 2), w: 10, d: 4, rot: -a, thickness: .5 }));
     scatter(ctx, 26, rng, 8, (c, x, z) => c.addTree({ x, z, scale: .8 + rng() * .8 }));

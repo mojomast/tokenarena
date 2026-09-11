@@ -19,6 +19,7 @@ const trenchline={
  id:'trenchline',name:'Trenchline',tag:'COMBINED ARMS / TRENCH WARFARE',
  description:'A sprawling combined-arms trench battlefield of zig-zag lines, fortified bases and armoured lanes.',
  color:'#c9a15a',background:'#171208',raised:false,bounds:{minX:-75,maxX:75,minZ:-50,maxZ:50},
+ teamSpawns:{0:[[-70,-10],[-70,10],[-70,-30],[-70,30]],1:[[70,10],[70,-10],[70,30],[70,-30]]},flagSpawns:{0:{x:-70,z:0},1:{x:70,z:0}},
  spawns:[[-70,0],[70,0],[-70,-38],[70,-38],[-70,38],[70,38],[-35,-44],[35,44],[-35,44],[35,-44],[0,-44],[0,44]],
  blocks:[
   wall(-62,0,10,22,5,'base-core'),wall(62,0,10,22,5,'base-core'),wall(0,0,14,12,5.5,'fort'),
@@ -47,6 +48,7 @@ const signalRidge={
  id:'signal-ridge',name:'Signal Ridge',tag:'COMBINED ARMS / HIGH GROUND',
  description:'A long combined-arms ridge line where elevated decks, armour and a cross-map zipline decide the fight.',
  color:'#8fb6e8',background:'#0d1420',raised:false,bounds:{minX:-70,maxX:70,minZ:-50,maxZ:50},
+ teamSpawns:{0:[[-66,-12],[-66,12],[-66,-30],[-66,30]],1:[[66,12],[66,-12],[66,30],[66,-30]]},flagSpawns:{0:{x:-66,z:0},1:{x:66,z:0}},
  spawns:[[-66,0],[66,0],[-66,-42],[66,42],[-66,42],[66,-42],[-34,-44],[34,44],[-34,44],[34,-44],[0,-48],[0,48]],
  blocks:[
   wall(-60,0,8,16,5,'base-core'),wall(60,0,8,16,5,'base-core'),wall(0,0,20,8,4,'ridge'),

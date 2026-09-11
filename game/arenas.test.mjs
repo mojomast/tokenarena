@@ -4,6 +4,7 @@ import {MAPS} from './maps.mjs';
 import {GAME_MODES} from './config.mjs';
 import {ARENA_GROUPS,ARENA_SCALES,DEFAULT_MAX_BOTS,activeMaps,arenaMeta,arenaSupportsMode,arenaVariant,groupedMaps,mapsForMode,maxBotsFor,modeMapSummary,recommendedBots,resolveMapForMode} from './arenas.mjs';
 import {shuffleSelection,nextArenaSelection} from './replay.mjs';
+import {Match} from './core.mjs';
 
 test('every arena has a valid group, scale and play list',()=>{
  const groups=new Set(ARENA_GROUPS.map(group=>group.id)),scales=new Set(Object.keys(ARENA_SCALES)),modes=new Set(GAME_MODES.map(mode=>mode.id));
@@ -68,4 +69,25 @@ test('resolveMapForMode keeps a compatible arena and repairs an incompatible one
  assert.ok(arenaSupportsMode(repaired,'ctf'));
  assert.ok(!arenaMeta(repaired).legacy);
  assert.equal(resolveMapForMode('launchpad','ctf',{legacy:true}),'launchpad');
+});
+test('every CTF-capable arena authors distinct flag bases inside its bounds',()=>{
+ const point=value=>Array.isArray(value)?[value[0],value[1]]:value?[value.x,value.z]:null;
+ const ctf=MAPS.filter(map=>arenaSupportsMode(map.id,'ctf'));
+ assert.ok(ctf.length>=8);
+ for(const map of ctf){
+  const flags=map.flagSpawns||map.flags,red=point(flags?.[0]??flags?.red),blue=point(flags?.[1]??flags?.blue);
+  assert.ok(red&&blue&&Number.isFinite(red[0])&&Number.isFinite(red[1])&&Number.isFinite(blue[0])&&Number.isFinite(blue[1]),`${map.id} authors both flag bases`);
+  assert.ok(Math.hypot(red[0]-blue[0],red[1]-blue[1])>16,`${map.id} bases are separated`);
+  const b=map.bounds||{minX:-14,maxX:14,minZ:-14,maxZ:14};
+  for(const [team,p] of [[0,red],[1,blue]])assert.ok(p[0]>b.minX&&p[0]<b.maxX&&p[1]>b.minZ&&p[1]<b.maxZ,`${map.id} team ${team} base in bounds`);
+ }
+});
+test('CTF matches place both flags at the authored bases',()=>{
+ for(const id of ['citadel','trenchline','signal-ridge','sunken-hill']){
+  const match=new Match('chatgpt','openclaw',()=>.5,id,{mode:'ctf',botCount:0,humanCount:1}),flags=match.flags;
+  assert.ok(flags[0]&&flags[1],id);
+  assert.deepEqual([flags[0].x,flags[0].z],match.flagSpawns[0],`${id} red base`);
+  assert.deepEqual([flags[1].x,flags[1].z],match.flagSpawns[1],`${id} blue base`);
+  assert.notDeepEqual(match.flagSpawns[0],match.flagSpawns[1],`${id} distinct bases`);
+ }
 });
