@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.15 gives every weapon a range identity:
+
+- **Damage falloff.** Hitscan weapons now deal full damage inside an effective range and taper off beyond it (`game/data.mjs` `falloff:{start,end,min}`, applied by the pure `damageFalloff` helper in `game/core.mjs`). Pulse, Scattergun, Shock Beam, Flak Cannon, Marksman Rifle and SMG all fall off; the Rail Lance and the projectile/splash weapons are unchanged. Shotguns and the SMG now lose bite at distance, while snipers and launchers own the long lanes.
+- **Readable in the shot.** Each `shot` event carries its `falloff`, so hit feedback can reflect reduced damage. A close-range Pulse shot is unchanged; the same shot at 70u deals ~62%.
+
 Version 2.14 adds mobile touch controls:
 
 - **One-screen mobile controls.** A left thumbstick (`app/game-ui/touch-controls.tsx`) drives analog movement and sprints when pushed to the edge; a drag-anywhere look surface aims; and an action cluster covers fire, ADS, jump, slide, reload, power, use, weapon swap and pause. Controls write imperatively to the runtime, so the frame loop never re-renders React.

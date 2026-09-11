@@ -1,5 +1,24 @@
 # COCS verification report
 
+## Weapon damage falloff 2.15 - 2026-09-11
+
+- **Range identity** (`game/data.mjs`, `game/core.mjs`): hitscan weapons now carry
+  an optional `falloff:{start,end,min}` band. Pulse, Scattergun, Shock Beam, Flak
+  Cannon, Marksman Rifle and SMG keep full damage inside `start` and taper
+  linearly to `min` at `end`. Rail Lance and the projectile/splash weapons are
+  unchanged, so snipers and launchers own the long lane while spray and pellets
+  lose bite with distance.
+- **Pure helper** (`game/core.mjs`): exported `damageFalloff(weapon,distance)`
+  returns `1` with no band or non-finite distance, `min` beyond `end`, and the
+  interpolated value in between. The shotgun event now reports `falloff` for
+  feedback consumers.
+- **Tests** (`game/weapon-falloff.test.mjs`): the helper curve, a close-vs-far
+  Pulse comparison (ratio ≈ 0.62 at 70u), a no-falloff Rail check (equal at both
+  ranges), and a well-formedness sweep over every weapon.
+
+Verification: `npm run test:game` 523/523, typecheck, production build and the
+rendered response test green.
+
 ## Mobile touch controls 2.14 - 2026-09-11
 
 - **Pure input math** (`game/touch.mjs`, `game/touch.test.mjs`): `joystickVector`
