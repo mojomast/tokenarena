@@ -593,6 +593,7 @@ a.icon-button.github-link>span{position:absolute;width:1px;height:1px;overflow:h
 .unlock-toast span{font-size:14px}
 .unlock-toast em{font:11px monospace;color:#ffd166;font-style:normal}
 .unlock-toast .text-button{color:#9fc0b3}
+.map-nextgen{display:inline-block;font:9px monospace;letter-spacing:1.4px;text-transform:uppercase;color:#0c2b25;background:#8de9cb;padding:2px 6px;margin-bottom:4px}
 .wordmark-full{display:block;font:9px monospace;font-weight:400;letter-spacing:1.4px;color:#6d8a7f;text-transform:uppercase;margin-top:1px;white-space:nowrap}
 .title-return{align-self:center}
 .title-logo{display:flex;align-items:flex-start;justify-content:center;gap:clamp(10px,2.4vw,34px);margin:10px 0 0}
