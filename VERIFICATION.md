@@ -1,5 +1,33 @@
 # COCS verification report
 
+## Payload mode 2.13 - 2026-09-11
+
+- **Pure rules** (`game/payload.mjs`, `game/payload.test.mjs`): `payloadTemplate`
+  builds an anchored, ordered route with checkpoints from the map's spawns and
+  safe nav/objective points; `stepPayload` advances the cart for attackers, rolls
+  it back (clamped to the last checkpoint) for defenders, freezes it under
+  contest, banks checkpoints and declares a delivery winner. Eight tests cover
+  config defaults, route shape, advance, stall/rollback, contest, delivery,
+  timeout-to-defender and full 8-bot matches on supported arenas.
+- **Sim integration** (`game/core.mjs`, `game/mode-data.mjs`, `game/config.mjs`):
+  the `payload` mode is registered with checkpoint score rules; `updatePayload`
+  emits `payload-checkpoint`/`payload-delivered`, sets the winner and keeps the
+  snapshot's `objectives.payload` (position, distance, progress, pushing,
+  contested, delivered, checkpoint count). Bots escort or hold the cart.
+- **Content** (`game/nextgen-maps.mjs`, `game/arenas.mjs`): new generated map
+  **Convoy Line** (`mode:'payload'`) satisfies the one-map-per-mode invariant and
+  the geometry/spawn/cover checks; 20 arenas list `payload` in their play lists.
+- **Renderer and UI** (`game/view.mjs`, `app/page.tsx`,
+  `app/game-ui/configuration.tsx`): pooled cart model with spinning wheels and a
+  contested/team beacon, plus the Payload command brief, `CHECKPOINTS` goal,
+  scoreboard columns, target rule and objective copy.
+
+Verification: `npm run test:game` 515/515, `npm run test:server` 94/94,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1. The generic all-modes loop now resolves each mode to a supported arena and
+accepts an objective result, not only kills. Cart visuals are not GPU-playtested
+in this pass.
+
 ## Varied death effects 2.12 - 2026-09-11
 
 - **Deterministic recipes** (`game/deaths.mjs`, `game/deaths.test.mjs`): a pure

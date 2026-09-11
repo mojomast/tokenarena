@@ -74,6 +74,11 @@ Not yet included: accounts/matchmaking.
 - **Domination:** capture three control zones, neutralize enemy-held zones, and earn
   one point per second for every zone your team owns. Objective state is authoritative
   and visible in the HUD, world markers, snapshots, and match history.
+- **Payload:** attackers escort a cart along an authored route across the arena;
+  standing with it pushes it forward, checkpoints bank progress, and the defenders
+  stall it and roll it back to the last checkpoint. Attackers win on delivery;
+  defenders win if the clock runs out. The cart has its own world model, HUD
+  brief ("ESCORT / STOP THE PAYLOAD"), and checkpoint scoreboarding.
 - Easy and Normal bots now react and turn more slowly, fire less frequently, and
   aim less accurately. Breaking line of sight gives a fresh reaction delay.
   Existing saved difficulty choices are retained; select Casual Skirmish for the
@@ -240,6 +245,13 @@ Version 2.0 adds progression, unlocks and gear:
 - **Unlocks.** Eight gear pieces and three weapon finishes unlock as you level, shown on a new **Rank** screen with your level, XP bar and career stats.
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
+
+Version 2.13 adds Payload, an escort mode:
+
+- **Payload mode.** A new team objective mode (`game/payload.mjs`) pushes a cart along an authored route. Attackers standing within its radius advance it; defenders stall it and roll it back, but never past the last checkpoint. Reaching the final point wins immediately; if the clock expires first, the defenders win. Checkpoints bank score as the cart passes them.
+- **Any arena, a real route.** `payloadTemplate` builds the route from the map's team spawns and safe nav/objective points, so Payload works on the large arena rotation (`game/arenas.mjs`) without hand-authored tracks. A dedicated generated map, **Convoy Line**, ships as the mode's next-gen arena.
+- **World and HUD.** The renderer draws a wheel-spinning payload cart with a team-coloured beacon and contested tint (`game/view.mjs`), and the HUD gets a Payload command brief, checkpoint scoreboard columns and a checkpoint target rule (`app/page.tsx`, `app/game-ui/configuration.tsx`).
+- **Bots play the objective.** Attackers escort the cart; defenders hold on it and roll it back. The outcome is authoritative in snapshots, history and replays.
 
 Version 2.12 makes combat deaths varied and readable:
 
