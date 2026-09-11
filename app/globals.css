@@ -283,6 +283,12 @@
 .personal-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; padding: 14px; margin: 18px 0; background: #122a27; border: 1px solid #83f4d530; }
 .personal-stats dt { font: 11px monospace; color: #a4bdb1; }
 .personal-stats dd { font: 24px monospace; margin: 6px 0 0; color: #d9ffef; }
+.match-awards { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin: 4px 0 18px; }
+.match-awards>div { display: grid; gap: 4px; padding: 12px 14px; background: #0d1f1c; border: 1px solid #83f4d533; border-left: 3px solid #83f4d5; }
+.match-awards>div.you { background: #14302a; border-color: #a6f7d366; border-left-color: #b6ff9d; }
+.match-awards small { font: 10px monospace; letter-spacing: 2px; color: #9fd8c6; }
+.match-awards strong { font: 15px monospace; color: #e8fff6; }
+.match-awards em { font: 12px monospace; font-style: normal; color: #ffd9a0; letter-spacing: 1px; }
 .next-arena-button { display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; }
 .next-arena-button small { display: block; font: 12px monospace; line-height: 1.5; color: #a4bdb1; margin-top: 6px; }
 .ammo-warning { padding: 6px 10px; background: #241c13ed; border: 1px solid #ffc48970; color: #ffce9c; font: 12px monospace; line-height: 1.5; text-align: center; }

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -196,4 +196,29 @@ test('killCallout prioritizes a spree milestone, then a multikill, then silence'
   assert.equal(killCallout([8, 8.5, 9, 9.4, 9.7], 10).kind, 'spree');
   assert.equal(killCallout([8, 8.5, 9, 9.4, 9.7], 10).text, 'KILLING SPREE');
   assert.equal(killCallout([1], 10), null);
+});
+
+const awardActor = (id, name, frags, deaths, scoreStats = {}) => ({id, name, frags, deaths, scoreStats});
+test('matchAwards names the standout players across the round stats', () => {
+  const hud = {actors:[
+    awardActor(0, 'ChatGPT', 12, 4, {objectiveTime:3, captures:1, flagReturns:2}),
+    awardActor(1, 'Grok', 5, 11, {}),
+    awardActor(2, 'Claude', 9, 9, {objectiveTime:20}),
+  ]};
+  const awards = matchAwards(hud);
+  const by = id => awards.find(a => a.id === id);
+  assert.equal(by('mvp').name, 'ChatGPT');
+  assert.equal(by('objective').name, 'Claude');
+  assert.equal(by('objective').value, '20.0s');
+  assert.equal(by('flag').name, 'ChatGPT');
+  assert.equal(by('deaths').name, 'Grok');
+  assert.equal(by('deaths').value, '11 DEATHS');
+  assert.equal(by('ratio').name, 'ChatGPT');
+  assert.equal(by('ratio').value, '3.00');
+});
+
+test('matchAwards stays silent for solo practice and malformed input', () => {
+  assert.deepEqual(matchAwards({actors:[awardActor(0, 'ChatGPT', 9, 2)]}), []);
+  assert.deepEqual(matchAwards({}), []);
+  assert.deepEqual(matchAwards(null), []);
 });

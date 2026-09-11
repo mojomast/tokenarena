@@ -170,3 +170,25 @@ export function scoreAnnouncer(hud, prevScores) {
   }
   return null;
 }
+
+const awardScore = actor => (Number(actor?.frags) || 0) * 3 + stat(actor, 'objectiveTime') + stat(actor, 'captures') * 5 + stat(actor, 'flagReturns') * 2;
+const stat = (actor, field) => Number(actor?.scoreStats?.[field]) || 0;
+const ratio = actor => { const kills = Number(actor?.frags) || 0, deaths = Number(actor?.deaths) || 0; return deaths > 0 ? kills / deaths : kills; };
+
+export function matchAwards(hud) {
+  const actors = (Array.isArray(hud?.actors) ? hud.actors : []).filter(actor => actor && actor.name && Number.isFinite(Number(actor.id)));
+  if (actors.length < 2) return [];
+  const top = score => actors.reduce((best, actor) => score(actor) > score(best) ? actor : best, actors[0]);
+  const awards = [];
+  const mvp = top(awardScore);
+  if (awardScore(mvp) > 0) awards.push({id: 'mvp', label: 'MATCH MVP', name: mvp.name, value: `${Number(mvp.frags) || 0} FRAGS`});
+  const objective = top(actor => stat(actor, 'objectiveTime'));
+  if (stat(objective, 'objectiveTime') > 0) awards.push({id: 'objective', label: 'MOST OBJECTIVE TIME', name: objective.name, value: `${stat(objective, 'objectiveTime').toFixed(1)}s`});
+  const runner = top(actor => stat(actor, 'captures') * 3 + stat(actor, 'flagReturns') * 2 + stat(actor, 'flagPickups'));
+  if (stat(runner, 'captures') + stat(runner, 'flagReturns') + stat(runner, 'flagPickups') > 0) awards.push({id: 'flag', label: 'FLAG RUNNER', name: runner.name, value: `${stat(runner, 'captures')} CAP · ${stat(runner, 'flagReturns')} RET`});
+  const accurate = top(ratio);
+  if (ratio(accurate) >= 1) awards.push({id: 'ratio', label: 'BEST K/D', name: accurate.name, value: ratio(accurate).toFixed(2)});
+  const generous = top(actor => Number(actor.deaths) || 0);
+  if ((Number(generous.deaths) || 0) > 0) awards.push({id: 'deaths', label: 'FEED PROVIDER', name: generous.name, value: `${Number(generous.deaths) || 0} DEATHS`});
+  return awards;
+}
