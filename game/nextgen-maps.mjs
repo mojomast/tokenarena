@@ -191,4 +191,24 @@ const titanValley = createLevel({
   },
 });
 
-export const NEXTGEN_MAPS = [colosseum, frostGate, sunkenHill, riverbend, fortress, atrium, catacombs, slagworks, forge, titanValley];
+// 11. Payload — a long industrial convoy route from a western depot to an eastern fuel yard.
+const convoyLine = createLevel({
+  id: 'convoy-line', name: 'Convoy Line', tag: 'PAYLOAD / CONVOY ROUTE', color: '#e0b06a', background: '#100c07', seed: 1111,
+  group: 'urban', scale: 'warzone', mode: 'payload', size: { w: 152, d: 72 }, biome: 'urban', amplitude: 3, relief: 1.1,
+  description: 'A long industrial convoy route. Attackers push the cart from a western depot, across a central bridge and tunnel, to the eastern fuel yard.',
+  layout(ctx, rng) {
+    ctx.teamSpawns = { 0: [[-66, -12], [-66, 12], [-72, -24], [-72, 24]], 1: [[66, 12], [66, -12], [72, 24], [72, -24]] };
+    ctx.addBuilding({ x: -64, z: 0, w: 18, d: 18, h: 6, rot: Math.PI / 2, roof: 'flat', door: 'east', doorWidth: 3.4, floors: 1 });
+    ctx.addBuilding({ x: 64, z: 0, w: 18, d: 18, h: 7, rot: -Math.PI / 2, roof: 'gable', door: 'west', doorWidth: 3.4, floors: 1 });
+    for (const [x, z] of [[-36, -20], [-36, 20], [-8, -24], [-8, 24], [22, -20], [22, 20], [46, -22], [46, 22]]) ctx.addBuilding({ x, z, w: 11, d: 9, h: 5, rot: rng() > .5 ? 0 : Math.PI / 2, roof: 'flat', door: rng() > .5 ? 'south' : 'north', floors: 1 });
+    ctx.addTunnel([[-48, undefined, 0], [-18, undefined, 0], [18, undefined, 0], [48, undefined, 0]], 3.2);
+    ctx.addBridge({ x: 0, z: 0, y: ctx.ground(0, 0) + 1.4, w: 16, d: 10, rot: 0, thickness: .5 });
+    scatter(ctx, 18, rng, 8, (c, x, z) => (rng() > .5 ? c.addCrate({ x, z, scale: .8 + rng() * .5 }) : c.addRock({ x, z, scale: .7 + rng() * .6 })));
+    ctx.addObjective(-32, 0, 4); ctx.addObjective(0, 0, 5); ctx.addObjective(34, 0, 4);
+    ctx.addVehicle({ kind: 'puma', x: -52, z: 26, yaw: 0 }); ctx.addVehicle({ kind: 'puma', x: 52, z: -26, yaw: Math.PI });
+    ctx.addPickup('rocket', -18, 0); ctx.addPickup('rail', 18, 0); ctx.addPickup('scatter', 0, -15); ctx.addPickup('plasma', 0, 15);
+    ctx.addPickup('health', -58, 0); ctx.addPickup('health', 58, 0); ctx.addPickup('armor', 0, -22); ctx.addPickup('armor', 0, 22);
+  },
+});
+
+export const NEXTGEN_MAPS = [colosseum, frostGate, sunkenHill, riverbend, fortress, atrium, catacombs, slagworks, forge, titanValley, convoyLine];

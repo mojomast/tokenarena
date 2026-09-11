@@ -91,3 +91,12 @@ test('CTF matches place both flags at the authored bases',()=>{
   assert.notDeepEqual(match.flagSpawns[0],match.flagSpawns[1],`${id} distinct bases`);
  }
 });
+test('payload is enabled on route-capable arenas and reconciles an incompatible one',()=>{
+ const payload=mapsForMode('payload');
+ assert.ok(payload.length>=8,'payload has a broad arena rotation');
+ assert.ok(payload.every(map=>(Array.isArray(map.spawns)&&map.spawns.length>=2)||map.teamSpawns),'payload arenas have a start and an end');
+ assert.ok(arenaSupportsMode('sunscar-canyon','payload'));
+ assert.ok(!arenaSupportsMode('colosseum','payload'));
+ const repaired=resolveMapForMode('colosseum','payload');
+ assert.ok(arenaSupportsMode(repaired,'payload'));
+});
