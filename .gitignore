@@ -45,3 +45,4 @@ next-env.d.ts
 
 # server runtime state
 /server/history.json
+/server/progression.json

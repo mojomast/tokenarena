@@ -227,6 +227,13 @@ Version 1.9 adds air combat:
 - **Skyfall Basin.** The biggest arena yet: fortified bases, a central mesa, four flak towers, armour lanes and two Hornet pads per side, built for 16-bot Combined Arms.
 - Bots flying a vehicle now fire the mounted gun, and vehicle entry accounts for altitude so ground units cannot board a Hornet in flight.
 
+Version 2.0 adds progression, unlocks and gear:
+
+- **XP and ranks.** Every completed match awards XP for frags, objective play and winning. `game/progression.mjs` owns a deterministic XP curve, level rewards and six rank titles (Recruit → Mythic), shared by the client and the game server.
+- **Unlocks.** Eight gear pieces and three weapon finishes unlock as you level, shown on a new **Rank** screen with your level, XP bar and career stats.
+- **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
+- **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.

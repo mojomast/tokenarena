@@ -3,6 +3,7 @@ import { pathToFileURL } from 'node:url';
 import { WebSocketServer } from 'ws';
 import { RoomRegistry } from './rooms.mjs';
 import { MatchHistory } from './history.mjs';
+import { ProgressionStore } from './progression.mjs';
 import { createHmac } from 'node:crypto';
 
 export function voiceConfig(peerId, env = process.env, now = Date.now()) {
@@ -17,9 +18,10 @@ export function voiceConfig(peerId, env = process.env, now = Date.now()) {
 
 const VOICE_BUFFER_LIMIT = 64 * 1024;
 
-export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, snapshotHz, historyPath = null } = {}) {
+export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, snapshotHz, historyPath = null, progressionPath = null } = {}) {
  const history = new MatchHistory(historyPath);
- const registry = new RoomRegistry({ random, graceMs, history, snapshotHz });
+ const progression = new ProgressionStore(progressionPath);
+ const registry = new RoomRegistry({ random, graceMs, history, progression, snapshotHz });
  const sockets = new Map();
  const socketPeer = new WeakMap();
  const peerRoom = new Map();
@@ -42,14 +44,14 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   const roomId = typeof msg.roomId === 'string' && msg.roomId ? msg.roomId : 'local';
   const room = registry.get(roomId);
   if (!room) { sendTo(peerId, { type: 'error', message: `room not found: ${roomId}` }); return; }
-  room.join(peerId, msg.name, msg.character, msg.harness, msg.token, msg.spectate === true);
+  room.join(peerId, msg.name, msg.character, msg.harness, msg.token, msg.spectate === true, msg.playerId);
   if (!room.peers.has(peerId)) return;
   if (peerRoom.get(peerId) !== room) releaseSeat(peerId);
   peerRoom.set(peerId, room);
  }
  function createRoom(peerId, msg) {
   const room = registry.create(msg.name);
-  room.join(peerId, msg.playerName ?? msg.name, msg.character, msg.harness, msg.token, false);
+  room.join(peerId, msg.playerName ?? msg.name, msg.character, msg.harness, msg.token, false, msg.playerId);
   if (!room.peers.has(peerId)) return;
   releaseSeat(peerId);
   peerRoom.set(peerId, room);
@@ -63,7 +65,8 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
    case 'create': createRoom(peerId, msg); break;
    case 'list': sendTo(peerId, { type: 'rooms', rooms: registry.list() }); break;
    case 'history': sendTo(peerId, { type: 'history', matches: history.all() }); break;
-   case 'host': peerRoom.get(peerId)?.host(peerId, msg.config, msg.mapId); break;
+    case 'host': peerRoom.get(peerId)?.host(peerId, msg.config, msg.mapId); break;
+    case 'gear': peerRoom.get(peerId)?.setGear(peerId, msg.gear); break;
    case 'start': peerRoom.get(peerId)?.start(peerId); break;
     case 'input': peerRoom.get(peerId)?.input(peerId, { ...(msg.input ?? msg), seq: msg.seq ?? msg.input?.seq }); break;
     case 'chat': {
@@ -129,12 +132,12 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   wss.close();
   server.close();
  }
- return { server, wss, close, registry, history };
+ return { server, wss, close, registry, history, progression };
 }
 
 const isEntry = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
 if (isEntry) {
- const { server } = createGameServer({ port: Number(process.env.PORT) || 4000, historyPath: new URL('./history.json', import.meta.url).pathname }); server.listen(Number(process.env.PORT) || 4000, () => {
+ const { server } = createGameServer({ port: Number(process.env.PORT) || 4000, historyPath: new URL('./history.json', import.meta.url).pathname, progressionPath: new URL('./progression.json', import.meta.url).pathname }); server.listen(Number(process.env.PORT) || 4000, () => {
   const { port } = server.address();
   console.log(`TOKEN ARENA game server listening on ws://0.0.0.0:${port} (http://localhost:${port})`);
   console.log('Join from the browser client at ws://localhost:' + port);

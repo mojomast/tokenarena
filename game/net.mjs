@@ -3,6 +3,7 @@ import {Match} from './core.mjs';
 import {RULES} from './data.mjs';
 
 export const DEFAULT_SERVER_URL = 'ws://localhost:4000';
+const createPlayerId=()=>{try{return globalThis.crypto?.randomUUID?.()??`p-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;}catch{return `p-${Math.random().toString(36).slice(2)}-${Date.now().toString(36)}`;}};
 const RENDER_DELAY_DEFAULT = 100;
 const RENDER_DELAY_MIN = 90;
 const RENDER_DELAY_MAX = 160;
@@ -19,6 +20,7 @@ export class NetClient {
   this.storage = options.storage ?? (typeof localStorage !== 'undefined' ? localStorage : null);
   this.storageKey = `token-arena-net:${url}`;
   this.roomKey = `token-arena-room:${url}`;
+  this.playerKey = 'token-arena-player-id';
   this.onStart = null;
   this.onResults = null;
   this.onLobby = null;
@@ -27,6 +29,7 @@ export class NetClient {
   this.onChat = null;
   this.onError = null;
   this.onClose = null;
+  this.onProgression = null;
   this.onVoiceSignal = null;
   this.onVoiceConfig = null;
   this.baseRenderDelay = clamp(Number(options.renderDelay) || RENDER_DELAY_DEFAULT, RENDER_DELAY_MIN, RENDER_DELAY_MAX);
@@ -50,6 +53,8 @@ export class NetClient {
   this.actorId = null;
   this.token = this.storage ? this.storage.getItem(this.storageKey) : null;
   this.roomId = this.storage ? this.storage.getItem(this.roomKey) : null;
+  this.playerId = (()=>{if(!this.storage)return createPlayerId();const saved=this.storage.getItem(this.playerKey);if(saved&&/^[A-Za-z0-9-]{8,64}$/.test(saved))return saved;const created=createPlayerId();try{this.storage.setItem(this.playerKey,created);}catch{}return created;})();
+  this.progression = null;
    this.buffer = [];
    this.snapshotSeq = 0;
    this.events = [];
@@ -89,12 +94,13 @@ export class NetClient {
   this.ws.send(text);
   return true;
  }
- join(name, character, harness, opts = {}) { this.send({ type: 'join', name, character, harness, token: this.token ?? '', roomId: opts.roomId || this.roomId || 'local', spectate: opts.spectate === true }); }
-  create(name, character, harness, playerName = '') { this.send({ type: 'create', name, playerName, character, harness, token: this.token ?? '', roomId: '' }); }
+ join(name, character, harness, opts = {}) { this.send({ type: 'join', name, character, harness, token: this.token ?? '', roomId: opts.roomId || this.roomId || 'local', spectate: opts.spectate === true, playerId: this.playerId }); }
+  create(name, character, harness, playerName = '') { this.send({ type: 'create', name, playerName, character, harness, token: this.token ?? '', roomId: '', playerId: this.playerId }); }
  list() { this.send({ type: 'list' }); }
  history() { this.send({ type: 'history' }); }
  host(config, mapId) { this.send({ type: 'host', config, mapId }); }
   start() { this.send({ type: 'start' }); }
+  gear(gear) { this.send({ type: 'gear', gear }); }
   voiceState(enabled) { return typeof enabled === 'boolean' && this.send({ type: 'voice-state', enabled }); }
   voiceSignal(to, payload) {
    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;
@@ -127,6 +133,7 @@ export class NetClient {
     this.spectate = msg.spectate === true;
     if (msg.roomId) { this.roomId = msg.roomId; if (this.storage) this.storage.setItem(this.roomKey, msg.roomId); }
     if (msg.token) { this.token = msg.token; if (this.storage) this.storage.setItem(this.storageKey, msg.token); }
+    if (msg.profile) { this.progression = msg.profile; this.onProgression?.({ profile: msg.profile, reconnected: msg.reconnected === true }); }
     break;
    case 'lobby':
     this.players = msg.players;
@@ -158,8 +165,9 @@ export class NetClient {
     for (const item of msg.items) this.events.push(item);
     if (this.events.length > 300) this.events.splice(0, this.events.length - 300);
     break;
-   case 'snapshot': this.push(msg); break;
-    case 'results': this.roundOver = true; this.state = msg.state; this.onResults?.(msg); break;
+    case 'snapshot': this.push(msg); break;
+     case 'progression': this.progression = msg.profile ?? this.progression; this.onProgression?.(msg); break;
+     case 'results': this.roundOver = true; this.state = msg.state; this.onResults?.(msg); break;
     case 'chat':
      this.chatLog.push(msg);
      if (this.chatLog.length > 100) this.chatLog.splice(0, this.chatLog.length - 100);

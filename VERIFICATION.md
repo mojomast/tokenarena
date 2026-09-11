@@ -1,5 +1,29 @@
 # TOKEN ARENA verification report
 
+## Progression, unlocks and gear 2.0 - 2026-09-11
+
+- **`game/progression.mjs`**: deterministic XP curve, `levelFromXp`, rank
+  titles, an 8-piece gear catalogue across three slots, level-gated unlocks,
+  `resolveGear` modifiers (additive health/armour, multiplicative combat stats)
+  and `awardMatch`. Covered by 7 tests.
+- **`game/core.mjs`**: `options.loadouts[id].gear` is resolved per human actor
+  and applied on every spawn (health/armour/speed/damage/spread); bots keep
+  defaults. Snapshot stays deterministic with no gear.
+- **`server/progression.mjs`**: JSON store mirroring `history.mjs` (atomic
+  writes, player cap, validated ids) with `award`/`setGear`/`get`. Covered by 5
+  tests including a full `Room` match that awards persistent XP and queues a
+  `progression` message.
+- **Protocol**: clients send a stable `playerId` on join/create, persist gear
+  with a `gear` message, and receive `profile` on welcome plus `progression`
+  updates with XP gained, level-ups and unlocks.
+- **Client**: a new Rank screen (level, XP bar, career stats, unlock list, gear
+  slots), unlock toasts, gear saved to localStorage and applied to solo matches
+  and hosted lobbies.
+
+Verification: `npm run test:game` 378/378, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Air combat: Hornet and Skyfall Basin 1.9 - 2026-09-10
 
 - **`game/vehicles.mjs`** gains the `HORNET` flight chassis and a dedicated

@@ -1,0 +1,74 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {GEAR,MAX_LEVEL,awardMatch,defaultProgression,gearById,levelFromXp,matchXp,normalizeGear,normalizeProgression,rankTitle,resolveGear,unlockedItems,xpForLevel} from './progression.mjs';
+
+test('xp curve is monotonic and levelFromXp tracks exact boundaries',()=>{
+ for(let level=1;level<MAX_LEVEL-1;level++)assert.ok(xpForLevel(level+1)>xpForLevel(level));
+ assert.equal(levelFromXp(0).level,1);
+ assert.equal(levelFromXp(xpForLevel(1)-1).level,1);
+ assert.equal(levelFromXp(xpForLevel(1)).level,2);
+ const two=xpForLevel(1)+xpForLevel(2);
+ assert.equal(levelFromXp(two-1).level,2);
+ assert.equal(levelFromXp(two).level,3);
+ assert.equal(levelFromXp(1e9).level,MAX_LEVEL);
+ assert.equal(levelFromXp(1e9).progress,1);
+ assert.ok(levelFromXp(xpForLevel(1)/2).progress>0&&levelFromXp(xpForLevel(1)/2).progress<1);
+});
+test('gear resolves additive armour/health and multiplicative combat stats',()=>{
+ const scope=resolveGear(['scope']);
+ assert.equal(scope.modifiers.spread,.85);
+ assert.ok(Math.abs(scope.modifiers.damage-1.06)<1e-9);
+ const both=resolveGear(['scope','plating','stim']);
+ assert.equal(both.modifiers.armor,25);
+ assert.equal(both.modifiers.health,20);
+ assert.ok(Math.abs(both.modifiers.speed-1.04*.98)<1e-9);
+ assert.equal(both.items.length,3);
+ assert.equal(resolveGear(['nope']).items.length,0);
+});
+test('normalizeGear enforces one per slot and level gating',()=>{
+ assert.deepEqual(normalizeGear({primary:'heavy-barrel'},2),{});
+ assert.equal(normalizeGear({primary:'heavy-barrel'},5).primary,'heavy-barrel');
+ assert.equal(normalizeGear({armor:'plating',utility:'stim',primary:'scope'},20).utility,'stim');
+ assert.equal(normalizeGear({primary:'not-real'},20).primary,undefined);
+ for(const item of GEAR)assert.equal(gearById(item.id),item);
+});
+test('unlocks arrive with levels',()=>{
+ assert.equal(unlockedItems(1).length,0);
+ assert.ok(unlockedItems(2).some(item=>item.id==='gear-scope'));
+ assert.ok(unlockedItems(10).some(item=>item.kind==='cosmetic'));
+ assert.equal(rankTitle(1),'Recruit');
+ assert.equal(rankTitle(12),'Veteran');
+ assert.equal(rankTitle(60),'Mythic');
+});
+test('matchXp rewards frags, objective play and wins deterministically',()=>{
+ const base=matchXp({actor:{frags:5,scoreStats:{}}});
+ assert.equal(base,40+60);
+ assert.equal(matchXp({win:true,actor:{frags:5,scoreStats:{}}}),base+80);
+ const objective=matchXp({actor:{frags:0,scoreStats:{objectiveCaptures:2,objectiveTime:10}}});
+ assert.ok(objective>40);
+ assert.equal(matchXp({actor:{frags:5,scoreStats:{}}}),base);
+});
+test('awardMatch levels up, records stats and grants unlocks once',()=>{
+ const result={win:true,actor:{frags:40,scoreStats:{captures:1}}};
+ const first=awardMatch(defaultProgression(),result);
+ assert.ok(first.gained>=300);
+ assert.ok(first.levelUp);
+ assert.equal(first.profile.matches,1);
+ assert.equal(first.profile.wins,1);
+ assert.equal(first.profile.kills,40);
+ assert.ok(first.unlocked.length>0);
+ const second=awardMatch(first.profile,{actor:{frags:0,scoreStats:{}}});
+ assert.equal(second.profile.matches,2);
+ assert.equal(second.unlocked.filter(item=>item.id===first.unlocked[0].id).length,0);
+});
+test('normalizeProgression clamps, recomputes level and re-validates gear',()=>{
+ const profile=normalizeProgression({xp:xpForLevel(1)+xpForLevel(2),level:99,matches:-3,gear:{primary:'heavy-barrel',armor:'plating',utility:'stim'},unlocks:{'gear-scope':true}});
+ assert.equal(profile.xp,1250);
+ assert.equal(profile.level,3);
+ assert.equal(profile.matches,0);
+ assert.equal(profile.gear.primary,undefined);
+ assert.equal(profile.gear.armor,'plating');
+ assert.equal(profile.gear.utility,undefined);
+ assert.ok(profile.unlocks['gear-scope']);
+ assert.deepEqual(defaultProgression(),normalizeProgression(null));
+});

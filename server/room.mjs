@@ -3,6 +3,7 @@ import {normalizeConfig} from '../game/config.mjs';
 import {getMap} from '../game/maps.mjs';
 import {CHARACTERS,resolveLoadout,RULES} from '../game/data.mjs';
 import {randomUUID} from 'node:crypto';
+import {validPlayerId} from './progression.mjs';
 
 export const PLAYER_LIMIT = 8;
 const clean = name => String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 20);
@@ -16,6 +17,7 @@ export class Room {
   this.random = random;
   this.graceMs = Math.max(1000, options.graceMs ?? 20000);
   this.history = options.history ?? null;
+  this.progression = options.progression ?? null;
   this.peers = new Map();
   this.nextPeerId = 1;
   this.hostId = null;
@@ -46,7 +48,7 @@ export class Room {
    players: [...this.peers.values()].map(p => ({ peerId: p.id, name: p.name, character: p.character, harness: p.harness, actorId: p.actorId, ready: p.ready, connected: p.disconnectedAt === null, spectate: p.spectate === true, voiceSession: p.voiceSession })) };
  }
  nextConnectedHost() { for (const p of this.peers.values()) if (p.spectate !== true && p.disconnectedAt === null) return p.id; return null; }
- join(peerId, name = '', character = 'chatgpt', harness = 'openclaw', token = '', spectate = false) {
+ join(peerId, name = '', character = 'chatgpt', harness = 'openclaw', token = '', spectate = false, playerId = '') {
   if (this.peers.has(peerId)) return;
   if (token) {
    const existing = [...this.peers.values()].find(p => p.token === token);
@@ -56,6 +58,7 @@ export class Room {
     this.peers.delete(oldId);
     existing.id = peerId;
      existing.disconnectedAt = null;
+     if (validPlayerId(playerId)) existing.playerId = playerId;
      existing.voiceSession = null;
      existing.latest = null;
      existing.receivedSeq = existing.appliedSeq = existing.latestSeq = 0;
@@ -64,7 +67,7 @@ export class Room {
     this.peers.set(peerId, existing);
     if (this.hostId === oldId) this.hostId = peerId;
     else if (!this.hostId && existing.spectate !== true) this.hostId = peerId;
-    this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, reconnected: true, token: existing.token, spectate: existing.spectate === true });
+    this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, reconnected: true, token: existing.token, spectate: existing.spectate === true, profile: this.progression?.get(existing.playerId) ?? null });
     this.broadcast(this.lobby());
     if (this.started && !this.roundOver && this.match) {
      this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
@@ -82,10 +85,10 @@ export class Room {
   const peer = { id: peerId, name: clean(name) || CHARACTERS.find(c => c.id === l.character).name,
     character: l.character, harness: l.harness, actorId: null, ready: false, latest: null, receivedSeq: 0, latestSeq: 0, appliedSeq: 0, lastSerial: 0,
      lastJump: false, lastPower: false, lastInteract: false, edgeFire: false, edgeJump: false, edgePower: false, edgeInteract: false,
-   token: randomUUID(), disconnectedAt: null, spectate: isSpectator, voiceSession: null };
+   token: randomUUID(), disconnectedAt: null, spectate: isSpectator, voiceSession: null, playerId: validPlayerId(playerId) ? playerId : null };
   this.peers.set(peerId, peer);
   if (!this.hostId && !isSpectator) this.hostId = peerId;
-  this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, token: peer.token, spectate: isSpectator });
+  this.send(peerId, { type: 'welcome', peerId, roomId: this.id, host: peerId === this.hostId, token: peer.token, spectate: isSpectator, profile: this.progression?.get(peer.playerId) ?? null });
   this.broadcast(this.lobby());
   if (isSpectator && this.started && !this.roundOver && this.match) {
    this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
@@ -125,7 +128,7 @@ export class Room {
   const players = [...this.peers.values()].filter(p => p.spectate !== true);
   if (players.length === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
-   this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => ({ character: p.character, harness: p.harness })) });
+   this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => ({ character: p.character, harness: p.harness, gear: this.progression?.get(p.playerId)?.gear })) });
   let i = 0;
    for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = p.edgeInteract = false; p.lastJump = p.lastPower = p.lastInteract = false; i++; }
    for (const p of this.peers.values()) { p.edgeFire = false; if (p.spectate) p.lastSerial = 0; }
@@ -162,6 +165,12 @@ export class Room {
    peer.lastInteract = i.interact === true;
    if (i.reload === true && !peer.lastReload) peer.edgeReload = true;
    peer.lastReload = i.reload === true;
+ }
+ setGear(peerId, gear) {
+  const peer = this.peers.get(peerId);
+  if (!peer || !peer.playerId || !this.progression) return;
+  const profile = this.progression.setGear(peer.playerId, gear);
+  if (profile) this.send(peerId, { type: 'progression', profile, gear: profile.gear });
  }
  chat(peerId, text, now = Date.now()) {
   const peer = this.peers.get(peerId);
@@ -288,6 +297,17 @@ export class Room {
       const mode = this.match.config.mode;
       const objectiveEnded = mode === 'ctf' ? 'capture' : mode === 'teamdeathmatch' ? 'frag' : mode === 'koth' || mode === 'domination' ? 'objective' : null;
       this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: result.actors, teamScores: result.teamScores, winner: result.winner, endingReason: result.winner === null ? null : objectiveEnded });
+      if (this.progression) {
+       const teamMode = ['ctf', 'teamdeathmatch', 'koth', 'domination', 'combined-arms'].includes(mode);
+       const maxFrags = Math.max(...result.actors.map(a => Number(a.frags) || 0));
+       for (const p of this.peers.values()) {
+        if (!p.playerId || p.actorId === null || p.spectate) continue;
+        const actor = result.actors.find(a => a.id === p.actorId);
+        const win = teamMode ? result.winner === actor?.team : (Number(actor?.frags) || 0) === maxFrags;
+        const award = this.progression.award(p.playerId, { win, actor, mode });
+        if (award) this.send(p.id, { type: 'progression', ...award });
+       }
+      }
       this.broadcast({ type: 'results', state: result }); break;
     }
   }
