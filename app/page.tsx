@@ -5,7 +5,7 @@ import {ArrowUpRight,AudioLines,Check,ChevronDown,ChevronRight,Crosshair,Film,He
 import {Slider} from '@/components/ui/slider';
 import {RadioGroup,RadioGroupItem} from '@/components/ui/radio-group';
 import {MAPS,getMap} from '../game/maps.mjs';
-import {activeMaps,mapsForMode,recommendedBots,maxBotsFor} from '../game/arenas.mjs';
+import {mapsForMode} from '../game/arenas.mjs';
 import {Switch} from '@/components/ui/switch';
 import {CHARACTERS,HARNESSES,WEAPONS,RULES,resolveLoadout} from '../game/data.mjs';
 import {Match} from '../game/core.mjs';
@@ -22,6 +22,7 @@ import {awardMatch,defaultProgression,GEAR,GEAR_SLOTS,levelFromXp,normalizeProgr
 import {ATTACHMENTS,ATTACHMENT_SLOTS} from '../game/attachments.mjs';
 import {WEAPON_FINISHES,CROSSHAIR_STYLES} from '../game/cosmetics.mjs';
 import {harnessVehicle} from '../game/harness-profiles.mjs';
+import {pickShowcase,seatShowcaseVehicles} from '../game/showcase.mjs';
 import {ammoText,boundList,damageBearing,damageNumberStyle,dynamicCrosshairGap,escapeHint,hitMarker,killBanner,lowAmmo,matchStartBanner,postureLabel,projectToScreen,reloadProgress,scoreAnnouncer,vehicleHud,voiceHint,weaponTag} from '../game/hud.mjs';
 
 type Mode='selection'|'browse'|'lobby'|'theater'|'playing'|'paused'|'results'|'progression';
@@ -91,10 +92,10 @@ export default function Home(){
  try{const prefs=JSON.parse(localStorage.getItem('token-arena-settings')||'{}');if(typeof prefs.sensitivity==='number'){r.lookSensitivity=Math.max(.3,Math.min(2.5,Number.isFinite(prefs.sensitivity)?prefs.sensitivity:1));setSensitivity(r.lookSensitivity);}if(typeof prefs.muted==='boolean'){audio.muted=prefs.muted;setMuted(prefs.muted);}if(typeof prefs.showcase==='boolean'){r.showcaseEnabled=prefs.showcase;setShowcase(prefs.showcase);}if(typeof prefs.legacyArenas==='boolean'){r.legacyArenas=prefs.legacyArenas;setLegacyMaps(prefs.legacyArenas);}}catch{}
   try{const saved=JSON.parse(localStorage.getItem('token-arena-progression')||'null');const normalized=normalizeProgression(saved);r.profile=normalized;profileRef.current=normalized;setProfile(normalized);}catch{}
   resize=()=>view.resize();window.addEventListener('resize',resize);let last=performance.now(),hudAt=0;
-  const showcaseModes=['deathmatch','teamdeathmatch','ctf','koth','domination','combined-arms','rockets','instagib'];
   const makeRng=(seed:number=Date.now()>>>0)=>{let n=seed||1;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);};
   const showcaseOk=()=>r.showcaseEnabled!==false&&!reducedMotion()&&view.renderer.isSoftware!==true;
-  const buildShowcase=()=>{if(!showcaseOk()){r.showcase=null;r.showcaseMatchedId=null;view.setShowcase(null);view.setCinema(false);view.setDirector(null);setShowcaseLive(false);return;}const rng=makeRng();const pool=activeMaps({legacy:r.legacyArenas===true});const map=pool[Math.floor(rng()*pool.length)],mode=showcaseModes[Math.floor(rng()*showcaseModes.length)],bots=Math.max(4,Math.min(maxBotsFor(mode),recommendedBots(mode,map.id)));const cfg=normalizeConfig({...DEFAULT_CONFIG,mode,botCount:bots,difficulty:'normal',timeLimit:90,fragLimit:30});const m=new Match('chatgpt','openclaw',rng,map.id,cfg);for(const a of m.actors)if(!a.bot)a.bot={route:[],think:0,target:-1,memory:0,reaction:0,stuck:0,last:{x:0,y:0,z:0},state:'roam',patrol:0,flank:null,flankDone:false};const director=new CinematicDirector({random:makeRng(),center:m.center,radius:16,cutEvery:3.4});r.showcase={match:m,director,acc:0,time:0,mapId:map.id};r.showcaseMatchedId=null;view.setMatch(m.snapshot());view.lastEvent=0;view.setPlayerId(-1);view.setDirector(director);view.setCinema(true);view.setShowcase(m.snapshot());setShowcaseLive(true);};
+  // The title screen alternates a Combined Arms battle and an Instagib rail match.
+  const buildShowcase=()=>{if(!showcaseOk()){r.showcase=null;r.showcaseMatchedId=null;view.setShowcase(null);view.setCinema(false);view.setDirector(null);setShowcaseLive(false);return;}const rng=makeRng();const spec=pickShowcase(r.showcaseIndex||0,rng,{legacy:r.legacyArenas===true});r.showcaseIndex=(r.showcaseIndex||0)+1;const cfg=normalizeConfig({...DEFAULT_CONFIG,mode:spec.mode,botCount:spec.botCount,difficulty:spec.difficulty,timeLimit:spec.timeLimit,fragLimit:spec.fragLimit});const m=new Match('chatgpt','openclaw',rng,spec.mapId,cfg);for(const a of m.actors)if(!a.bot)a.bot={route:[],think:0,target:-1,memory:0,reaction:0,stuck:0,last:{x:0,y:0,z:0},state:'roam',patrol:0,flank:null,flankDone:false};if(spec.seatVehicles)seatShowcaseVehicles(m,spec.seatVehicles);const director=new CinematicDirector({random:makeRng(),center:m.center,radius:16,cutEvery:2.8});r.showcase={match:m,director,acc:0,time:0,mapId:spec.mapId,mode:spec.mode};r.showcaseMatchedId=null;view.setMatch(m.snapshot());view.lastEvent=0;view.setPlayerId(-1);view.setDirector(director);view.setCinema(true);view.setShowcase(m.snapshot());setShowcaseLive(true);};
   const refreshDemos=async()=>{try{setDemos(await listDemos());}catch{setDemos([]);}};
   const saveRecording=async(demo:any)=>{if(!demo)return;const summary=await saveDemo(demo).catch(()=>null);if(summary)setLastDemo(summary);refreshDemos();};
   const playDemo=async(target:any)=>{const id=target&&typeof target==='object'?target.id:target;try{const demo=await getDemo(id);if(!demo){setDemoNotice('That demo could not be loaded.');return;}const player=new DemoPlayer(demo);const director=new CinematicDirector({random:Math.random,center:{x:0,z:0},radius:16,cutEvery:4});r.demo={player,director,time:0,paused:false,speed:1,lastT:0,hudAt:0,state:player.sample(0)};view.setMatch(player.sample(0));view.lastEvent=0;view.setPlayerId(-1);view.setSpectator(true);view.setDirector(director);view.setCinema(true);view.setShowcase(null);view.setPreviewRect(null);setDemoInfo(demoSummary(demo));setDemoRig(director.rig);setDemoTime(0);setDemoPaused(false);setDemoSpeed(1);setDemoNotice('');setDemoPlaying(true);changeMode('theater');}catch(e:any){setDemoNotice(String(e?.message||e));}};
@@ -234,7 +235,7 @@ export default function Home(){
     <div className="title-start" role="button" aria-label="Press any key or click to enter"><span className="title-pulse"/>PRESS ANY KEY <small>or click to enter</small></div>
     <div className="title-meta"><span>{selectableMaps.length} ARENAS</span><span>{CHARACTERS.length} OPERATORS</span><span>{HARNESSES.length} HARNESSES</span><span>{GAME_MODES.length} MODES</span></div>
    </div>
-   <div className="title-footer"><span>v2.3 · MODS + VEHICLE SKILLS</span>{githubLink}</div>
+   <div className="title-footer"><span>v2.4 · EFFECTS + ACTION DEMO</span>{githubLink}</div>
   </div>}
   {mode==='selection'&&<div className={`selection-screen${showcaseLive?' has-showcase':''}${entered?'':' awaiting-start'}`}>
   <header className="topbar"><div className="wordmark"><Crosshair size={25}/><span>TOKEN<span className="wordmark-light">ARENA</span></span><small>CUSTOM MATCH / 03</small></div><div className="header-right">{settingsButton}<button className="icon-button" aria-label={muted?'Unmute audio':'Mute audio'} onClick={()=>saveSettings(sensitivity,!muted)}>{muted?<VolumeX size={19}/>:<Volume2 size={19}/>}</button>{githubLink}</div></header>

@@ -38,3 +38,63 @@ export class LowHealthOverlay{
  update(active,time,dt,reduced,camera){this.active=active===true;if(!this.mesh)return;const step=Math.max(.0001,Math.min(dt||0,.1));const pulse=reduced?0:Math.sin((time||0)*5.5)*.5+.5;const target=this.active?.1+pulse*.16:0;this.opacity+=(target-this.opacity)*(1-Math.exp(-9*step));this.mesh.material.uniforms.uOpacity.value=this.opacity;this.mesh.visible=this.opacity>.002;if(this.mesh.visible&&camera){const half=Math.tan((camera.fov||82)*Math.PI/360)*.11,height=half*2,width=height*(camera.aspect||1);this.mesh.scale.set(width,height,1);}}
  dispose(){if(!this.mesh)return;this.mesh.parent?.remove(this.mesh);this.mesh.geometry.dispose();this.mesh.material.dispose();this.mesh=null;}
 }
+
+// Quake 2 style rail beam: an additive spiral-textured cylinder with a bright
+// core and an expanding muzzle ring. The diagonal strip texture scrolls along
+// the beam so it reads as a spinning coil. Generated once per pool.
+function makeRailStrip(){
+ if(typeof document==='undefined')return null;
+ const size=128,canvas=document.createElement('canvas');canvas.width=size;canvas.height=size;
+ const ctx=canvas.getContext('2d'),img=ctx.createImageData(size,size),data=img.data;
+ for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+  const u=x/size,v=y/size;
+  const coil=Math.max(0,Math.sin(u*Math.PI*2+v*Math.PI*4));
+  const glow=Math.pow(Math.max(0,Math.cos(u*Math.PI*4)),8);
+  const a=Math.min(1,coil*.9+glow*.55);
+  const i=(y*size+x)*4;
+  data[i]=236;data[i+1]=248;data[i+2]=255;data[i+3]=Math.round(255*a);
+ }
+ ctx.putImageData(img,0,0);
+ const tex=new T.CanvasTexture(canvas);tex.wrapS=tex.wrapT=T.RepeatWrapping;tex.needsUpdate=true;return tex;
+}
+
+export class RailBeamPool{
+ constructor(scene,limit=8){
+  this.scene=scene;this.limit=limit;this.slots=[];this.serial=0;this.texture=makeRailStrip();
+  this.beamGeo=new T.CylinderGeometry(1,1,1,14,1,true).rotateX(Math.PI/2).translate(0,0,.5);
+  this.coreGeo=new T.CylinderGeometry(1,1,1,8,1,true).rotateX(Math.PI/2).translate(0,0,.5);
+  this.ringGeo=new T.TorusGeometry(1,.16,8,24);
+  this.axis=new T.Vector3(0,0,1);this.dir=new T.Vector3();this.from=new T.Vector3();this.to=new T.Vector3();this.quat=new T.Quaternion();
+ }
+ _slot(){
+  let slot=this.slots.find(s=>!s.active);
+  if(slot)return slot;
+  if(this.slots.length>=this.limit)return this.slots.slice().sort((a,b)=>a.serial-b.serial)[0];
+  const beamMat=new T.MeshBasicMaterial({color:'#9fe8ff',transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,opacity:.9});
+  if(this.texture){const map=this.texture.clone();map.wrapS=map.wrapT=T.RepeatWrapping;map.repeat.set(1,4);map.needsUpdate=true;beamMat.map=map;}
+  const coreMat=new T.MeshBasicMaterial({color:'#ffffff',transparent:true,depthWrite:false,blending:T.AdditiveBlending,opacity:.95});
+  const ringMat=new T.MeshBasicMaterial({color:'#9fe8ff',transparent:true,depthWrite:false,blending:T.AdditiveBlending,side:T.DoubleSide,opacity:.9});
+  const beam=new T.Mesh(this.beamGeo,beamMat),core=new T.Mesh(this.coreGeo,coreMat),ring=new T.Mesh(this.ringGeo,ringMat);
+  for(const mesh of [beam,core,ring]){mesh.visible=false;mesh.frustumCulled=false;this.scene.add(mesh);}
+  slot={beam,core,ring,beamMat,coreMat,ringMat,active:false,serial:0,life:0,total:1};
+  this.slots.push(slot);return slot;
+ }
+ spawn(from,to,color='#9fe8ff',reduced=false){
+  if(!from||!to)return null;
+  const slot=this._slot();if(!slot)return null;
+  this.from.set(from.x||0,from.y||0,from.z||0);this.to.set(to.x||0,to.y||0,to.z||0);
+  this.dir.subVectors(this.to,this.from);const len=this.dir.length()||.001;this.dir.normalize();
+  this.quat.setFromUnitVectors(this.axis,this.dir);
+  const width=reduced?.07:.12;
+  slot.beam.position.copy(this.from);slot.beam.quaternion.copy(this.quat);slot.beam.scale.set(width,width,len);
+  slot.core.position.copy(this.from);slot.core.quaternion.copy(this.quat);slot.core.scale.set(width*.26,width*.26,len);
+  slot.ring.position.copy(this.from);slot.ring.quaternion.copy(this.quat);slot.ring.scale.setScalar(.16);
+  slot.beamMat.color.set(color);slot.ringMat.color.set(color);slot.coreMat.color.set(reduced?'#dff6ff':'#ffffff');
+  if(slot.beamMat.map){slot.beamMat.map.repeat.set(1,Math.max(2,len/1.4));slot.beamMat.map.offset.set(0,0);}
+  slot.active=true;slot.serial=++this.serial;slot.life=slot.total=reduced?.2:.45;
+  slot.beam.visible=slot.core.visible=slot.ring.visible=true;return slot;
+ }
+ update(dt){for(const s of this.slots){if(!s.active)continue;s.life-=dt;if(s.life<=0){s.active=false;s.beam.visible=s.core.visible=s.ring.visible=false;continue;}const t=1-s.life/s.total,fade=1-t;s.beamMat.opacity=.95*fade;s.coreMat.opacity=.95*(1-t*.6);s.ringMat.opacity=.9*fade;if(s.beamMat.map)s.beamMat.map.offset.y=-t*3.2;s.ring.scale.setScalar(.16*(1+t*2.4));}}
+ clear(){for(const s of this.slots){s.active=false;s.beam.visible=s.core.visible=s.ring.visible=false;}}
+ dispose(){for(const s of this.slots){this.scene.remove(s.beam,s.core,s.ring);s.beamMat.map?.dispose();s.beamMat.dispose();s.coreMat.dispose();s.ringMat.dispose();}this.slots=[];this.beamGeo.dispose();this.coreGeo.dispose();this.ringGeo.dispose();this.texture?.dispose();this.texture=null;}
+}

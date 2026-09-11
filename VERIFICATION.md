@@ -1,5 +1,22 @@
 # TOKEN ARENA verification report
 
+## Title demo and weapon effects 2.4 - 2026-09-11
+
+- **Showcase scenarios** (`game/showcase.mjs`): the title screen cycles a
+  Combined Arms battle (16 bots on skyfall-basin / trenchline / signal-ridge /
+  warfront, vehicles pre-seated at 70% through `seatShowcaseVehicles`) and an
+  Instagib rail match, with faster cinematic cuts.
+- **Quake 2 rail** (`game/effects-fx.mjs` `RailBeamPool`): an additive
+  spiral-textured cylinder with a white core and expanding muzzle ring, plus a
+  starburst impact. Pooled, disposed, and safe without a DOM.
+- **Per-weapon effects** (`game/view.mjs`): pulse, rail, scatter, plasma,
+  grenade, shock, flak, marksman and SMG each compose distinct tracer, impact
+  and explosion visuals; projectile rendering is per-weapon.
+
+Verification: `npm run test:game` 437/437, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1. New suites: `game/showcase.test.mjs`, `game/rail-effect.test.mjs`.
+
 ## Attachment behaviours and reticles 2.3 - 2026-09-11
 
 - **Charge coil** (`game/core.mjs`): firing a charge weapon accumulates charge

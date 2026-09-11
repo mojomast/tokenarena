@@ -234,6 +234,12 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.4 turns up the spectacle:
+
+- **Action title demo.** The menu showcase now alternates a 16-bot **Combined Arms** battle on the largest vehicle maps — with bots pre-seated in Pumas and Hornets so armour and aircraft are rolling from the first second — and an **Instagib** rail match, with quicker cinematic cuts.
+- **Quake 2 rail.** The Rail Lance fires a Quake 2-style beam: an additive spiral-textured coil with a white-hot core and an expanding muzzle ring, capped by a starburst impact.
+- **Unique weapon effects.** Every weapon reads differently in use: pulse tracers, rocket launch smoke and shrapnel, the rail coil, scatter and flak pellet cones with debris, plasma orbs with pulse rings, grenade fireballs, jagged shock arcs, marksman lances and quick SMG streaks — each with its own impact response.
+
 Version 2.2 adds weapon mods, a vehicle overhaul and new modes:
 
 - **Weapon attachments.** Four mod slots (optic, barrel, magazine, underbarrel) and fourteen unlockable mods that change both how a weapon looks and how it behaves: long barrels and scopes extend range, drum magazines add rounds, piercing rounds punch through targets, explosive tips detonate, the underbarrel grenade launcher adds splash, homing beacons curve rockets, burst modules fire in bursts, charge coils hold for a boosted shot and chain capacitors arc into a second target. Pick them in the Rank screen; each mod applies to every weapon it fits.
