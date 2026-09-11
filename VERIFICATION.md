@@ -1,5 +1,23 @@
 # TOKEN ARENA verification report
 
+## Attachment behaviours and reticles 2.3 - 2026-09-11
+
+- **Charge coil** (`game/core.mjs`): firing a charge weapon accumulates charge
+  per frame until `chargeTime`, emits `charge` start/ready events, and fires a
+  boosted shot (`chargeDamage`). Releasing early resets the charge.
+- **Homing beacon** (`game/core.mjs`): rockets carry `homing`/`homingTurnRate`
+  and steer toward the nearest enemy within range each step.
+- **Burst module**: continues a burst after the initial trigger pull (already
+  wired in 2.2, now covered by `game/attachment-behavior.test.mjs`).
+- **Reticles** (`app/globals.css`, `game/config.mjs`,
+  `app/game-ui/configuration.tsx`): all five reticle shapes render and are
+  selectable; the dynamic gap transform excludes chevron/split.
+- **Discoverability**: the harness panel now lists each harness's vehicle skill.
+
+Verification: `npm run test:game` 433/433, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Attachments, vehicle overhaul, assault, cosmetics 2.2 - 2026-09-11
 
 - **Weapon attachments** (`game/attachments.mjs`): four slots, fourteen mods,

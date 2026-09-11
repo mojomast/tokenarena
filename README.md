@@ -236,11 +236,11 @@ Version 2.0 adds progression, unlocks and gear:
 
 Version 2.2 adds weapon mods, a vehicle overhaul and new modes:
 
-- **Weapon attachments.** Four mod slots (optic, barrel, magazine, underbarrel) and fourteen unlockable mods that change both how a weapon looks and how it behaves: long barrels and scopes extend range, drum magazines add rounds, piercing rounds punch through targets, explosive tips detonate, the underbarrel grenade launcher adds splash, homing beacons curve rockets, burst modules fire in bursts and chain capacitors arc into a second target. Pick them in the Rank screen; each mod applies to every weapon it fits.
+- **Weapon attachments.** Four mod slots (optic, barrel, magazine, underbarrel) and fourteen unlockable mods that change both how a weapon looks and how it behaves: long barrels and scopes extend range, drum magazines add rounds, piercing rounds punch through targets, explosive tips detonate, the underbarrel grenade launcher adds splash, homing beacons curve rockets, burst modules fire in bursts, charge coils hold for a boosted shot and chain capacitors arc into a second target. Pick them in the Rank screen; each mod applies to every weapon it fits.
 - **Vehicle overhaul.** Steering no longer inverts, riders visibly mount the Puma and Hornet and are valid targets, and each vehicle now has a driver, a gunner and passenger seats. The gunner works the mounted chaingun while the driver keeps both hands on the wheel.
 - **Vehicle skills.** Harnesses carry vehicle perks: OpenClaw's Auto-Gunner and Roo's Gunner Drone man the turret when you drive without a gunner, Claude Code adds reactive plating, Codex repairs the hull, Cline triggers a nitro boost, Hermes overdrives the engine and OpenCode uplinks a faster turret.
 - **Assault mode.** Attackers capture sectors in order while defenders hold the line, and breaching the final sector wins. Trenchline and Signal Ridge join the Combined Arms roster, while Rampart and Catwalk Breach are built for Assault.
-- **Finishes and reticles.** Six weapon finishes recolor your guns and unlockable reticle styles carry across matches.
+- **Finishes and reticles.** Six weapon finishes recolor your guns and all five reticle styles (cross, dot, ring, chevron, split) carry across matches.
 
 Version 2.1 expands and rebalances the arsenal:
 
