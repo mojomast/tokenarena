@@ -17,6 +17,8 @@ export function voiceConfig(peerId, env = process.env, now = Date.now()) {
 }
 
 const VOICE_BUFFER_LIMIT = 64 * 1024;
+export const TRAFFIC_BUFFER_LIMIT = 512 * 1024;
+export const HEARTBEAT_MS = 15000;
 
 export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, snapshotHz, historyPath = null, progressionPath = null } = {}) {
  const history = new MatchHistory(historyPath);
@@ -34,7 +36,10 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
  let nextPeer = 1;
  function sendTo(peerId, msg) {
   const ws = sockets.get(peerId);
-  if (ws && ws.readyState === ws.OPEN) ws.send(JSON.stringify(msg));
+  if (!ws || ws.readyState !== ws.OPEN) return;
+  const text = JSON.stringify(msg);
+  if (ws.bufferedAmount + Buffer.byteLength(text) > TRAFFIC_BUFFER_LIMIT) { if (msg?.type === 'voice-config') ws.terminate(); return; }
+  ws.send(text);
  }
  function releaseSeat(peerId) {
   const old = peerRoom.get(peerId);
@@ -90,27 +95,31 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
      if (msg.type === 'voice-signal' && (!room.voicePeers(msg.from, to, msg) ||
       peerRoom.get(msg.from) !== room || peerRoom.get(to) !== room ||
       sockets.get(msg.from)?.readyState !== 1)) continue;
-     const text = JSON.stringify(msg);
-    if (to === null) {
-     for (const ws of wss.clients) if (ws.readyState === ws.OPEN && peerRoom.get(socketPeer.get(ws)) === room) ws.send(text);
-    } else {
-      const ws = sockets.get(to);
-      if (msg.type === 'voice-config' && peerRoom.get(to) !== room) continue;
-      if (msg.type === 'voice-signal' || msg.type === 'voice-config') {
-       if (!ws || ws.bufferedAmount + Buffer.byteLength(text) > VOICE_BUFFER_LIMIT) {
-        if (msg.type === 'voice-config') ws?.terminate();
-        continue;
-       }
-      }
-     if (ws && ws.readyState === ws.OPEN) ws.send(text);
-    }
+      const text = JSON.stringify(msg);
+     if (to === null) {
+      const bytes = Buffer.byteLength(text);
+      for (const ws of wss.clients) if (ws.readyState === ws.OPEN && peerRoom.get(socketPeer.get(ws)) === room && ws.bufferedAmount + bytes <= TRAFFIC_BUFFER_LIMIT) ws.send(text);
+     } else {
+       const ws = sockets.get(to);
+       if (msg.type === 'voice-config' && peerRoom.get(to) !== room) continue;
+       if (!ws || ws.readyState !== ws.OPEN) continue;
+       if (msg.type === 'voice-signal' || msg.type === 'voice-config') {
+        if (ws.bufferedAmount + Buffer.byteLength(text) > VOICE_BUFFER_LIMIT) {
+         if (msg.type === 'voice-config') ws.terminate();
+         continue;
+        }
+       } else if (ws.bufferedAmount + Buffer.byteLength(text) > TRAFFIC_BUFFER_LIMIT) continue;
+       ws.send(text);
+     }
    }
   }
  }
  wss.on('connection', ws => {
   const peerId = nextPeer++;
+  ws.isAlive = true;
   sockets.set(peerId, ws);
   socketPeer.set(ws, peerId);
+  ws.on('pong', () => { ws.isAlive = true; });
   ws.on('message', data => {
    let msg;
    try { msg = JSON.parse(data.toString()); } catch { ws.send(JSON.stringify({ type: 'error', message: 'invalid JSON' })); return; }
@@ -126,8 +135,10 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   ws.on('error', () => {});
  });
  const timer = setInterval(() => { registry.tickAll(tickDt); registry.expireAll(); flush(); }, tickMs);
+ const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (ws.isAlive === false) { ws.terminate(); continue; } ws.isAlive = false; try { ws.ping(); } catch {} } }, HEARTBEAT_MS);
  function close() {
   clearInterval(timer);
+  clearInterval(heartbeat);
   for (const ws of wss.clients) ws.close();
   wss.close();
   server.close();

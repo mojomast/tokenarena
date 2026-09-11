@@ -6,6 +6,7 @@ import {randomUUID} from 'node:crypto';
 import {validPlayerId} from './progression.mjs';
 
 export const PLAYER_LIMIT = 8;
+export const SPECTATOR_LIMIT = 24;
 const clean = name => String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 20);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const bounded = (value, max) => typeof value === 'string' && value.length <= max;
@@ -84,6 +85,7 @@ export class Room {
   if (requestedPlayer && !active && playerCount >= PLAYER_LIMIT) { this.send(peerId, { type: 'error', message: 'room is full' }); return; }
   let isSpectator = spectate === true;
   if (requestedPlayer && active) isSpectator = true;
+  if (isSpectator && [...this.peers.values()].filter(p => p.spectate === true).length >= SPECTATOR_LIMIT) { this.send(peerId, { type: 'error', message: 'spectator limit reached' }); return; }
   const l = resolveLoadout(character, harness) || { character: 'chatgpt', harness: 'openclaw' };
   const peer = { id: peerId, name: clean(name) || CHARACTERS.find(c => c.id === l.character).name,
     character: l.character, harness: l.harness, actorId: null, ready: false, latest: null, receivedSeq: 0, latestSeq: 0, appliedSeq: 0, lastSerial: active ? this.match.serial : 0,

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Room,PLAYER_LIMIT} from './room.mjs';
+import {Room,PLAYER_LIMIT,SPECTATOR_LIMIT} from './room.mjs';
 function rng(){let n=11;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
 const find=(msgs,type,to)=>msgs.find(m=>m.msg.type===type&&(to===undefined||m.to===to))?.msg;
 const last=(msgs,type)=>[...msgs].reverse().find(m=>m.msg.type===type)?.msg;
@@ -184,4 +184,12 @@ test('reconnecting spectator cannot claim a vacant host role',()=>{
  assert.equal(last(msgs,'lobby').hostId,null);
  room.join(4,'Next host');
  assert.equal(room.hostId,4);
+});
+test('spectators are capped so a room cannot be used as a fan-out amplifier',()=>{
+ const room=new Room('r',rng());
+ for(let i=1;i<=SPECTATOR_LIMIT;i++)room.join(i,`S${i}`,'chatgpt','openclaw','',true);
+ room.drain();
+ room.join(SPECTATOR_LIMIT+1,'Overflow','chatgpt','openclaw','',true);
+ assert.ok(find(room.drain(),'error',SPECTATOR_LIMIT+1),'spectator past the limit is rejected');
+ assert.equal([...room.peers.values()].filter(p=>p.spectate).length,SPECTATOR_LIMIT);
 });
