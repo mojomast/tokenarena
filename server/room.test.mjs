@@ -400,3 +400,20 @@ test('mid-match player joins become spectators instead of ghost seats',()=>{
  assert.equal(welcome.spectate,true);
  assert.equal(room.peers.get(2).actorId,null);
 });
+test('hosting a mode repairs an incompatible arena and start uses the repaired map',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'Host');room.drain();
+ room.host(1,{mode:'ctf',botCount:0,timeLimit:60},'colosseum');
+ assert.notEqual(room.mapId,'colosseum','incompatible arena is repaired');
+ room.start(1);
+ const start=last(room.drain(),'start');
+ assert.equal(start.mapId,room.mapId);
+ assert.equal(room.match.config.mode,'ctf');
+ assert.ok(room.match.flagSpawns[0]&&room.match.flagSpawns[1],'repaired map authors flag bases');
+});
+test('a compatible arena is preserved when hosting',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'Host');room.drain();
+ room.host(1,{mode:'ctf',botCount:0},'launchpad');
+ assert.equal(room.mapId,'launchpad');
+});

@@ -1,6 +1,7 @@
 import {Match} from '../game/core.mjs';
 import {normalizeConfig} from '../game/config.mjs';
 import {getMap} from '../game/maps.mjs';
+import {resolveMapForMode} from '../game/arenas.mjs';
 import {CHARACTERS,resolveLoadout,RULES} from '../game/data.mjs';
 import {randomUUID} from 'node:crypto';
 import {validPlayerId} from './progression.mjs';
@@ -122,7 +123,7 @@ export class Room {
   if (peer.spectate) { this.send(peerId, { type: 'error', message: 'spectators cannot change match settings' }); return; }
   if (peerId !== this.hostId) { this.send(peerId, { type: 'error', message: 'only the host can change match settings' }); return; }
   this.config = normalizeConfig(config);
-  this.mapId = getMap(mapId).id;
+  this.mapId = resolveMapForMode(getMap(mapId).id, this.config.mode, { legacy: true });
   this.broadcast(this.lobby());
  }
  start(peerId) {
@@ -133,6 +134,9 @@ export class Room {
   if (this.peers.size === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
   const players = [...this.peers.values()].filter(p => p.spectate !== true);
   if (players.length === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
+  const mode = this.config?.mode ?? normalizeConfig({}).mode;
+  const mapId = resolveMapForMode(this.mapId, mode, { legacy: true });
+  if (mapId !== this.mapId) this.mapId = mapId;
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
    this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => { const profile = this.progression?.get(p.playerId); return { character: p.character, harness: p.harness, gear: profile?.gear, attachments: profile?.attachments }; }) });
   let i = 0;
