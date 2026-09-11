@@ -15,12 +15,14 @@ const SCORE_RULES:any={
  hillTime:{label:'Hill time target',objective:'HILL CONTROL',min:30,max:300,step:10},
  zoneTime:{label:'Zone time target',objective:'CONTROL ZONES',min:30,max:300,step:10},
  sectors:{label:'Sector count',objective:'SECTORS',min:1,max:9,step:1},
+ payload:{label:'Checkpoint count',objective:'CHECKPOINTS',min:1,max:6,step:1},
 };
 const scoreRule=(mode:any)=>SCORE_RULES[mode?.rules?.score]||SCORE_RULES.frags;
 const objectiveCopy=(score:string)=>({
  captures:'Capture the enemy flag and return it to your base. Your team scores when the enemy flag reaches home while your flag is safe.',
  hillTime:'Hold the central hill to earn one point per second for your team. Contest it to stop the other team from scoring.',
  zoneTime:'Capture and hold the three control zones. Your team earns one point per second for every zone it owns.',
+ payload:'Escort the payload cart down the track to the final point. Standing with the cart pushes it forward; the defenders stall it and roll it back. Attackers win on delivery, defenders on the clock.',
 })[score]||null;
 
 function Choice({label,value,options,onChange,disabled=false}:any){return <div className="config-field"><span>{label}</span><Select value={String(value)} onValueChange={onChange} disabled={disabled}><SelectTrigger aria-label={label}><SelectValue/></SelectTrigger><SelectContent className="arena-select">{options.map((o:any)=><SelectItem key={o[0]} value={String(o[0])}>{o[1]}</SelectItem>)}</SelectContent></Select></div>;}
