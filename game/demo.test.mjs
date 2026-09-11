@@ -228,3 +228,33 @@ test('trimDemo caps keyframes and events at maxSeconds', () => {
   assert.deepEqual(trimmed.events.map(e => e.id), [1]);
   assert.equal(demo.keyframes.length, 3);
 });
+test('player shows entities that appear after the first keyframe', () => {
+  const demo = twoFrameDemo();
+  demo.keyframes[0].state.rockets = [];
+  const mid = new DemoPlayer(demo).sample(0.5);
+  assert.equal(mid.rockets.length, 1);
+  assert.equal(mid.rockets[0].id, 0);
+  assert.deepEqual(mid.rockets[0].pos, { x: 6, y: 2, z: 4 });
+});
+
+test('player removes entities despawned by the next keyframe', () => {
+  const demo = twoFrameDemo();
+  demo.keyframes[1].state.rockets = [];
+  assert.equal(new DemoPlayer(demo).sample(0.5).rockets.length, 0);
+});
+
+test('player includes actors and vehicles that appear mid-recording', () => {
+  const demo = twoFrameDemo();
+  demo.keyframes[0].state.actors = [];
+  demo.keyframes[0].state.vehicles = [];
+  const mid = new DemoPlayer(demo).sample(0.5);
+  assert.equal(mid.actors.length, 1);
+  assert.equal(mid.vehicles.length, 1);
+});
+
+test('recorder stops sampling keyframes once the max duration is reached', () => {
+  const recorder = new DemoRecorder({ recordHz: 1, maxSeconds: 2 });
+  for (let i = 0; i < 10; i++) recorder.frame(stateAt(i));
+  assert.equal(recorder.frameCount, 3);
+  assert.equal(recorder.keyframes.at(-1).time, 2);
+});

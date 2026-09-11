@@ -73,37 +73,39 @@ function indexById(list) {
   return map;
 }
 
-function interpolate(target, k0, k1, alpha) {
-  if (Array.isArray(target.actors) && Array.isArray(k1.actors)) {
-    const next = indexById(k1.actors);
-    for (const actor of target.actors) {
-      const to = next.get(actor.id);
-      if (!to) continue;
-      applySmooth(actor, to, ACTOR_SMOOTH, false, alpha);
-      applySmooth(actor, to, ACTOR_ANGLE, true, alpha);
-    }
-  }
-  if (Array.isArray(target.vehicles) && Array.isArray(k1.vehicles)) {
-    const next = indexById(k1.vehicles);
-    for (const vehicle of target.vehicles) {
-      const to = next.get(vehicle.id);
-      if (!to) continue;
-      applySmooth(vehicle, to, VEHICLE_SMOOTH, false, alpha);
-      applySmooth(vehicle, to, VEHICLE_ANGLE, true, alpha);
-    }
-  }
-  if (Array.isArray(target.rockets) && Array.isArray(k1.rockets)) {
-    const next = indexById(k1.rockets);
-    for (const rocket of target.rockets) {
-      const to = next.get(rocket.id);
-      if (!to || !to.pos || !rocket.pos) continue;
-      for (const key of ['x', 'y', 'z']) {
-        const a = rocket.pos[key];
-        const b = to.pos[key];
-        if (Number.isFinite(a) && Number.isFinite(b)) rocket.pos[key] = lerp(a, b, alpha);
+function mergeList(target, list, key, smooth, angle, alpha, rocket) {
+  if (!Array.isArray(list)) return;
+  const next = indexById(list);
+  const existing = Array.isArray(target[key]) ? target[key] : [];
+  const merged = [];
+  const present = new Set();
+  for (const item of existing) {
+    const to = item && next.get(item.id);
+    if (!to) continue;
+    present.add(item.id);
+    if (rocket) {
+      if (to.pos && item.pos) for (const axis of smooth) {
+        const a = item.pos[axis];
+        const b = to.pos[axis];
+        if (Number.isFinite(a) && Number.isFinite(b)) item.pos[axis] = lerp(a, b, alpha);
       }
+    } else {
+      applySmooth(item, to, smooth, false, alpha);
+      if (angle) applySmooth(item, to, angle, true, alpha);
     }
+    merged.push(item);
   }
+  for (const to of list) {
+    if (!to || present.has(to.id)) continue;
+    merged.push(clonePlain(to));
+  }
+  target[key] = merged;
+}
+
+function interpolate(target, k1, alpha) {
+  mergeList(target, k1.actors, 'actors', ACTOR_SMOOTH, ACTOR_ANGLE, alpha, false);
+  mergeList(target, k1.vehicles, 'vehicles', VEHICLE_SMOOTH, VEHICLE_ANGLE, alpha, false);
+  mergeList(target, k1.rockets, 'rockets', ['x', 'y', 'z'], null, alpha, true);
 }
 
 function readStream(stream) {
@@ -164,6 +166,7 @@ export class DemoRecorder {
       this.events.push({ ...event });
     }
     if (!state || typeof state.time !== 'number') return false;
+    if (this.maxSeconds > 0 && this.keyframes.length > 0 && state.time - this.keyframes[0].time > this.maxSeconds) return false;
     const interval = 1 / this.recordHz;
     if (this.lastKeyframeTime === null || state.time - this.lastKeyframeTime >= interval - 1e-9) {
       this.keyframes.push({ time: state.time, state: cloneRounded(state) });
@@ -216,23 +219,25 @@ export class DemoPlayer {
     if (requested < 0) requested = 0;
     if (requested > duration) requested = duration;
     const absolute = first.time + requested;
-    const out = clonePlain(first.state);
-    out.time = requested;
-    if (this.keyframes.length > 1) {
-      let k0 = first;
-      let k1 = last;
-      for (let i = 1; i < this.keyframes.length; i++) {
-        if (this.keyframes[i].time >= absolute) {
-          k0 = this.keyframes[i - 1];
-          k1 = this.keyframes[i];
-          break;
-        }
-      }
-      const span = k1.time - k0.time;
-      const alpha = span > 0 ? Math.min(1, Math.max(0, (absolute - k0.time) / span)) : 0;
-      interpolate(out, k0.state, k1.state, alpha);
-      out.time = requested;
+    if (this.keyframes.length === 1) {
+      const only = clonePlain(first.state);
+      only.time = requested;
+      return only;
     }
+    let k0 = first;
+    let k1 = last;
+    for (let i = 1; i < this.keyframes.length; i++) {
+      if (this.keyframes[i].time >= absolute) {
+        k0 = this.keyframes[i - 1];
+        k1 = this.keyframes[i];
+        break;
+      }
+    }
+    const span = k1.time - k0.time;
+    const alpha = span > 0 ? Math.min(1, Math.max(0, (absolute - k0.time) / span)) : 0;
+    const out = clonePlain(k0.state);
+    interpolate(out, k1.state, alpha);
+    out.time = requested;
     return out;
   }
 
