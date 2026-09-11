@@ -1,5 +1,17 @@
 # COCS verification report
 
+## Five-pass polish batch 2.8 - 2026-09-11
+
+- **Killstreak callouts** (`game/hud.mjs` `multikillLabel`/`spreeLabel`/`recentKills`/`killCallout`): rapid local kills produce DOUBLE/TRIPLE/OVERKILL/MONSTER/MEGA KILL labels and five-kill milestones produce spree names. `game/core.mjs` death events now include `killer`/`killerName`/`self` so the same pure logic serves solo and net. Covered by new `hud` tests plus the enriched-event path in `core`/`feedback`.
+- **Post-match superlatives** (`matchAwards`): MVP, most objective time, flag runner, best K/D and feed provider, rendered on the results screen; returns nothing for solo practice. Covered by new `hud` tests.
+- **Bot survival instincts** (`game/core.mjs`): `blastUnsafe` prevents a bot firing an explosive when the target is inside its own radius, and a critically hurt bot with no supply retreats instead of closing. New `bot-behavior` tests cover the blast threshold and the retreat vector, and the seven-bot flow test still passes.
+- **Colorblind team palette** (`game/config.mjs`, `game/team-presentation.mjs`, `game/view.mjs`, settings): the default palette is unchanged; the colorblind palette swaps red/blue for Okabe-Ito orange/blue while preserving the bar-based world markers. New `team-presentation` and `config` assertions cover the switch.
+- **Tactical radar** (`game/radar.mjs`): yaw-relative contacts for actors, objectives and flags with team/palette colours and a reduced-motion-aware sweep. New `radar` tests cover projection, yaw rotation, range clipping and palette mapping.
+
+Verification: `npm run test:game` 468/468, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Arena fall fix and HUD 2.7 - 2026-09-11
 
 - **Terrain edge free-fall fixed** (`game/core.mjs` `moveActor`): the horizontal

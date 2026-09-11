@@ -128,6 +128,8 @@ Claude receives a modest stat bonus because its harness is locked to Claude Code
 ## Architecture
 
 - `app/page.tsx`: game state menus, HUD, input, audio events and fixed-step accumulator. Rendering is RAF-driven; simulation advances at 60Hz with five-step catch-up bound.
+- `game/hud.mjs`: pure HUD derivations — vehicle prompts, reload/crosshair/ammo helpers, kill banners, the match/objective announcer, killstreak and multikill callouts, and post-match superlatives.
+- `game/radar.mjs`: pure yaw-relative projection of actors, objectives and flags onto the tactical radar, plus the default and colorblind palettes.
 - `game/data.mjs`: roster, eight weapons, three powerups, harness parameters, weapon feel metadata and loadout validation.
 - `game/character-anim.mjs`: engine-free procedural character animation — damped gait phase, bounded pose solver and the joint rig used by the renderer, plus the bot facing helpers.
 - `game/levelgen.mjs`: deterministic next-generation level generator — heightfield terrain, cliff faces, buildings/tunnels/caverns/bridges and props, emitted as the existing map schema plus a smooth visual layer.
@@ -238,6 +240,14 @@ Version 2.0 adds progression, unlocks and gear:
 - **Unlocks.** Eight gear pieces and three weapon finishes unlock as you level, shown on a new **Rank** screen with your level, XP bar and career stats.
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
+
+Version 2.8 is a five-pass polish batch:
+
+- **Killstreak callouts.** Consecutive local kills now announce themselves — DOUBLE / TRIPLE / OVERKILL / MONSTER / MEGA KILL for rapid chains, and KILLING SPREE / RAMPAGE / DOMINATING / UNSTOPPABLE / GODLIKE / LEGENDARY at each five-kill milestone. Death events now carry the killer, so solo and network matches share the same logic (`game/hud.mjs`).
+- **Post-match superlatives.** The results screen names the MATCH MVP, MOST OBJECTIVE TIME, FLAG RUNNER, BEST K/D and FEED PROVIDER for the round, so a loss still has a story.
+- **Bots that value their lives.** A critically hurt bot with no supply to grab now backpedals instead of trading point-blank, and bots refuse to fire a rocket, grenade or plasma shot when the target is inside their own blast radius — no more suicide rockets.
+- **Colorblind team palette.** Graphics & settings gains a **Team colors** option. The colorblind palette swaps red/blue for the Okabe-Ito orange/blue pair while keeping the one-bar/two-bar world markers, so teams stay readable without relying on hue.
+- **Tactical radar.** A circular yaw-relative radar shows nearby operators, objective zones and flags, colour-coded by team and palette, with a rotating sweep (disabled under reduced motion).
 
 Version 2.7 tightens the arenas and the HUD:
 
