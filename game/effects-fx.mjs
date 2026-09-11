@@ -1,4 +1,5 @@
 import * as T from 'three';
+import {hashUnit} from './deaths.mjs';
 
 // Shared per-model resources. Registrations are skipped by disposeObject and
 // released exactly once when the owning ArenaView is disposed.
@@ -97,4 +98,78 @@ export class RailBeamPool{
  update(dt){for(const s of this.slots){if(!s.active)continue;s.life-=dt;if(s.life<=0){s.active=false;s.beam.visible=s.core.visible=s.ring.visible=false;continue;}const t=1-s.life/s.total,fade=1-t;s.beamMat.opacity=.95*fade;s.coreMat.opacity=.95*(1-t*.6);s.ringMat.opacity=.9*fade;if(s.beamMat.map)s.beamMat.map.offset.y=-t*3.2;s.ring.scale.setScalar(.16*(1+t*2.4));}}
  clear(){for(const s of this.slots){s.active=false;s.beam.visible=s.core.visible=s.ring.visible=false;}}
  dispose(){for(const s of this.slots){this.scene.remove(s.beam,s.core,s.ring);s.beamMat.map?.dispose();s.beamMat.dispose();s.coreMat.dispose();s.ringMat.dispose();}this.slots=[];this.beamGeo.dispose();this.coreGeo.dispose();this.ringGeo.dispose();this.texture?.dispose();this.texture=null;}
+}
+
+// Pooled death debris: flung limb/body chunks and lingering ground splats.
+// Slots are reused oldest-first so a burst of deaths cannot grow GPU resources.
+const GIB_GRAVITY=26;
+export class DeathPool{
+ constructor(scene,limit=64,splatLimit=16){
+  this.scene=scene;this.limit=limit;this.splatLimit=splatLimit;this.slots=[];this.splats=[];this.serial=0;
+  this.limb=new T.BoxGeometry(.17,.5,.17);
+  this.chunk=new T.IcosahedronGeometry(.2,0);
+  this.splatGeo=new T.CircleGeometry(.62,14).rotateX(-Math.PI/2);
+ }
+ _slot(){
+  let slot=this.slots.find(s=>!s.active);
+  if(slot)return slot;
+  if(this.slots.length>=this.limit){this.slots.sort((a,b)=>a.serial-b.serial);slot=this.slots[0];return slot;}
+  const material=new T.MeshBasicMaterial({transparent:true,depthWrite:false});
+  const obj=new T.Mesh(this.chunk,material);obj.visible=false;obj.frustumCulled=false;this.scene.add(obj);
+  slot={obj,material,active:false};this.slots.push(slot);return slot;
+ }
+ spawn(pos,{pieces=6,force=6,color='#8f1a1a',reduced=false,seed=0}={}){
+  if(!pos)return 0;
+  const count=Math.max(0,reduced?Math.min(2,pieces):pieces),baseY=Number.isFinite(pos.y)?pos.y+.9:.9;
+  const active=this.slots.reduce((n,slot)=>n+(slot.active?1:0),0),budget=Math.max(0,Math.min(count,this.limit-active));
+  let spawned=0;
+  for(let i=0;i<budget;i++){
+   const slot=this._slot();if(!slot)break;
+   const angle=hashUnit(seed,i*.37)*Math.PI*2,elevation=.25+hashUnit(seed,i*.37+1)*.75,speed=force*(.55+hashUnit(seed,i*.37+2)*.9);
+   slot.obj.geometry=i%3===0?this.chunk:this.limb;
+   slot.material.color.set(color);slot.material.opacity=1;
+   slot.obj.visible=true;slot.obj.position.set(pos.x,baseY,pos.z);
+   slot.obj.rotation.set(angle,elevation*3,angle*.5);slot.obj.scale.setScalar(.7+hashUnit(seed,i)*.8);
+   slot.velocity={x:Math.cos(angle)*speed,y:speed*(.5+elevation),z:Math.sin(angle)*speed};
+   slot.spin={x:(hashUnit(seed,i+1)-.5)*14,y:(hashUnit(seed,i+2)-.5)*14,z:(hashUnit(seed,i+3)-.5)*14};
+   slot.active=true;slot.serial=++this.serial;slot.life=slot.total=1.2+hashUnit(seed,i+4)*.9;
+   spawned++;
+  }
+  return spawned;
+ }
+ splat(pos,{color='#5c0d0d',reduced=false,seed=0,life=reduced?2.5:6}={}){
+  if(!pos)return false;
+  let slot=this.splats.find(s=>!s.active);
+  if(!slot){
+   if(this.splats.length>=this.splatLimit){this.splats.sort((a,b)=>a.serial-b.serial);slot=this.splats[0];}
+   else{const material=new T.MeshBasicMaterial({transparent:true,depthWrite:false});const obj=new T.Mesh(this.splatGeo,material);obj.visible=false;obj.frustumCulled=false;obj.renderOrder=4;this.scene.add(obj);slot={obj,material,active:false};this.splats.push(slot);}
+  }
+  slot.obj.material.color.set(color);slot.obj.visible=true;
+  slot.obj.position.set(pos.x,(Number.isFinite(pos.y)?pos.y:0)+.03,pos.z);
+  slot.obj.rotation.y=hashUnit(seed)*Math.PI*2;slot.obj.scale.setScalar(.7+hashUnit(seed,1)*.9);
+  slot.active=true;slot.serial=++this.serial;slot.life=slot.total=life;return true;
+ }
+ update(dt){
+  for(const slot of this.slots){
+   if(!slot.active)continue;
+   slot.life-=dt;
+   if(slot.life<=0){slot.active=false;slot.obj.visible=false;continue;}
+   const v=slot.velocity;v.y-=GIB_GRAVITY*dt;
+   slot.obj.position.x+=v.x*dt;slot.obj.position.y+=v.y*dt;slot.obj.position.z+=v.z*dt;
+   slot.obj.rotation.x+=slot.spin.x*dt;slot.obj.rotation.y+=slot.spin.y*dt;slot.obj.rotation.z+=slot.spin.z*dt;
+   slot.material.opacity=Math.min(1,slot.life/(slot.total*.35));
+  }
+  for(const slot of this.splats){
+   if(!slot.active)continue;
+   slot.life-=dt;
+   if(slot.life<=0){slot.active=false;slot.obj.visible=false;continue;}
+   slot.material.opacity=Math.min(.6,slot.life*.35);
+  }
+ }
+ clear(){for(const slot of this.slots){slot.active=false;slot.obj.visible=false;}for(const slot of this.splats){slot.active=false;slot.obj.visible=false;}}
+ dispose(){
+  for(const slot of this.slots){this.scene.remove(slot.obj);slot.material.dispose();}this.slots=[];
+  for(const slot of this.splats){this.scene.remove(slot.obj);slot.material.dispose();}this.splats=[];
+  this.limb.dispose();this.chunk.dispose();this.splatGeo.dispose();
+ }
 }
