@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as T from 'three';
-import {TEAM_PALETTE,teamPresentation,applyActorTeam} from './team-presentation.mjs';
+import {TEAM_PALETTE,TEAM_PALETTE_COLORBLIND,teamPalette,teamPresentation,applyActorTeam} from './team-presentation.mjs';
 import {ArenaView,robotModel} from './view.mjs';
 import {CHARACTERS} from './data.mjs';
 
@@ -9,6 +9,17 @@ test('canonical teams accept numeric and string identities without guessing unkn
  for(const [i,name] of ['red','blue'].entries())for(const value of [i,String(i),name])assert.equal(teamPresentation(value),TEAM_PALETTE[i]);
  for(const value of [null,undefined,-1,2,'alpha',false,''])assert.equal(teamPresentation(value),null);
  assert.deepEqual(TEAM_PALETTE.map(p=>p.label),['RED / I','BLUE / II']);
+});
+test('the colorblind palette swaps hues while keeping the non-color bar encoding',()=>{
+ assert.equal(teamPalette('colorblind'),TEAM_PALETTE_COLORBLIND);
+ assert.equal(teamPalette('default'),TEAM_PALETTE);
+ assert.equal(teamPalette(undefined),TEAM_PALETTE);
+ assert.notEqual(TEAM_PALETTE_COLORBLIND[0].color,TEAM_PALETTE[0].color);
+ assert.equal(teamPresentation(0,'colorblind').color,'#ff9d2e');
+ assert.equal(teamPresentation(1,'colorblind').color,'#2f9bff');
+ assert.equal(teamPresentation(0,'colorblind').bars,1);
+ assert.equal(teamPresentation(1,'colorblind').bars,2);
+ assert.equal(teamPresentation(2,'colorblind'),null);
 });
 test('all characters retain identity and status materials while armor and visible bars identify teams',()=>{
  const view=Object.create(ArenaView.prototype);

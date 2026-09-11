@@ -363,6 +363,8 @@
 .team-score-banner { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 16px; padding: 10px 4px 12px; border-bottom: 1px solid #83f4d533; color: #ccecdf; font: 12px monospace; letter-spacing: 1px; }
 .team-score-banner strong { color: #83f4d5; margin-right: auto; }
 .team-score-banner b { color: #ffc489; font-weight: 400; }
+.palette-colorblind .team-score-banner span:nth-of-type(1) { color: #ff9d2e; }
+.palette-colorblind .team-score-banner span:nth-of-type(2) { color: #2f9bff; }
 .history-heading { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; color: #9db9ad; font: 11px monospace; letter-spacing: .7px; }
 .history-heading b { color: #ffc489; font-weight: 400; }
 .history-match .mode-scoreboard { margin-inline: -2px; }
