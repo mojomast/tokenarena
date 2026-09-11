@@ -221,6 +221,12 @@ Version 1.8 rebuilds the arena and mode layer and adds traversal v2:
 - **Combined Arms mode.** A team objective mode built for the largest maps with up to **16** bots (per-mode `maxBots`), plus animation of every mode's objectives.
 - **Per-mode rosters.** Bot count now scales per mode (8 standard, 16 for Combined Arms) and the setup slider follows it; the menu showcase picks a map by group and a matching bot count.
 
+Version 1.9 adds air combat:
+
+- **The Hornet.** A second vehicle chassis with true flight: throttle, steering, boost, vertical lift (jump climbs, crouch descends), hovering, a ceiling, graceful pitch/roll and paired nose guns. It only appears on the largest combined-arms map.
+- **Skyfall Basin.** The biggest arena yet: fortified bases, a central mesa, four flak towers, armour lanes and two Hornet pads per side, built for 16-bot Combined Arms.
+- Bots flying a vehicle now fire the mounted gun, and vehicle entry accounts for altitude so ground units cannot board a Hornet in flight.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.

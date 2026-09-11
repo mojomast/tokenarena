@@ -61,6 +61,47 @@ export const PUMA = freeze({
 // GUNTRUCK remains the integration name for the first vehicle chassis.
 export const GUNTRUCK = PUMA;
 
+export const HORNET = freeze({
+  id: 'hornet',
+  name: 'Hornet',
+  kind: 'hornet',
+  flight: true,
+  dimensions: { length: 5.4, width: 5.2, height: 1.7 },
+  speed: 36,
+  acceleration: 28,
+  reverseSpeed: 9,
+  brake: 20,
+  drag: 0.02,
+  turnRadius: 9,
+  maxSteer: 0.5,
+  steerAssist: 1.1,
+  maxYawRate: 2.4,
+  grip: 3,
+  boostSpeed: 54,
+  boostAcceleration: 42,
+  boostDuration: 2.5,
+  boostCooldown: 6,
+  climbRate: 16,
+  maxAltitude: 58,
+  hoverGravity: 14,
+  hoverHeight: 1.6,
+  pitchMax: 0.5,
+  rollMax: 0.7,
+  bodyRate: 6,
+  traverseRate: 2.2,
+  health: 240,
+  respawn: 8,
+  mountedChaingun: CHAINGUN,
+  muzzles: [
+    { x: -1.6, y: 0.1, z: 0.2 },
+    { x: 1.6, y: 0.1, z: 0.2 }
+  ]
+});
+
+const VEHICLE_KINDS = { puma: PUMA, hornet: HORNET };
+const vehicleConfig = vehicle => VEHICLE_KINDS[vehicle?.config?.kind] || VEHICLE_KINDS[vehicle?.kind] || vehicle?.config || GUNTRUCK;
+export { vehicleConfig };
+
 const number = (value, fallback) => Number.isFinite(value) ? value : fallback;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const approach = (value, target, amount) =>
@@ -84,16 +125,18 @@ const readNormal = value => {
 
 export function createVehicle(template = PUMA) {
   const source = template || GUNTRUCK;
+  const config = VEHICLE_KINDS[source.kind] || source || GUNTRUCK;
   return {
     template: source.id || 'vehicle',
-    config: source,
+    config,
     position: { x: 0, y: 0, z: 0 },
     heading: 0,
     velocity: { x: 0, z: 0 },
+    vy: 0,
     driver: null,
     owner: null,
-    health: number(source.health, GUNTRUCK.health),
-    maxHealth: number(source.health, GUNTRUCK.health),
+    health: number(config.health, GUNTRUCK.health),
+    maxHealth: number(config.health, GUNTRUCK.health),
     respawnTimer: 0,
     heat: 0,
     overheated: false,
@@ -113,7 +156,7 @@ export function createVehicle(template = PUMA) {
 }
 
 export function vehicleMuzzles(vehicle) {
-  const template = vehicle?.template === PUMA.id ? PUMA : vehicle?.config;
+  const template = vehicleConfig(vehicle);
   const offsets = template?.muzzles || GUNTRUCK.muzzles;
   const heading = number(vehicle?.heading, 0) + number(vehicle?.turretYaw, 0);
   const sin = Math.sin(heading);
@@ -134,9 +177,94 @@ export function vehicleCanEnter(vehicle, actor) {
     vehicle.driver === null && actor.vehicle == null && actor.vehicleId == null && actor.health > 0);
 }
 
+function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
+  vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * dt);
+  vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - dt);
+  if (vehicle.overheated) {
+    vehicle.overheatTimer = Math.max(0, vehicle.overheatTimer - dt);
+    vehicle.overheated = vehicle.overheatTimer > 0;
+  }
+  const position = vehicle.position, velocity = vehicle.velocity;
+  let heading = number(vehicle.heading, 0);
+  const fwd = { x: Math.sin(heading), z: Math.cos(heading) };
+  const right = { x: Math.cos(heading), z: -Math.sin(heading) };
+  const throttle = clamp(number(input.throttle, 0), -1, 1);
+  const steer = clamp(number(input.steer, 0), -1, 1);
+  const lift = clamp(number(input.lift, 0), -1, 1);
+  const handbrake = input.brake === true;
+  const wasBoosting = number(vehicle.boostTimer, 0) > 0;
+  vehicle.boostTimer = Math.max(0, number(vehicle.boostTimer, 0) - dt);
+  vehicle.boostCooldown = Math.max(0, number(vehicle.boostCooldown, 0) - dt);
+  if (wasBoosting && vehicle.boostTimer <= 0) vehicle.boostCooldown = Math.max(vehicle.boostCooldown, number(config.boostCooldown, 6));
+  if (input.boost === true && throttle > 0 && vehicle.boostTimer <= 0 && vehicle.boostCooldown <= 0) vehicle.boostTimer = number(config.boostDuration, 2);
+  const boosting = vehicle.boostTimer > 0;
+  const prevSpeed = number(vehicle.speed, velocity.x * fwd.x + velocity.z * fwd.z);
+  let speed = velocity.x * fwd.x + velocity.z * fwd.z;
+  let lateral = velocity.x * right.x + velocity.z * right.z;
+  const thrust = throttle >= 0
+    ? throttle * (boosting ? number(config.boostAcceleration, 42) : number(config.acceleration, 28))
+    : throttle * number(config.acceleration, 28) * 0.4;
+  const drag = number(config.drag, 0.02);
+  speed = clamp(speed + (thrust - drag * speed * Math.abs(speed)) * dt, -number(config.reverseSpeed, 9), boosting ? number(config.boostSpeed, 54) : number(config.speed, 36));
+  if (throttle === 0) speed = approach(speed, 0, 2 * dt);
+  lateral *= Math.max(0, 1 - number(config.grip, 3) * dt);
+  velocity.x = fwd.x * speed + right.x * lateral;
+  velocity.z = fwd.z * speed + right.z * lateral;
+  let yawRate = (speed / number(config.turnRadius, 9)) * Math.tan(steer * number(config.maxSteer, 0.5)) + steer * number(config.steerAssist, 1.1);
+  if (handbrake) yawRate *= 1.4;
+  yawRate = clamp(yawRate, -number(config.maxYawRate, 2.4), number(config.maxYawRate, 2.4));
+  heading += yawRate * dt;
+  vehicle.heading = Number.isFinite(heading) ? heading : 0;
+  vehicle.speed = speed;
+  const climb = number(config.climbRate, 16), hover = number(config.hoverGravity, 14);
+  vehicle.vy = approach(number(vehicle.vy, 0), lift * climb, (lift === 0 ? hover : climb) * dt);
+  const next = { x: position.x + velocity.x * dt, y: position.y + number(vehicle.vy, 0) * dt, z: position.z + velocity.z * dt };
+  const sample = typeof ground === 'function' ? ground(next.x, next.z) : 0;
+  const floorY = sample == null ? 0 : typeof sample === 'number' ? sample : number(sample.y, 0);
+  const minY = floorY + number(config.hoverHeight, 1.6), maxY = number(config.maxAltitude, 58);
+  const resolved = typeof collision === 'function' ? collision(next, vehicle) : next;
+  if (resolved === false) {
+    velocity.x = velocity.z = 0;
+    vehicle.speed = speed = 0;
+    vehicle.vy = 0;
+  } else if (resolved && Number.isFinite(resolved.x) && Number.isFinite(resolved.z)) {
+    position.x = resolved.x;
+    position.z = resolved.z;
+    position.y = clamp(Number.isFinite(resolved.y) ? resolved.y : next.y, minY, maxY);
+    if (position.y <= minY + 1e-3 && vehicle.vy < 0) vehicle.vy = 0;
+  } else {
+    position.x = next.x;
+    position.z = next.z;
+    position.y = clamp(next.y, minY, maxY);
+  }
+  const pitchTarget = clamp(-number(vehicle.vy, 0) * 0.028 + (speed - prevSpeed) * 0.0015, -number(config.pitchMax, 0.5), number(config.pitchMax, 0.5));
+  const rollTarget = clamp(-yawRate * speed * 0.01, -number(config.rollMax, 0.7), number(config.rollMax, 0.7));
+  const blend = clamp(1 - Math.exp(-number(config.bodyRate, 6) * dt), 0, 1);
+  vehicle.pitchBody = number(vehicle.pitchBody, 0) + (pitchTarget - number(vehicle.pitchBody, 0)) * blend;
+  vehicle.roll = number(vehicle.roll, 0) + (rollTarget - number(vehicle.roll, 0)) * blend;
+  vehicle.grounded = position.y <= minY + 1e-3;
+  if (Number.isFinite(input.turretYaw)) {
+    const traverse = number(config.traverseRate, 2.2) * dt;
+    vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
+  } else {
+    vehicle.turretYaw = number(vehicle.turretYaw, 0);
+  }
+  if (input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
+    vehicle.heat = Math.min(gun.maxHeat, vehicle.heat + gun.heatPerShot);
+    vehicle.fireCooldown = gun.interval;
+    vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };
+    vehicle.muzzleIndex = (vehicle.muzzleIndex + 1) % 2;
+    if (vehicle.heat >= gun.maxHeat) {
+      vehicle.overheated = true;
+      vehicle.overheatTimer = gun.overheatCooldown;
+    }
+  }
+  return vehicle;
+}
+
 export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
   if (!vehicle || !Number.isFinite(dt) || dt <= 0) return vehicle;
-  const config = vehicle.config?.kind === PUMA.kind || vehicle.template === PUMA.id ? PUMA : vehicle.config || PUMA;
+  const config = vehicleConfig(vehicle);
   const gun = config.mountedChaingun || GUNTRUCK.mountedChaingun;
   const duration = dt;
   const position = vehicle.position || (vehicle.position = { x: 0, y: 0, z: 0 });
@@ -151,6 +279,8 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
     vehicle.turretYaw = number(vehicle.turretYaw, 0);
     return vehicle;
   }
+
+  if (config.flight) return stepFlight(vehicle, input, duration, collision, ground, config, gun);
 
   vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * duration);
   vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - duration);
@@ -335,6 +465,7 @@ export function respawnVehicle(vehicle, position = { x: 0, y: 0, z: 0 }, heading
   vehicle.position = { x: number(position.x, 0), y: number(position.y, 0), z: number(position.z, 0) };
   vehicle.heading = number(heading, 0);
   vehicle.velocity = { x: 0, z: 0 };
+  vehicle.vy = 0;
   vehicle.health = vehicle.maxHealth;
   vehicle.driver = null;
   vehicle.respawnTimer = 0;

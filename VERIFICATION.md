@@ -1,5 +1,24 @@
 # TOKEN ARENA verification report
 
+## Air combat: Hornet and Skyfall Basin 1.9 - 2026-09-10
+
+- **`game/vehicles.mjs`** gains the `HORNET` flight chassis and a dedicated
+  `stepFlight` integrator (lift/descend/hover, boost, ceiling clamp, altitude
+  collision) plus kind-based `vehicleConfig` resolution and paired ground/flight
+  muzzles. Covered by 4 tests in `game/vehicle-flight.test.mjs`.
+- **`game/core.mjs`**: vehicle entry respects altitude, bots in vehicles fire the
+  mounted gun, flight vehicles are excluded from run-over stomping, and the
+  snapshot publishes `vy`, `flight` and `altitude`.
+- **`game/view.mjs`**: `vehicleModel('hornet')` builds the aircraft (wings, tail,
+  canopy, twin engines, nose guns).
+- **`game/battle-maps.mjs`**: new `skyfall-basin` (span 144, four vehicles: two
+  Puma, two Hornet), passing bounds, navigation, clearance, render/dispose and
+  full 3-bot match contracts.
+
+Verification: `npm run test:game` 371/371, `npm run test:server` 80/80,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Arena framework, traversal v2 and combined arms 1.8 - 2026-09-10
 
 - **`game/arenas.mjs`** adds an arena registry: group/scale/mode-whitelist/legacy

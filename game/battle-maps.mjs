@@ -108,6 +108,37 @@ const warfront={
  landmarks:[{label:'WEST BASE',x:-58,z:0,y:6},{label:'REACTOR',x:0,z:0,y:7},{label:'EAST BASE',x:58,z:0,y:6}],
 };
 
+const skyfallBasin={
+ id:'skyfall-basin',name:'Skyfall Basin',tag:'COMBINED ARMS / AIR SUPERIORITY',
+ description:'The largest combined-arms basin: fortified bases, a central mesa, armour lanes and two Hornet air pads per side.',
+ color:'#9fd0ff',background:'#0a1622',bounds:{minX:-72,maxX:72,minZ:-52,maxZ:52},
+ teamSpawns:teams([[-70,-8],[-70,8]],[[70,-8],[70,8]]),flagSpawns:flags(-70,70),
+ spawns:[[-70,0],[70,0],[0,-42],[0,42],[-30,-40],[30,40],[-30,40],[30,-40],[-44,0],[44,0]],
+ blocks:[
+  wall(-60,0,14,24,6,'base-core'),wall(60,0,14,24,6,'base-core'),
+  wall(0,0,24,20,8,'fort'),
+  wall(-34,-30,6,6,7,'tower'),wall(34,30,6,6,7,'tower'),wall(-34,30,6,6,7,'tower'),wall(34,-30,6,6,7,'tower'),
+  cover(-20,0,4,2,1.8),cover(20,0,4,2,1.8),cover(0,-28,4,2,1.6),cover(0,28,4,2,1.6),
+  cover(-40,-40,5,3,2.2,'base-wall'),cover(40,40,5,3,2.2,'base-wall'),cover(-40,40,5,3,2.2,'base-wall'),cover(40,-40,5,3,2.2,'base-wall'),
+ ],
+ vehicles:[
+  {id:'sf-puma-w',kind:'puma',x:-50,y:0,z:28,yaw:Math.PI/2},
+  {id:'sf-puma-e',kind:'puma',x:50,y:0,z:-28,yaw:-Math.PI/2},
+  {id:'sf-hornet-w',kind:'hornet',x:-50,y:0,z:-28,yaw:Math.PI/2},
+  {id:'sf-hornet-e',kind:'hornet',x:50,y:0,z:28,yaw:-Math.PI/2},
+ ],
+ pickups:[
+  ['health',-70,-20],['health',70,20],['armor',-70,20],['armor',70,-20],
+  ['rocket',-44,-12],['rocket',44,12],['rail',0,-34],['rail',0,34],
+  ['scatter',-24,0],['scatter',24,0],['plasma',-14,-14],['plasma',14,14],
+  ['grenade',-58,40],['shock',58,-40],['flak',-22,40],['haste',-70,10],['overcharge',70,-10],['overshield',0,18],
+ ],
+ objectiveZones:[zone(-44,0),zone(0,-22),zone(44,0)],
+ traversal:{jumpPads:[pad('sf-hop-w',-64,0,16),pad('sf-hop-e',64,0,16),pad('sf-hop-n',0,-46,16),pad('sf-hop-s',0,46,16)],teleporters:[tp('sf-tp-w',-56,0,56,0),tp('sf-tp-e',56,0,-56,0)]},
+ navNodes:[[-70,0],[-50,0],[-30,0],[0,0],[30,0],[50,0],[70,0],[0,-42],[0,42],[-34,-30],[34,30],[-34,30],[34,-30],[0,24],[0,-24],[-50,28],[50,-28],[-50,-28],[50,28]],
+ landmarks:[{label:'WEST BASE',x:-60,z:0,y:7},{label:'THE MESA',x:0,z:0,y:9},{label:'EAST BASE',x:60,z:0,y:7}],
+};
+
 const freeze=value=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.values(value).forEach(freeze);Object.freeze(value);}return value;};
-export const BATTLE_MAPS=freeze([neonVertical,substation,warfront]);
+export const BATTLE_MAPS=freeze([neonVertical,substation,warfront,skyfallBasin]);
 export default BATTLE_MAPS;

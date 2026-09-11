@@ -31,6 +31,7 @@ const AUTHOR={
  'neon-vertical':{group:'urban',scale:'battle',play:['deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination','ctf']},
  substation:{group:'indoor',scale:'battle',play:['deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination','ctf']},
  warfront:{group:'combined',scale:'warzone',play:['combined-arms','ctf','teamdeathmatch','deathmatch','koth','domination','arsenal']},
+ 'skyfall-basin':{group:'combined',scale:'warzone',play:['combined-arms','ctf','teamdeathmatch','koth','domination','arsenal']},
 };
 
 const span=arena=>{
