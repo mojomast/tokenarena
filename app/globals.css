@@ -462,6 +462,10 @@
 .kill-banner.kill { border-color: #83f4d577; background: #081a1be6; color: #caffeb; }
 .kill-banner.death { border-color: #ff6b6b88; color: #ffb4b4; }
 .kill-banner.self { border-color: #ffd9a066; background: #1b160ee6; color: #ffe0a8; }
+.kill-callout { position: absolute; left: 50%; top: 41%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 4px; text-align: center; pointer-events: none; text-shadow: 0 3px 14px #000; animation: kill-callout 1.9s ease-out forwards; }
+.kill-callout strong { font: 800 clamp(24px, 4.6vw, 52px)/1 monospace; letter-spacing: .16em; color: #ffd9a0; }
+.kill-callout small { font: 11px monospace; letter-spacing: 4px; color: #9fd8c6; }
+.kill-callout.spree strong { color: #ff9d6b; text-shadow: 0 0 28px #ff9d6b88, 0 3px 14px #000; }
 .objective-announcer { position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); display: grid; justify-items: center; gap: 6px; text-align: center; pointer-events: none; text-shadow: 0 3px 14px #000; animation: objective-announcer 2.6s ease-out forwards; }
 .objective-announcer strong { font: 800 clamp(30px, 6vw, 58px)/1 monospace; letter-spacing: .18em; color: #e8fff6; }
 .objective-announcer small { font: 12px monospace; letter-spacing: 3px; color: #9fd8c6; }
@@ -472,12 +476,14 @@
 @keyframes damage-direction { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes damage-flash { 0% { opacity: 0; } 12% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes kill-banner { 0% { opacity: 0; transform: translate(-50%, -8px); } 12% { opacity: 1; transform: translate(-50%, 0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -6px); } }
+@keyframes kill-callout { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.7); } 14% { opacity: 1; transform: translate(-50%, -50%) scale(1.08); } 28% { transform: translate(-50%, -50%) scale(1); } 74% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -58%) scale(1); } }
 @keyframes objective-announcer { 0% { opacity: 0; transform: translate(-50%, -50%) scale(.94); } 12% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 78% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) {
   .damage-number { transition: none; }
   .damage-direction { animation: none; }
   .damage-flash { animation: none; opacity: .55; }
   .kill-banner { animation: none; }
+  .kill-callout { animation: none; }
   .objective-announcer { animation: none; }
 }
 

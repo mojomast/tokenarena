@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -160,4 +160,40 @@ test('scoreAnnouncer fires only when a team score crosses an integer', () => {
   assert.equal(scoreAnnouncer({teamScores:{0:4.4, 1:1}, config:{mode:'domination'}}, {0:4.1, 1:1}), null);
   assert.equal(scoreAnnouncer({teamScores:{0:2, 1:1}, config:{mode:'deathmatch'}}, {0:2, 1:1}), null);
   assert.equal(scoreAnnouncer({teamScores:{0:2, 1:1}}, null), null);
+});
+
+test('multikillLabel names rapid kill chains and stops at the cap', () => {
+  assert.equal(multikillLabel(0), null);
+  assert.equal(multikillLabel(1), null);
+  assert.equal(multikillLabel(2), 'DOUBLE KILL');
+  assert.equal(multikillLabel(3), 'TRIPLE KILL');
+  assert.equal(multikillLabel(4), 'OVERKILL');
+  assert.equal(multikillLabel(5), 'MONSTER KILL');
+  assert.equal(multikillLabel(9), 'MEGA KILL');
+});
+
+test('spreeLabel fires only on five-kill milestones', () => {
+  assert.equal(spreeLabel(4), null);
+  assert.equal(spreeLabel(5), 'KILLING SPREE');
+  assert.equal(spreeLabel(6), null);
+  assert.equal(spreeLabel(10), 'RAMPAGE');
+  assert.equal(spreeLabel(15), 'DOMINATING');
+  assert.equal(spreeLabel(25), 'GODLIKE');
+  assert.equal(spreeLabel(40), 'LEGENDARY');
+});
+
+test('recentKills counts only kills inside the trailing window', () => {
+  assert.equal(recentKills([1, 2, 3], 3, 4), 3);
+  assert.equal(recentKills([1, 2, 3], 6, 4), 2);
+  assert.equal(recentKills([1, 2, 3], 8, 4), 0);
+  assert.equal(recentKills('nope', 3), 0);
+  assert.equal(recentKills([1], NaN), 0);
+});
+
+test('killCallout prioritizes a spree milestone, then a multikill, then silence', () => {
+  assert.equal(killCallout([], 10), null);
+  assert.deepEqual(killCallout([9.5, 9.8], 10), {kind:'multikill', text:'DOUBLE KILL', detail:'2 KILL STREAK', streak:2, count:2});
+  assert.equal(killCallout([8, 8.5, 9, 9.4, 9.7], 10).kind, 'spree');
+  assert.equal(killCallout([8, 8.5, 9, 9.4, 9.7], 10).text, 'KILLING SPREE');
+  assert.equal(killCallout([1], 10), null);
 });

@@ -127,6 +127,38 @@ export function matchStartBanner(hud, duration = 2.6) {
   return {text: 'FIGHT', detail, age: time, duration: limit};
 }
 
+const MULTIKILL_LABELS = ['', '', 'DOUBLE KILL', 'TRIPLE KILL', 'OVERKILL', 'MONSTER KILL', 'MEGA KILL'];
+const SPREE_LABELS = ['KILLING SPREE', 'RAMPAGE', 'DOMINATING', 'UNSTOPPABLE', 'GODLIKE', 'LEGENDARY'];
+
+export function multikillLabel(count) {
+  const n = Math.floor(Number(count) || 0);
+  if (n < 2) return null;
+  return MULTIKILL_LABELS[Math.min(n, MULTIKILL_LABELS.length - 1)];
+}
+
+export function spreeLabel(streak) {
+  const n = Math.floor(Number(streak) || 0);
+  if (n < 5 || n % 5 !== 0) return null;
+  return SPREE_LABELS[Math.min(n / 5 - 1, SPREE_LABELS.length - 1)];
+}
+
+export function recentKills(kills, now, window = 4) {
+  const t = Number(now), span = Number(window) > 0 ? Number(window) : 4;
+  if (!Number.isFinite(t)) return 0;
+  return (Array.isArray(kills) ? kills : []).filter(value => Number.isFinite(Number(value)) && t - Number(value) >= 0 && t - Number(value) <= span).length;
+}
+
+export function killCallout(kills, now, {window = 4} = {}) {
+  const list = Array.isArray(kills) ? kills.filter(value => Number.isFinite(Number(value))) : [];
+  const streak = list.length;
+  if (streak <= 0) return null;
+  const spree = spreeLabel(streak);
+  if (spree) return {kind: 'spree', text: spree, detail: `${streak} KILL STREAK`, streak};
+  const count = recentKills(list, now, window), multi = multikillLabel(count);
+  if (multi) return {kind: 'multikill', text: multi, detail: `${streak} KILL STREAK`, streak, count};
+  return null;
+}
+
 export function scoreAnnouncer(hud, prevScores) {
   const scores = hud?.teamScores;
   if (!scores || !prevScores) return null;
