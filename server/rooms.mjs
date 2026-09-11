@@ -9,6 +9,7 @@ export class RoomRegistry {
   this.history = options.history ?? null;
   this.progression = options.progression ?? null;
   this.snapshotHz = options.snapshotHz;
+  this.maxRooms = Math.max(2, Math.min(4096, Number(options.maxRooms) || 64));
   this.rooms = new Map();
   this.defaultRoom = this.add(new Room('local', this.random, { name: 'Local', graceMs: this.graceMs, history: this.history, progression: this.progression, snapshotHz: this.snapshotHz }));
  }
@@ -25,6 +26,11 @@ export class RoomRegistry {
   throw new Error('no room codes available');
  }
  create(name = '') {
+  if (this.rooms.size >= this.maxRooms) {
+   const idle = [...this.rooms.values()].find(room => room !== this.defaultRoom && room.peers.size === 0);
+   if (!idle) return null;
+   this.rooms.delete(idle.id);
+  }
   const id = this.generateCode();
   const safeName = String(name ?? '').replace(/[\u0000-\u001f\u007f-\u009f]/g, '').trim().slice(0, 32) || id;
   return this.add(new Room(id, this.random, { name: safeName, graceMs: this.graceMs, history: this.history, progression: this.progression, snapshotHz: this.snapshotHz }));

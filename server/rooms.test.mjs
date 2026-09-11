@@ -95,3 +95,16 @@ test('created room names are sanitized and bounded',()=>{
  const fallback=reg.create('   ');
  assert.equal(fallback.name,fallback.id);
 });
+test('the registry evicts idle rooms and refuses to exceed its ceiling',()=>{
+ const reg=new RoomRegistry({random:rng(),maxRooms:2});
+ const a=reg.create('Alpha');
+ assert.ok(a);
+ const b=reg.create('Bravo');
+ assert.ok(b);
+ assert.equal(reg.get(a.id),null,'the idle room was evicted');
+ assert.equal(reg.list().length,2);
+ const occupied=[...reg.rooms.values()].filter(room=>room!==reg.defaultRoom)[0];
+ occupied.join(1,'Alice');
+ assert.equal(reg.create('Charlie'),null,'occupied rooms cannot be evicted to make room');
+ assert.equal(reg.get(b.id),occupied);
+});

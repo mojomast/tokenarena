@@ -56,6 +56,7 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
  }
  function createRoom(peerId, msg) {
   const room = registry.create(msg.name);
+  if (!room) { sendTo(peerId, { type: 'error', message: 'server is at the room limit' }); return; }
   room.join(peerId, msg.playerName ?? msg.name, msg.character, msg.harness, msg.token, false, msg.playerId);
   if (!room.peers.has(peerId)) return;
   releaseSeat(peerId);
