@@ -1,5 +1,28 @@
 # COCS verification report
 
+## Mobile touch controls 2.14 - 2026-09-11
+
+- **Pure input math** (`game/touch.mjs`, `game/touch.test.mjs`): `joystickVector`
+  clamps to the unit circle, `moveAxis` applies a deadzone, forward sign and the
+  edge sprint threshold, and `applyLook` accumulates yaw and clamps pitch. Three
+  tests cover these.
+- **Shared controls** (`game/input.mjs`, `game/input.test.mjs`): `controlsFromState`
+  accepts an analog `move` axis (overriding keys) and explicit `sprint`/`crouch`
+  flags. A new test covers analog move, mixed key+analog priority and held posture.
+- **On-screen controls** (`app/game-ui/touch-controls.tsx`, `app/page.tsx`):
+  thumbstick, drag-look surface and action buttons write movement, look and
+  held/tapped actions straight to the runtime; the loop feeds them through the
+  same `controlsFromState` used by keyboard and netcode. Controls auto-enable on
+  coarse pointers, toggle from Graphics & settings, and are persisted locally.
+- **Mobile viewport** (`app/layout.tsx`, `app/globals.css`): device-width viewport
+  with zoom disabled, plus `touch-action`/`overscroll-behavior`/safe-area rules so
+  the arena fills the screen without pull-to-refresh.
+
+Verification: `npm run test:game` 519/519, `npm run test:server` 94/94,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1. Touch behaviour was validated by unit tests, typecheck and build; a real
+phone browser playtest is still recommended.
+
 ## Payload mode 2.13 - 2026-09-11
 
 - **Pure rules** (`game/payload.mjs`, `game/payload.test.mjs`): `payloadTemplate`

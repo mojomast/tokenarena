@@ -83,7 +83,13 @@ Not yet included: accounts/matchmaking.
   aim less accurately. Breaking line of sight gives a fresh reaction delay.
   Existing saved difficulty choices are retained; select Casual Skirmish for the
   new beginner-friendly setup.
-- Jumping now supports landing on cover and separated island platforms rather than
+- **Touch controls on mobile:** a left thumbstick moves (push to the edge to
+  sprint), dragging the right side of the screen aims, and an action cluster covers
+  fire, ADS, jump, slide, reload, power, use, weapon swap and pause. Touch controls
+  switch on automatically on coarse-pointer devices and can be forced from
+  Graphics & settings; the layout uses the safe-area insets and disables page
+  scroll, zoom and pull-to-refresh while playing.
+- **Jumping now supports landing on cover and separated island platforms rather than
   falling into them. Movement checks vertical and horizontal substeps, ramp/deck
   seams, authored boost arcs, embedded states, and deterministic void recovery.
 - Weapons have distinct data-driven kick/recovery, tracer/muzzle/impact behavior,
@@ -245,6 +251,13 @@ Version 2.0 adds progression, unlocks and gear:
 - **Unlocks.** Eight gear pieces and three weapon finishes unlock as you level, shown on a new **Rank** screen with your level, XP bar and career stats.
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
+
+Version 2.14 adds mobile touch controls:
+
+- **One-screen mobile controls.** A left thumbstick (`app/game-ui/touch-controls.tsx`) drives analog movement and sprints when pushed to the edge; a drag-anywhere look surface aims; and an action cluster covers fire, ADS, jump, slide, reload, power, use, weapon swap and pause. Controls write imperatively to the runtime, so the frame loop never re-renders React.
+- **Automatic and optional.** Controls enable automatically on coarse-pointer devices (`pointer: coarse` or `maxTouchPoints > 0`) and can be toggled in Graphics & settings; the choice is saved locally. Desktop mouse and keyboard are unchanged.
+- **Shared input path.** `controlsFromState` now accepts an analog `move` axis plus explicit `sprint`/`crouch`, so touch, keyboard and netcode prediction all flow through the same controls builder. The joystick curve and look mapping live in the pure, tested `game/touch.mjs`.
+- **Fills the phone screen.** A mobile viewport export plus `touch-action`, `overscroll-behavior` and safe-area CSS stop zoom, scrolling and pull-to-refresh during play without disturbing the desktop HUD.
 
 Version 2.13 adds Payload, an escort mode:
 
