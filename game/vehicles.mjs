@@ -284,6 +284,8 @@ function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
   const throttle = clamp(number(input.throttle, 0), -1, 1);
   const steer = clamp(number(input.steer, 0), -1, 1);
   const lift = clamp(number(input.lift, 0), -1, 1);
+  const speedScale = clamp(number(input.speedScale, 1), 0.5, 2);
+  const boostScale = clamp(number(input.boostScale, 1), 0.5, 2);
   const handbrake = input.brake === true;
   const wasBoosting = number(vehicle.boostTimer, 0) > 0;
   vehicle.boostTimer = Math.max(0, number(vehicle.boostTimer, 0) - dt);
@@ -295,10 +297,10 @@ function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
   let speed = velocity.x * fwd.x + velocity.z * fwd.z;
   let lateral = velocity.x * right.x + velocity.z * right.z;
   const thrust = throttle >= 0
-    ? throttle * (boosting ? number(config.boostAcceleration, 42) : number(config.acceleration, 28))
+    ? throttle * (boosting ? number(config.boostAcceleration, 42) * boostScale : number(config.acceleration, 28)) * speedScale
     : throttle * number(config.acceleration, 28) * 0.4;
   const drag = number(config.drag, 0.02);
-  speed = clamp(speed + (thrust - drag * speed * Math.abs(speed)) * dt, -number(config.reverseSpeed, 9), boosting ? number(config.boostSpeed, 54) : number(config.speed, 36));
+  speed = clamp(speed + (thrust - drag * speed * Math.abs(speed)) * dt, -number(config.reverseSpeed, 9), boosting ? number(config.boostSpeed, 54) * boostScale : number(config.speed, 36) * speedScale);
   if (throttle === 0) speed = approach(speed, 0, 2 * dt);
   lateral *= Math.max(0, 1 - number(config.grip, 3) * dt);
   velocity.x = fwd.x * speed + right.x * lateral;
@@ -337,7 +339,7 @@ function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
   vehicle.roll = number(vehicle.roll, 0) + (rollTarget - number(vehicle.roll, 0)) * blend;
   vehicle.grounded = position.y <= minY + 1e-3;
   if (Number.isFinite(input.turretYaw)) {
-    const traverse = number(config.traverseRate, 2.2) * dt;
+    const traverse = number(config.traverseRate, 2.2) * clamp(number(input.traverseScale, 1), 0.5, 2) * dt;
     vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
   } else {
     vehicle.turretYaw = number(vehicle.turretYaw, 0);
@@ -384,6 +386,8 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
 
   const throttle = clamp(number(input.throttle, 0), -1, 1);
   const steer = clamp(number(input.steer, 0), -1, 1);
+  const speedScale = clamp(number(input.speedScale, 1), 0.5, 2);
+  const boostScale = clamp(number(input.boostScale, 1), 0.5, 2);
   const handbrake = input.brake === true;
   vehicle.handbrake = handbrake;
 
@@ -466,13 +470,13 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
 
   const engineAir = grounded ? 1 : 0.35;
   const thrust = throttle >= 0
-    ? throttle * (boosting ? number(config.boostAcceleration, 24) : number(config.acceleration, 14)) * engineAir
+    ? throttle * (boosting ? number(config.boostAcceleration, 24) * boostScale : number(config.acceleration, 14)) * engineAir * speedScale
     : throttle * number(config.acceleration, 14) * 0.35 * engineAir;
   const drag = number(config.drag, 0.035);
   let acceleration = thrust - drag * speed * Math.abs(speed);
   if (handbrake) acceleration -= Math.sign(speed) * number(config.brake, 22);
   speed += acceleration * duration;
-  const topSpeed = boosting ? number(config.boostSpeed, 26) : number(config.speed, 20);
+  const topSpeed = boosting ? number(config.boostSpeed, 26) * boostScale : number(config.speed, 20) * speedScale;
   speed = clamp(speed, -number(config.reverseSpeed, 6), topSpeed);
   if (throttle === 0 && !handbrake) speed = approach(speed, 0, 2 * duration);
 
@@ -499,7 +503,7 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
   vehicle.speed = speed;
 
   if (Number.isFinite(input.turretYaw)) {
-    const traverse = number(config.traverseRate, 1.75) * duration;
+    const traverse = number(config.traverseRate, 1.75) * clamp(number(input.traverseScale, 1), 0.5, 2) * duration;
     vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
   } else {
     vehicle.turretYaw = number(vehicle.turretYaw, 0);

@@ -186,3 +186,15 @@ test('respawnVehicle restores clean spawn state including arcade fields', () => 
   assert.equal(vehicle.boostTimer, 0);
   assert.equal(vehicle.boostCooldown, 0);
 });
+test('driver harness skills scale top speed, boost and turret traverse', () => {
+  const stock = createVehicle(), fast = createVehicle();
+  for (let i = 0; i < 180; i++) { stepVehicle(stock, { throttle: 1 }, 1 / 60, next => next, flat); stepVehicle(fast, { throttle: 1, speedScale: 1.15 }, 1 / 60, next => next, flat); }
+  assert.ok(Math.hypot(fast.velocity.x, fast.velocity.z) > Math.hypot(stock.velocity.x, stock.velocity.z), 'speedScale should raise top speed');
+  const boost = createVehicle(), nitro = createVehicle();
+  for (let i = 0; i < 90; i++) { stepVehicle(boost, { throttle: 1, boost: true }, 1 / 60, next => next, flat); stepVehicle(nitro, { throttle: 1, boost: true, boostScale: 1.6 }, 1 / 60, next => next, flat); }
+  assert.ok(Math.hypot(nitro.velocity.x, nitro.velocity.z) > Math.hypot(boost.velocity.x, boost.velocity.z), 'boostScale should raise boost speed');
+  const slow = createVehicle(), quick = createVehicle();
+  stepVehicle(slow, { turretYaw: 2 }, 1 / 60); stepVehicle(quick, { turretYaw: 2, traverseScale: 1.5 }, 1 / 60);
+  stepVehicle(slow, { turretYaw: 2 }, 1 / 60); stepVehicle(quick, { turretYaw: 2, traverseScale: 1.5 }, 1 / 60);
+  assert.ok(quick.turretYaw > slow.turretYaw, 'traverseScale should speed turret rotation');
+});

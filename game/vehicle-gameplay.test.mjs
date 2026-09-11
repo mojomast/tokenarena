@@ -90,3 +90,19 @@ test('Pumas can leave both garages, cross either valley lane, and exit safely',(
     assert.ok(!obstructed(a.x,a.y,a.z,.52,m.arena));
   }
 });
+test('team modes keep friendly fire off against vehicles but let mounted guns kill armour',()=>{
+  const m=new Match('chatgpt','openclaw',()=>.5,'blood-gulch',{mode:'ctf',botCount:0,humanCount:2,respawn:1}),[a,b]=m.actors,v=m.vehicles[0],enemy=m.vehicles[1];
+  a.team=0;b.team=0;v.driver=a.id;enemy.driver=b.id;
+  const before=v.health;
+  assert.equal(m.damageVehicle(v,50,b),0,'friendly vehicle damage should be ignored');
+  assert.equal(v.health,before);
+  b.team=1;
+  assert.ok(m.damageVehicle(v,50,b)>0,'enemy vehicle damage should apply');
+  Object.assign(v,{position:{x:0,y:20,z:0},heading:0,velocity:{x:0,y:0,z:0},vy:0});
+  Object.assign(enemy,{position:{x:0,y:20,z:-8},heading:0,velocity:{x:0,y:0,z:0},vy:0});
+  Object.assign(a,{x:0,y:20,z:0,yaw:0,pitch:0,punchYaw:0,punchPitch:0});
+  v.lastStep={fired:true,muzzles:[0]};
+  const armour=enemy.health;
+  m.fireVehicle(v,a,0,0);
+  assert.ok(enemy.health<armour,`mounted chaingun should damage enemy armour (${armour} -> ${enemy.health})`);
+});

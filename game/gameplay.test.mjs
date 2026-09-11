@@ -168,3 +168,15 @@ test('ctf defenders hold a post between their flag base and the arena center',()
  assert.ok(Math.hypot(post.x-m.center.x,post.z-m.center.z)<Math.hypot(base[0]-m.center.x,base[1]-m.center.z));
  assert.ok([post.x,post.y,post.z].every(Number.isFinite));
 });
+test('reduced-armour gear stays a tradeoff instead of amplifying damage',()=>{
+ const m=new Match('chatgpt','openclaw',rng(),'exchange',{mode:'deathmatch',botCount:0,loadouts:{0:{character:'chatgpt',harness:'openclaw',gear:{primary:'light-frame'}}}});
+ const a=m.actors[0];a.protection=0;a.armor=0;
+ const before=a.health;m.damage(a,10,a);
+ assert.equal(before-a.health,10,`light frame should not add damage (${before-a.health})`);
+});
+test('harness passive damage is applied to outgoing fire',()=>{
+ const open=new Match('chatgpt','openclaw',rng(),'exchange',{mode:'deathmatch',botCount:0}).actors[0];
+ const hermes=new Match('chatgpt','hermes',rng(),'exchange',{mode:'deathmatch',botCount:0}).actors[0];
+ assert.ok(open.harnessDamageMultiplier>1,'OpenClaw passive should raise damage');
+ assert.ok(hermes.harnessDamageMultiplier<1,'Hermes passive should lower damage');
+});

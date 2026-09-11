@@ -34,7 +34,7 @@ export function unlockedItems(level){const l=Math.max(1,Math.round(level));retur
 export function resolveGear(ids){
  const list=(Array.isArray(ids)?ids:Object.values(ids||{})).map(gearById).filter(Boolean),modifiers={health:0,armor:0,speed:1,damage:1,spread:1};
  for(const item of list)for(const [key,value] of Object.entries(item.modifiers)){if(key==='health'||key==='armor')modifiers[key]+=value;else modifiers[key]*=value;}
- modifiers.speed=Math.max(.5,Math.min(1.6,modifiers.speed));modifiers.damage=Math.max(.5,Math.min(2,modifiers.damage));modifiers.spread=Math.max(.5,Math.min(1.6,modifiers.spread));
+ modifiers.speed=Math.max(.5,Math.min(1.6,modifiers.speed));modifiers.damage=Math.max(.5,Math.min(2,modifiers.damage));modifiers.spread=Math.max(.5,Math.min(1.6,modifiers.spread));modifiers.armor=Math.max(0,modifiers.armor);
  return {items:list,modifiers};
 }
 export function normalizeGear(value,level=MAX_LEVEL){
