@@ -1,5 +1,29 @@
 # COCS verification report
 
+## CTF bases, server bounds and shadow cadence 2.11 - 2026-09-11
+
+- **CTF bases** (`game/maps.mjs`, `game/arsenal-maps.mjs`,
+  `game/nextgen-maps.mjs`): Citadel, Trenchline, Signal Ridge and Sunken Hill now
+  author red/blue `teamSpawns` and distinct `flagSpawns`. `game/arenas.test.mjs`
+  asserts every CTF-capable arena has separated in-bounds bases and that a live
+  CTF `Match` places both flags at them.
+- **Mode/arena reconciliation** (`server/room.mjs`): `host` and `start` route the
+  requested map through `resolveMapForMode(mapId, mode, {legacy:true})`, so an
+  incompatible arena is repaired before the `Match` is built. New room tests
+  cover a repaired CTF launch and a preserved compatible arena.
+- **Room ceiling** (`server/rooms.mjs`, `server/game-server.mjs`): the registry
+  caps concurrent rooms (`maxRooms`, default 64), evicts the oldest idle room
+  under pressure, and returns `null` (surfaced as a client error) when no room
+  can be freed. New registry test.
+- **Kill-feed live region** (`app/page.tsx`): the kill feed is now
+  `role="log" aria-live="polite"`.
+- **Shadow cadence** (`game/view.mjs`): `shadowTick` refreshes shadows on a fixed
+  cadence instead of every frame; `game/view.test.mjs` covers the sequence.
+
+Verification: `npm run test:game` 497/497, `npm run test:server` 94/94,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Menu, playback, bot-posture and server-liveness batch 2.10 - 2026-09-11
 
 - **Menu navigation** (`app/page.tsx`): Escape now backs out of browse,

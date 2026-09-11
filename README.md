@@ -241,6 +241,14 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.11 is a follow-up robustness and accessibility batch:
+
+- **Every CTF arena now authors flag bases.** Citadel, Trenchline, Signal Ridge and Sunken Hill previously advertised CTF while falling back to spawn corners for their flags. All four now define red/blue team spawns and distinct flag bases, and a test enforces that every CTF-capable arena does.
+- **Arena and mode stay compatible on the server.** Hosting or starting a match now repairs an incompatible arena to the mode with the same `resolveMapForMode` rule the client uses, so a stale or edited request cannot launch CTF on a map without bases.
+- **Bounded room count.** The room registry caps concurrent rooms (64 by default), evicts idle empty rooms under pressure, and returns a clear error instead of growing without limit when every room is occupied.
+- **Kill feed is announced.** The in-match kill feed is now an ARIA live log, matching the existing live regions on the kill banner, objective announcer and reload indicator.
+- **Half-rate shadow refreshes.** Static-arena shadows were re-rendered every frame despite `autoUpdate=false`; they now refresh on a fixed cadence, cutting shadow-map cost roughly in half while leaving the arena bake immediate.
+
 Version 2.10 continues the gap-fix work:
 
 - **Menus obey Escape.** Escape now backs out of the room browser, rank screen, theater list and lobby, matching the documented "Escape closes any overlay" behaviour.
