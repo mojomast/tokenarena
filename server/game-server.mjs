@@ -66,7 +66,7 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
    case 'list': sendTo(peerId, { type: 'rooms', rooms: registry.list() }); break;
    case 'history': sendTo(peerId, { type: 'history', matches: history.all() }); break;
     case 'host': peerRoom.get(peerId)?.host(peerId, msg.config, msg.mapId); break;
-    case 'gear': peerRoom.get(peerId)?.setGear(peerId, msg.gear); break;
+    case 'gear': peerRoom.get(peerId)?.setGear(peerId, msg.gear, msg.attachments); break;
    case 'start': peerRoom.get(peerId)?.start(peerId); break;
     case 'input': peerRoom.get(peerId)?.input(peerId, { ...(msg.input ?? msg), seq: msg.seq ?? msg.input?.seq }); break;
     case 'chat': {

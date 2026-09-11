@@ -51,6 +51,12 @@ export const PUMA = freeze({
   bodyRate: 8,
   health: 300,
   respawn: 5,
+  capacity: 4,
+  seatLayout: {
+    driver: { x: -0.4, y: 0.2, z: 0.05 },
+    gunner: { x: 0, y: 0.55, z: -1.0 },
+    passengers: [{ x: 0.4, y: 0.2, z: 0.05 }, { x: 0, y: 0.2, z: -0.7 }]
+  },
   mountedChaingun: CHAINGUN,
   muzzles: [
     { x: -0.82, y: 1.18, z: 0.2 },
@@ -91,6 +97,12 @@ export const HORNET = freeze({
   traverseRate: 2.2,
   health: 240,
   respawn: 8,
+  capacity: 3,
+  seatLayout: {
+    driver: { x: -0.7, y: 0.35, z: 0.35 },
+    gunner: { x: 0.7, y: 0.35, z: 0.35 },
+    passengers: [{ x: 0, y: 0.3, z: 1.2 }]
+  },
   mountedChaingun: CHAINGUN,
   muzzles: [
     { x: -1.6, y: 0.1, z: 0.2 },
@@ -134,6 +146,8 @@ export function createVehicle(template = PUMA) {
     velocity: { x: 0, z: 0 },
     vy: 0,
     driver: null,
+    gunner: null,
+    passengers: [],
     owner: null,
     health: number(config.health, GUNTRUCK.health),
     maxHealth: number(config.health, GUNTRUCK.health),
@@ -172,9 +186,88 @@ export function vehicleMuzzles(vehicle) {
   }));
 }
 
-export function vehicleCanEnter(vehicle, actor) {
-  return Boolean(vehicle && actor && vehicle.health > 0 && vehicle.respawnTimer <= 0 &&
-    vehicle.driver === null && actor.vehicle == null && actor.vehicleId == null && actor.health > 0);
+export function vehicleCanEnter(vehicle, actor, role = 'driver') {
+  if (!vehicle || !actor || vehicle.health <= 0 || vehicle.respawnTimer > 0 || actor.vehicle != null || actor.vehicleId != null || actor.health <= 0) return false;
+  return vehicleSeatOpen(vehicle, role);
+}
+
+export function vehicleCapacity(vehicle) {
+  const layout = vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout;
+  return 1 + (layout.gunner ? 1 : 0) + (layout.passengers?.length || 0);
+}
+
+const seatOccupied = (vehicle, role, index) => {
+  if (role === 'driver') return vehicle.driver != null;
+  if (role === 'gunner') return vehicle.gunner != null;
+  return vehicle.passengers?.[index] != null;
+};
+
+export function vehicleSeatOpen(vehicle, role = 'driver', index = 0) {
+  if (!vehicle) return false;
+  if (role === 'passenger') {
+    const layout = vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout;
+    if (index < 0 || index >= (layout.passengers?.length || 0)) return false;
+  } else if (role !== 'driver' && role !== 'gunner') return false;
+  if (role === 'gunner' && !(vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout).gunner) return false;
+  return !seatOccupied(vehicle, role, index);
+}
+
+export function vehicleSeatFor(vehicle) {
+  if (vehicleSeatOpen(vehicle, 'driver')) return { role: 'driver', index: 0 };
+  if (vehicleSeatOpen(vehicle, 'gunner')) return { role: 'gunner', index: 0 };
+  const layout = vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout;
+  for (let index = 0; index < (layout.passengers?.length || 0); index++) if (vehicleSeatOpen(vehicle, 'passenger', index)) return { role: 'passenger', index };
+  return null;
+}
+
+export function vehicleOccupantCount(vehicle) {
+  const layout = vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout;
+  return (vehicle.driver != null ? 1 : 0) + (vehicle.gunner != null ? 1 : 0) + (vehicle.passengers?.length || 0);
+}
+
+export function vehicleMounted(vehicle, actorId) {
+  if (vehicle.driver === actorId) return { role: 'driver', index: 0 };
+  if (vehicle.gunner === actorId) return { role: 'gunner', index: 0 };
+  const index = vehicle.passengers?.indexOf(actorId) ?? -1;
+  return index >= 0 ? { role: 'passenger', index } : null;
+}
+
+// World-space seat anchor (front of the chassis is +z at heading 0).
+export function vehicleSeatPosition(vehicle, role = 'driver', index = 0) {
+  const layout = vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout;
+  const offset = role === 'driver' ? layout.driver : role === 'gunner' ? layout.gunner : layout.passengers?.[index];
+  const base = offset || layout.driver;
+  const heading = number(vehicle?.heading, 0), sin = Math.sin(heading), cos = Math.cos(heading);
+  return {
+    x: number(vehicle?.position?.x, 0) + base.x * cos + base.z * sin,
+    y: number(vehicle?.position?.y, 0) + base.y,
+    z: number(vehicle?.position?.z, 0) - base.x * sin + base.z * cos,
+    yaw: heading - Math.PI,
+  };
+}
+
+export function takeVehicleSeat(vehicle, actorId, seat = 'driver', index = 0) {
+  if (!vehicle || actorId == null) return false;
+  if (seat === 'driver') vehicle.driver = actorId;
+  else if (seat === 'gunner') vehicle.gunner = actorId;
+  else {
+    vehicle.passengers ||= [];
+    while (vehicle.passengers.length <= index) vehicle.passengers.push(null);
+    vehicle.passengers[index] = actorId;
+  }
+  return true;
+}
+
+export function leaveVehicleSeat(vehicle, actorId) {
+  if (!vehicle) return null;
+  let seat = null;
+  if (vehicle.driver === actorId) { vehicle.driver = null; seat = 'driver'; }
+  else if (vehicle.gunner === actorId) { vehicle.gunner = null; seat = 'gunner'; }
+  else if (vehicle.passengers) {
+    const index = vehicle.passengers.indexOf(actorId);
+    if (index >= 0) { vehicle.passengers[index] = null; seat = 'passenger'; }
+  }
+  return seat;
 }
 
 function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
@@ -461,6 +554,35 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
   return vehicle;
 }
 
+// Weapon-only step for a gunner riding a vehicle whose driver is already moving it.
+export function stepVehicleWeapon(vehicle, input = {}, dt = 0) {
+  if (!vehicle || !Number.isFinite(dt) || dt <= 0) return vehicle;
+  const config = vehicleConfig(vehicle), gun = config.mountedChaingun || GUNTRUCK.mountedChaingun;
+  vehicle.lastStep = { fired: false, muzzle: -1 };
+  if (vehicle.respawnTimer > 0 || vehicle.health <= 0) return vehicle;
+  vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * dt);
+  vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - dt);
+  if (vehicle.overheated) {
+    vehicle.overheatTimer = Math.max(0, vehicle.overheatTimer - dt);
+    vehicle.overheated = vehicle.overheatTimer > 0;
+  }
+  if (Number.isFinite(input.turretYaw)) {
+    const traverse = number(config.traverseRate, 2.2) * dt;
+    vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
+  }
+  if (input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
+    vehicle.heat = Math.min(gun.maxHeat, vehicle.heat + gun.heatPerShot);
+    vehicle.fireCooldown = gun.interval;
+    vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };
+    vehicle.muzzleIndex = (vehicle.muzzleIndex + 1) % 2;
+    if (vehicle.heat >= gun.maxHeat) {
+      vehicle.overheated = true;
+      vehicle.overheatTimer = gun.overheatCooldown;
+    }
+  }
+  return vehicle;
+}
+
 export function respawnVehicle(vehicle, position = { x: 0, y: 0, z: 0 }, heading = 0) {
   vehicle.position = { x: number(position.x, 0), y: number(position.y, 0), z: number(position.z, 0) };
   vehicle.heading = number(heading, 0);
@@ -468,6 +590,8 @@ export function respawnVehicle(vehicle, position = { x: 0, y: 0, z: 0 }, heading
   vehicle.vy = 0;
   vehicle.health = vehicle.maxHealth;
   vehicle.driver = null;
+  vehicle.gunner = null;
+  vehicle.passengers = [];
   vehicle.respawnTimer = 0;
   vehicle.heat = 0;
   vehicle.overheated = false;

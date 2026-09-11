@@ -33,9 +33,9 @@ test('normalizeGear enforces one per slot and level gating',()=>{
  for(const item of GEAR)assert.equal(gearById(item.id),item);
 });
 test('unlocks arrive with levels',()=>{
- assert.equal(unlockedItems(1).length,0);
+ assert.ok(unlockedItems(1).some(item=>item.id==='attachment-extended-mag'));
  assert.ok(unlockedItems(2).some(item=>item.id==='gear-scope'));
- assert.ok(unlockedItems(10).some(item=>item.kind==='cosmetic'));
+ assert.ok(unlockedItems(10).some(item=>item.kind==='finish'));
  assert.equal(rankTitle(1),'Recruit');
  assert.equal(rankTitle(12),'Veteran');
  assert.equal(rankTitle(60),'Mythic');

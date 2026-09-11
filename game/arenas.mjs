@@ -32,6 +32,10 @@ const AUTHOR={
  substation:{group:'indoor',scale:'battle',play:['deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination','ctf']},
  warfront:{group:'combined',scale:'warzone',play:['combined-arms','ctf','teamdeathmatch','deathmatch','koth','domination','arsenal']},
  'skyfall-basin':{group:'combined',scale:'warzone',play:['combined-arms','ctf','teamdeathmatch','koth','domination','arsenal']},
+ trenchline:{group:'combined',scale:'warzone',play:['combined-arms','assault','ctf','teamdeathmatch','deathmatch','koth','domination','arsenal']},
+ 'signal-ridge':{group:'combined',scale:'warzone',play:['combined-arms','assault','ctf','teamdeathmatch','koth','domination','arsenal']},
+ rampart:{group:'urban',scale:'battle',play:['assault','deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination']},
+ 'catwalk-breach':{group:'urban',scale:'battle',play:['assault','deathmatch','teamdeathmatch','instagib','rockets','arsenal','koth','domination']},
 };
 
 const span=arena=>{

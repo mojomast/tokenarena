@@ -1,5 +1,6 @@
 import {modeRule} from './config.mjs';
 import {terrainSupportAt} from './terrain.mjs';
+import {assaultTemplate} from './assault.mjs';
 const point=(x,z,id,rules,radius=3.5,y=0)=>({id,x,z,radius,owner:null,captureTeam:null,progress:0,captureSeconds:rules.objective?.captureSeconds??5,y});
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
 
@@ -37,6 +38,7 @@ export function objectiveTemplate(mode,arena){
   const rules=modeRule(mode);
   const authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
   if(mode==='koth'){const source=authored[1];return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};}
-  if(mode==='domination')return {kind:'domination',zones:authored,winner:null};
-  return null;
+ if(mode==='domination')return {kind:'domination',zones:authored,winner:null};
+ if(mode==='assault'){const template=assaultTemplate(arena);template.zones=template.sectors;return template;}
+ return null;
 }

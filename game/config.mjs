@@ -3,6 +3,7 @@ export const GAME_MODES = [
    {id:'ctf',name:'Capture the Flag',description:'Steal the enemy flag and bring it home while your flag is safe.',rules:{team:true,score:'captures',fragLimit:3}},
   {id:'koth',name:'King of the Hill',description:'Hold the central hill to build control, then score while your team owns it.',rules:{team:true,score:'hillTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'koth',captureSeconds:5}}},
   {id:'domination',name:'Domination',description:'Capture three control zones and score for every second your team holds them.',rules:{team:true,score:'zoneTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'domination',captureSeconds:5}}},
+  {id:'assault',name:'Assault',description:'Attackers capture control points in order while defenders hold the line.',rules:{team:true,score:'sectors',fragLimit:3,minFragLimit:1,maxFragLimit:9,objective:{kind:'assault',captureSeconds:6}}},
  {id:'teamdeathmatch',name:'Team Deathmatch',description:'Fight as a team until your side reaches the frag limit.',rules:{team:true,score:'teamFrags',fragLimit:30}},
  {id:'instagib',name:'Instagib',description:'Rail only, unlimited ammo. One unprotected hit eliminates. No supplies or harness powers.'},
  {id:'rockets',name:'Rocket Arena',description:'Unlimited rockets for everyone. Health and armor remain available.'},

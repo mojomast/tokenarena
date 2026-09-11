@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {awardMatch,defaultProgression,normalizeGear,normalizeProgression} from '../game/progression.mjs';
+import {normalizeAttachments} from '../game/attachments.mjs';
 
 export const PLAYER_CAP=500;
 export const validPlayerId=id=>typeof id==='string'&&/^[A-Za-z0-9-]{8,64}$/.test(id);
@@ -23,16 +24,17 @@ export class ProgressionStore{
    }
   }catch{this.players=new Map();}
  }
- get(id){if(!validPlayerId(id)||!this.players.has(id))return null;const profile=this.players.get(id);return {...profile,gear:{...profile.gear},unlocks:{...profile.unlocks}};}
+ get(id){if(!validPlayerId(id)||!this.players.has(id))return null;const profile=this.players.get(id);return {...profile,gear:{...profile.gear},attachments:{...profile.attachments},unlocks:{...profile.unlocks}};}
  ensure(id){
   if(!validPlayerId(id))return null;
   if(!this.players.has(id))this.players.set(id,{...defaultProgression(),id});
   return this.players.get(id);
  }
- setGear(id,gear){
+ setGear(id,gear,attachments){
   const profile=this.ensure(id);
   if(!profile)return null;
   profile.gear=normalizeGear(gear&&typeof gear==='object'?gear:{},profile.level);
+  if(attachments!==undefined)profile.attachments=normalizeAttachments(attachments&&typeof attachments==='object'?attachments:{},profile.level);
   this.persist();
   return this.get(id);
  }
@@ -54,5 +56,5 @@ export class ProgressionStore{
   fs.writeFileSync(tmp,JSON.stringify([...this.players.values()],null,1));
   fs.renameSync(tmp,this.file);
  }
- all(){return [...this.players.values()].map(profile=>({...profile,gear:{...profile.gear},unlocks:{...profile.unlocks}}));}
+ all(){return [...this.players.values()].map(profile=>({...profile,gear:{...profile.gear},attachments:{...profile.attachments},unlocks:{...profile.unlocks}}));}
 }

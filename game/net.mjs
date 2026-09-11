@@ -100,7 +100,7 @@ export class NetClient {
  history() { this.send({ type: 'history' }); }
  host(config, mapId) { this.send({ type: 'host', config, mapId }); }
   start() { this.send({ type: 'start' }); }
-  gear(gear) { this.send({ type: 'gear', gear }); }
+  gear(gear, attachments) { this.send({ type: 'gear', gear, ...(attachments !== undefined ? { attachments } : {}) }); }
   voiceState(enabled) { return typeof enabled === 'boolean' && this.send({ type: 'voice-state', enabled }); }
   voiceSignal(to, payload) {
    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return;

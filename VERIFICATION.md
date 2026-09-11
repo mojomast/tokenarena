@@ -1,5 +1,35 @@
 # TOKEN ARENA verification report
 
+## Attachments, vehicle overhaul, assault, cosmetics 2.2 - 2026-09-11
+
+- **Weapon attachments** (`game/attachments.mjs`): four slots, fourteen mods,
+  and a resolver that folds multiplicative/additive stat modifiers plus
+  behaviour modules (`burst`, `charge`, `pierce`, `explosive`, `homing`,
+  `chain`) into a derived weapon. `game/core.mjs` resolves a loadout's
+  attachments per actor and applies them per weapon in `fire` (pierce, splash
+  detonation, chaining and stat changes), while `game/view.mjs` adds optics,
+  barrels and magazines to the 3D weapon models. Attachments persist through
+  `game/progression.mjs` and the server JSON store.
+- **Vehicle overhaul** (`game/vehicles.mjs`, `game/core.mjs`): inverted steering
+  fixed; `driver`/`gunner`/`passenger` seats with mounted seat anchoring;
+  occupants are visible and targetable (own-vehicle shielding no longer absorbs
+  rider hits); a gunner fires the mounted gun without moving the vehicle; and
+  harness vehicle skills (auto-gunner, plating, repair, boost, speed) are
+  defined in `game/harness-profiles.mjs` and applied in core.
+- **Assault mode** (`game/assault.mjs`, `game/mode-data.mjs`, `game/core.mjs`):
+  ordered sector capture with contest/neutralise, breach at the final sector, and
+  defender-holds behaviour; registered as a game mode and wired into the match
+  snapshot and objective markers.
+- **New maps** (`game/arsenal-maps.mjs`): trenchline, signal-ridge, rampart and
+  catwalk-breach, registered in `game/maps.mjs` with arena metadata.
+- **Finishes and reticles** (`game/cosmetics.mjs`): six weapon finishes recolor
+  weapon glow materials and five reticle styles are unlockable cosmetics.
+
+Verification: `npm run test:game` 429/429, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1. New focused suites: `attachments`, `assault`, `assault-match`,
+`arsenal-maps`, `cosmetics`, `vehicle-seats`.
+
 ## Arsenal expansion and balance 2.1 - 2026-09-11
 
 - **`game/data.mjs`**: two new hitscan weapons (Marksman Rifle, SMG) appended

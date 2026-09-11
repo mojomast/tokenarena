@@ -128,7 +128,7 @@ export class Room {
   const players = [...this.peers.values()].filter(p => p.spectate !== true);
   if (players.length === 0) { this.send(peerId, { type: 'error', message: 'no players in the room' }); return; }
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
-   this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => ({ character: p.character, harness: p.harness, gear: this.progression?.get(p.playerId)?.gear })) });
+   this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => { const profile = this.progression?.get(p.playerId); return { character: p.character, harness: p.harness, gear: profile?.gear, attachments: profile?.attachments }; }) });
   let i = 0;
    for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = p.edgeInteract = false; p.lastJump = p.lastPower = p.lastInteract = false; i++; }
    for (const p of this.peers.values()) { p.edgeFire = false; if (p.spectate) p.lastSerial = 0; }
@@ -166,11 +166,11 @@ export class Room {
    if (i.reload === true && !peer.lastReload) peer.edgeReload = true;
    peer.lastReload = i.reload === true;
  }
- setGear(peerId, gear) {
+ setGear(peerId, gear, attachments) {
   const peer = this.peers.get(peerId);
   if (!peer || !peer.playerId || !this.progression) return;
-  const profile = this.progression.setGear(peer.playerId, gear);
-  if (profile) this.send(peerId, { type: 'progression', profile, gear: profile.gear });
+  const profile = this.progression.setGear(peer.playerId, gear, attachments);
+  if (profile) this.send(peerId, { type: 'progression', profile, gear: profile.gear, attachments: profile.attachments });
  }
  chat(peerId, text, now = Date.now()) {
   const peer = this.peers.get(peerId);

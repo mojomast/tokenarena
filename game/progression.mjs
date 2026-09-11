@@ -1,3 +1,5 @@
+import {ATTACHMENTS,normalizeAttachments as normalizeAttachmentLoadout} from './attachments.mjs';
+import {WEAPON_FINISHES,CROSSHAIR_STYLES,FINISH_IDS,CROSSHAIR_IDS} from './cosmetics.mjs';
 export const PROGRESSION_VERSION=1;
 export const MAX_LEVEL=60;
 export const GEAR_SLOTS=[{id:'primary',name:'Weapon Kit'},{id:'armor',name:'Armour'},{id:'utility',name:'Utility'}];
@@ -12,11 +14,10 @@ export const GEAR=[
  {id:'mag',slot:'utility',name:'Stabiliser Mag',level:9,description:'Steadies the muzzle with a small speed trade.',modifiers:{spread:.92,speed:.99}},
 ];
 export const COSMETICS=[
- {id:'finish-ion',kind:'cosmetic',name:'Ion Finish',level:4,description:'A cyan weapon finish applied to your loadout.'},
- {id:'finish-ember',kind:'cosmetic',name:'Ember Finish',level:10,description:'A hot orange weapon finish.'},
- {id:'finish-void',kind:'cosmetic',name:'Void Finish',level:18,description:'A deep violet weapon finish.'},
+ ...WEAPON_FINISHES.map(item=>({id:item.id,kind:'finish',name:item.name,level:item.level,description:item.description})),
+ ...CROSSHAIR_STYLES.map(item=>({id:item.id,kind:'crosshair',name:item.name,level:item.level??1,description:item.description})),
 ];
-export const UNLOCKS=[...GEAR.map(item=>({id:`gear-${item.id}`,kind:'gear',ref:item.id,name:item.name,level:item.level,description:item.description})),...COSMETICS];
+export const UNLOCKS=[...GEAR.map(item=>({id:`gear-${item.id}`,kind:'gear',ref:item.id,name:item.name,level:item.level,description:item.description})),...ATTACHMENTS.map(item=>({id:`attachment-${item.id}`,kind:'attachment',ref:item.id,name:item.name,level:item.level,description:item.description})),...COSMETICS];
 export const RANK_TITLES=[{level:1,name:'Recruit'},{level:5,name:'Operator'},{level:10,name:'Veteran'},{level:20,name:'Elite'},{level:35,name:'Legend'},{level:50,name:'Mythic'}];
 
 export function xpForLevel(level){const l=Math.max(1,Math.min(MAX_LEVEL-1,Math.round(level)));return 500+(l-1)*250;}
@@ -49,11 +50,11 @@ export function matchXp({win=false,actor=null}={}){
  const objective=(Number(stats.objectiveTime)||0)*1.5+(Number(stats.objectiveCaptures)||0)*30+(Number(stats.captures)||0)*120+(Number(stats.flagPickups)||0)*15+(Number(stats.flagReturns)||0)*10;
  return Math.max(10,Math.round(40+frags*12+objective+(win?80:0)));
 }
-export function defaultProgression(){return {version:PROGRESSION_VERSION,xp:0,level:1,matches:0,wins:0,kills:0,gear:{},unlocks:{}};}
+export function defaultProgression(){return normalizeProgression({});}
 export function normalizeProgression(value){
  const source=value&&typeof value==='object'?value:{},xp=Math.max(0,Math.floor(Number.isFinite(Number(source.xp))?Number(source.xp):0)),calculated=levelFromXp(xp),rawUnlocks=source.unlocks&&typeof source.unlocks==='object'?source.unlocks:{},unlocks={};
  for(const item of UNLOCKS)if(rawUnlocks[item.id]===true||item.level<=calculated.level)unlocks[item.id]=true;
- return {version:PROGRESSION_VERSION,xp,level:calculated.level,matches:Math.max(0,Math.floor(Number(source.matches)||0)),wins:Math.max(0,Math.floor(Number(source.wins)||0)),kills:Math.max(0,Math.floor(Number(source.kills)||0)),gear:normalizeGear(source.gear,calculated.level),unlocks};
+ return {version:PROGRESSION_VERSION,xp,level:calculated.level,matches:Math.max(0,Math.floor(Number(source.matches)||0)),wins:Math.max(0,Math.floor(Number(source.wins)||0)),kills:Math.max(0,Math.floor(Number(source.kills)||0)),gear:normalizeGear(source.gear,calculated.level),attachments:normalizeAttachmentLoadout(source.attachments,calculated.level),finish:FINISH_IDS.includes(source.finish)?source.finish:null,crosshair:CROSSHAIR_IDS.includes(source.crosshair)?source.crosshair:null,unlocks};
 }
 export function awardMatch(profile,result={}){
  const next=normalizeProgression(profile),before=next.level,gained=matchXp(result);

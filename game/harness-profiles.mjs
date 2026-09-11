@@ -10,43 +10,43 @@ const freeze = value => Object.freeze(value);
 const rawProfiles = {
   openclaw: {
     passive: {speed: 1, damage: 1.02, resistance: 0},
-    ability: {radius: 5, damage: 24, knockback: 12, lift: 4, cooldown: 10},
+    ability: {radius: 5, damage: 24, knockback: 12, lift: 4, cooldown: 10, vehicle: {autogunner: true, gunnerDamage: 1.12, label: 'Auto-Gunner'}},
     weapons: {preferred: [3, 7], damage: 1.04, interval: 1, spread: .96},
     bot: {personality: 'brawler', range: [3, 8], retreatHealth: .28, power: 'close'},
   },
   hermes: {
     passive: {speed: 1.05, damage: .98, resistance: 0},
-    ability: {duration: 3, speed: 1.6, cooldown: 12},
+    ability: {duration: 3, speed: 1.6, cooldown: 12, vehicle: {speed: 1.15, label: 'Overdrive'}},
     weapons: {preferred: [0, 4], damage: 1, interval: .97, spread: 1.08},
     bot: {personality: 'skirmisher', range: [8, 18], retreatHealth: .35, power: 'escape'},
   },
   opencode: {
     passive: {speed: 1, damage: 1, resistance: 0},
-    ability: {duration: 3, fireRate: 1 / .6, cooldown: 14},
+    ability: {duration: 3, fireRate: 1 / .6, cooldown: 14, vehicle: {autogunner: true, traverse: 1.5, label: 'Targeting Uplink'}},
     weapons: {preferred: [0, 4], damage: .98, interval: .9, spread: 1.04},
     bot: {personality: 'suppressor', range: [7, 20], retreatHealth: .3, power: 'visible'},
   },
   claudecode: {
     passive: {speed: .98, damage: 1, resistance: .04},
-    ability: {duration: 3, resistance: .5, cooldown: 14},
+    ability: {duration: 3, resistance: .5, cooldown: 14, vehicle: {armor: .6, label: 'Reactive Plating'}},
     weapons: {preferred: [1, 5], damage: 1.03, interval: 1.03, spread: .94},
     bot: {personality: 'sentinel', range: [6, 16], retreatHealth: .62, power: 'hurt'},
   },
   codex: {
     passive: {speed: 1, damage: 1.01, resistance: 0},
-    ability: {duration: 2, heal: 35, cooldown: 16},
+    ability: {duration: 2, heal: 35, cooldown: 16, vehicle: {repair: 12, label: 'Field Repair'}},
     weapons: {preferred: [2, 6], damage: 1.05, interval: 1.05, spread: .9},
     bot: {personality: 'opportunist', range: [10, 24], retreatHealth: .65, power: 'hurt'},
   },
   cline: {
     passive: {speed: 1.03, damage: .99, resistance: 0},
-    ability: {duration: .35, distance: 6, cooldown: 11},
+    ability: {duration: .35, distance: 6, cooldown: 11, vehicle: {boost: 1.6, label: 'Nitro Boost'}},
     weapons: {preferred: [3, 6], damage: 1.02, interval: .98, spread: 1.12},
     bot: {personality: 'flanker', range: [5, 14], retreatHealth: .4, power: 'approach'},
   },
   roo: {
     passive: {speed: .99, damage: 1.03, resistance: .02},
-    ability: {duration: 3, radius: 7, slow: .55, cooldown: 15},
+    ability: {duration: 3, radius: 7, slow: .55, cooldown: 15, vehicle: {autogunner: true, gunnerDamage: 1.25, label: 'Gunner Drone'}},
     weapons: {preferred: [1, 5], damage: 1.02, interval: 1.02, spread: .97},
     bot: {personality: 'controller', range: [5, 13], retreatHealth: .48, power: 'cluster'},
   },
@@ -80,6 +80,11 @@ export function harnessPassive(harnessId) {
 
 export function harnessAbility(harnessId) {
   return getHarnessProfile(harnessId)?.ability ?? null;
+}
+
+// Vehicle skills ride on the active ability: auto-gunner, plating, repair, boost or speed.
+export function harnessVehicle(harnessId) {
+  return getHarnessProfile(harnessId)?.ability?.vehicle ?? null;
 }
 
 // Returns one bounded multiplier set. It is intentionally not a reducer over
