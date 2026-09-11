@@ -32,4 +32,4 @@ export function normalizeDisplay(value={}){
  return {fov:Math.round(number(c.fov,82,65,110)),crosshair:choice(c.crosshair,['cross','dot','ring'],'cross'),color:typeof c.color==='string'&&/^#[0-9a-f]{6}$/i.test(c.color)?c.color:'#c2ffea',size:number(c.size,1,.6,1.8),showFps:c.showFps===true,showWeapon:c.showWeapon!==false,resolutionScale:number(c.resolutionScale,1,.5,1.5)};
 }
 export const modeWeapon=c=>c.mode==='instagib'?2:c.mode==='rockets'?1:null;
-export function spawnInventory(c){const locked=modeWeapon(c),ammo=[Infinity,6,5,10,24,6,8,10];return ammo.map((amount,i)=>locked!==null?(i===locked?Infinity:0):c.mode==='arsenal'||i===0||c.unlimitedAmmo&&i===c.startingWeapon?Infinity:i===c.startingWeapon?amount:0);}
+export function spawnInventory(c){const locked=modeWeapon(c),ammo=[Infinity,6,5,10,24,6,8,10,8,30];return ammo.map((amount,i)=>locked!==null?(i===locked?Infinity:0):c.mode==='arsenal'||i===0||c.unlimitedAmmo&&i===c.startingWeapon?Infinity:i===c.startingWeapon?amount:0);}

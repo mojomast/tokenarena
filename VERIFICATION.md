@@ -1,5 +1,27 @@
 # TOKEN ARENA verification report
 
+## Arsenal expansion and balance 2.1 - 2026-09-11
+
+- **`game/data.mjs`**: two new hitscan weapons (Marksman Rifle, SMG) appended
+  after the original eight, plus balance tweaks to Scattergun bloom/interval,
+  Plasma Driver interval and Flak Cannon interval. Every weapon still satisfies
+  the generic fire contract (positive damage/interval/range/ammo/cap) and the
+  original five names/order are preserved.
+- **`game/config.mjs` / `game/maps.mjs`**: ten-slot `spawnInventory` and
+  `pickupWeapon` mappings for `marksman`/`smg`.
+- **`game/view.mjs`**: detailed 3D silhouettes for both new weapons with
+  barrel-aligned muzzle anchors, plus pickup colours; `game/feedback.mjs`
+  automatically synthesises their shot/launch audio from weapon feel.
+- **Maps**: Marksman/SMG pickups added to Warfront Delta and Skyfall Basin.
+- **Input**: number row binds 1–9 and 0; wheel cycles all ten.
+- Updated contracts: `content.test` (length 10, appended shorts),
+  `weapon-presentation` (ten distinct silhouettes, muzzle anchors for all),
+  `powerups`/`expansion`/`config` (ten-slot inventories and instagib rail lock).
+
+Verification: `npm run test:game` 378/378, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1.
+
 ## Progression, unlocks and gear 2.0 - 2026-09-11
 
 - **`game/progression.mjs`**: deterministic XP curve, `levelFromXp`, rank

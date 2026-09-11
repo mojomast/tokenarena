@@ -8,9 +8,9 @@ const color=/^#[0-9a-f]{6}$/i;
 
 test('weapon IDs and original order remain stable while new slots append',()=>{
   assert.deepEqual(WEAPONS.slice(0,5).map(w=>w.name),originalWeapons);
-  assert.deepEqual(WEAPONS.slice(5).map(w=>w.short),['GRENADE','SHOCK','FLAK']);
-  assert.equal(WEAPONS.length,8);
-  assert.deepEqual(WEAPONS.map((_,id)=>id),[0,1,2,3,4,5,6,7]);
+  assert.deepEqual(WEAPONS.slice(5).map(w=>w.short),['GRENADE','SHOCK','FLAK','MARKSMAN','SMG']);
+  assert.equal(WEAPONS.length,10);
+  assert.deepEqual(WEAPONS.map((_,id)=>id),[0,1,2,3,4,5,6,7,8,9]);
 });
 
 test('every weapon has a safe generic fire contract',()=>{

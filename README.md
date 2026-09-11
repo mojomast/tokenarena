@@ -234,6 +234,13 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.1 expands and rebalances the arsenal:
+
+- **Two new weapons.** The **Marksman Rifle** (hard-hitting semi-auto for long lanes) and the **Submachine Gun** (fast, close-range spray) bring the arsenal to ten. Both ship with full weapon models, distinct muzzle/shot audio profiles, pickup mapping and ammo, and they appear on the combined-arms maps.
+- **Balance pass.** The Scattergun fires slower with tighter maximum bloom, the Plasma Driver cycles slightly slower, and the Flak Cannon was slowed to widen the heavy gap, so no single weapon dominates a range band.
+- **Weapon customisation.** The primary gear slot is a weapon kit that trades damage, spread, speed and armour; pick one per slot to tune your Combined Arms loadout.
+- **Better gunplay.** Number row now binds 1–9 and 0 across the ten weapons, with the wheel covering everything and cleaner first-shot accuracy.
+
 ## Source ZIPs
 
 The original MVP ZIP is a snapshot of the completed v0.1 commit. The expanded ZIP contains the latest v0.3 source, lockfile, procedural assets, tests and documentation. Both omit installed dependencies and generated build files; run `npm ci` after extracting, then `npm run dev`.

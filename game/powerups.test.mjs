@@ -8,11 +8,11 @@ import {normalizeConfig, spawnInventory} from './config.mjs';
 const rng=()=>{let n=17;return()=>((n=Math.imul(n,1664525)+1013904223>>>0)/4294967296);};
 const quiet=(options={})=>new Match('chatgpt','openclaw',rng(),'crosswire',{botCount:1,...options});
 
-test('current weapons use eight inventory slots and map every pickup',()=>{
-  assert.equal(spawnInventory(normalizeConfig({startingWeapon:99})).length,8);
-  assert.deepEqual(['grenade','shock','flak'].map(pickupWeapon),[5,6,7]);
+test('current weapons use ten inventory slots and map every pickup',()=>{
+  assert.equal(spawnInventory(normalizeConfig({startingWeapon:99})).length,10);
+  assert.deepEqual(['grenade','shock','flak','marksman','smg'].map(pickupWeapon),[5,6,7,8,9]);
   const m=quiet();
-  for(const [kind,index] of [['grenade',5],['shock',6],['flak',7]]){const a=m.actors[0],p={kind,x:a.x,z:a.z,y:a.y,wait:0};assert.equal(m.collect(a,p),true);assert.ok(a.ammo[index]>0);}
+  for(const [kind,index] of [['grenade',5],['shock',6],['flak',7],['marksman',8],['smg',9]]){const a=m.actors[0],p={kind,x:a.x,z:a.z,y:a.y,wait:0};assert.equal(m.collect(a,p),true);assert.ok(a.ammo[index]>0);}
 });
 
 test('powerups apply, refresh without stacking, expire, and reset on respawn',()=>{
@@ -39,9 +39,9 @@ test('expansion map floors, traversal routes and pickups are safe',()=>{
 });
 
 test('new projectile weapons fire and explode with source overcharge',()=>{
-  const m=quiet(),[a,b]=m.actors;a.bot=b.bot=null;a.protection=b.protection=0;Object.assign(a,{x:-10,y:0,z:3,weapon:5,ammo:Array(8).fill(0),yaw:0,pitch:0,shotWait:0});a.ammo[5]=1;b.health=100;Object.assign(b,{x:-10,y:0,z:-3});a.damageMultiplier=1.35;m.fire(a);assert.equal(a.ammo[5],0);for(let i=0;i<200;i++)m.step(1/60);assert.ok(m.events.some(e=>e.type==='explosion'&&e.weapon===5));assert.ok(b.health<100);
+  const m=quiet(),[a,b]=m.actors;a.bot=b.bot=null;a.protection=b.protection=0;Object.assign(a,{x:-10,y:0,z:3,weapon:5,ammo:Array(WEAPONS.length).fill(0),yaw:0,pitch:0,shotWait:0});a.ammo[5]=1;b.health=100;Object.assign(b,{x:-10,y:0,z:-3});a.damageMultiplier=1.35;m.fire(a);assert.equal(a.ammo[5],0);for(let i=0;i<200;i++)m.step(1/60);assert.ok(m.events.some(e=>e.type==='explosion'&&e.weapon===5));assert.ok(b.health<100);
 });
 
 test('instagib and rocket locks keep their original mode invariants',()=>{
-  const i=quiet({mode:'instagib'}),r=quiet({mode:'rockets'});assert.equal(i.actors[0].weapon,2);assert.equal(i.pickups.length,0);assert.equal(r.actors[0].weapon,1);assert.ok(r.actors[0].ammo.every((n,index)=>index===1?n===Infinity:n===0));assert.equal(POWERUPS.length,3);assert.equal(WEAPONS.length,8);
+  const i=quiet({mode:'instagib'}),r=quiet({mode:'rockets'});assert.equal(i.actors[0].weapon,2);assert.equal(i.pickups.length,0);assert.equal(r.actors[0].weapon,1);assert.ok(r.actors[0].ammo.every((n,index)=>index===1?n===Infinity:n===0));assert.equal(POWERUPS.length,3);assert.equal(WEAPONS.length,10);
 });

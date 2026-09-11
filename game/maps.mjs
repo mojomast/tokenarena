@@ -32,4 +32,4 @@ export const MAPS=[
 const freeze=(value)=>{if(value&&typeof value==='object'&&!Object.isFrozen(value)){Object.freeze(value);Object.values(value).forEach(freeze);}return value;};
 freeze(MAPS);
 export const getMap=id=>MAPS.find(m=>m.id===id)||MAPS[0];
-export const pickupWeapon=kind=>({rocket:1,rail:2,scatter:3,plasma:4,grenade:5,shock:6,flak:7})[kind];
+export const pickupWeapon=kind=>({rocket:1,rail:2,scatter:3,plasma:4,grenade:5,shock:6,flak:7,marksman:8,smg:9})[kind];
