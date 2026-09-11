@@ -270,7 +270,11 @@ export function createLevel(spec) {
     voidY: spec.voidY ?? (terrain.base - terrain.amplitude - (spec.relief ?? 1.6) - 16),
   };
   if (ctx.teamSpawns[0].length) { map.teamSpawns = ctx.teamSpawns; }
-  if (spec.flagSpawns) { map.flagSpawns = spec.flagSpawns; map.flags = spec.flagSpawns; }
+  const authoredFlags = ctx.flagSpawns && (ctx.flagSpawns[0] || ctx.flagSpawns[1]) ? ctx.flagSpawns : null;
+  const pair = value => Array.isArray(value) ? [value[0], value[1]] : value && Number.isFinite(value.x) ? [value.x, value.z] : null;
+  if (authoredFlags && pair(authoredFlags[0]) && pair(authoredFlags[1])) {
+    map.flagSpawns = { 0: pair(authoredFlags[0]), 1: pair(authoredFlags[1]) }; map.flags = map.flagSpawns;
+  } else if (spec.flagSpawns) { map.flagSpawns = spec.flagSpawns; map.flags = spec.flagSpawns; }
   else if (ctx.teamSpawns[0].length) { map.flagSpawns = { 0: ctx.teamSpawns[0][0], 1: ctx.teamSpawns[1][0] }; }
   return map;
 }

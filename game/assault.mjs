@@ -23,7 +23,7 @@ export function stepAssault(state,actors,dt,options={}){
  const attacker=state.attacker??0,defender=state.defender??1;
  const captureSeconds=active.captureSeconds||rules?.objective?.captureSeconds||6;
  const rate=100*dt/captureSeconds;
- const living=(actors||[]).filter(actor=>actor&&actor.health>0&&Math.hypot(actor.x-active.x,actor.z-active.z)<=active.radius);
+ const living=(actors||[]).filter(actor=>actor&&actor.health>0&&Math.hypot(actor.x-active.x,actor.z-active.z)<=active.radius&&Math.abs((actor.y??0)-(Number.isFinite(active.y)?active.y:0))<=5);
  const attackers=living.filter(actor=>actor.team===attacker).length,defenders=living.filter(actor=>actor.team===defender).length;
  let scored=0;
  if(attackers>0&&defenders>0){

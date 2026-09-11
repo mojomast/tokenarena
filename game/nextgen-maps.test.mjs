@@ -85,3 +85,9 @@ test('next-gen cover is solid from above', () => {
     assert.equal(actor.y, cover.h, `${map.id} lands on cover`);
   }
 });
+test('the CTF next-gen map keeps its authored flag bases and picks up its centre hill', () => {
+  const frost = NEXTGEN_MAPS.find(map => map.id === 'frost-gate');
+  assert.deepEqual(frost.flagSpawns[0], [-48, 0]);
+  assert.deepEqual(frost.flagSpawns[1], [48, 0]);
+  assert.deepEqual(frost.flags, frost.flagSpawns);
+});

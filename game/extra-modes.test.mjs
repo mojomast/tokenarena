@@ -68,3 +68,21 @@ test('assault snapshots expose the active sector, teams and breach state',()=>{
  assert.notEqual(o.attacker,o.defender);
  assert.equal(o.breached,false);
 });
+test('objective capture ignores actors far above the zone', () => {
+  const m = new Match('chatgpt', 'openclaw', rng, 'crosswire', {mode:'domination', botCount:0});
+  const zone = m.objectiveState.zones[0], a = m.actors[0];
+  Object.assign(a, {team:0, x:zone.x, z:zone.z, y:(zone.y ?? 0) + 12, health:100});
+  for (let i = 0; i < 400; i++) m.updateObjectives(1/60);
+  assert.equal(zone.owner, null, 'a roof camper should not capture a ground zone');
+  a.y = zone.y ?? 0;
+  for (let i = 0; i < 400; i++) m.updateObjectives(1/60);
+  assert.equal(zone.owner, 0);
+});
+
+test('assault defenders win the round if time expires without a breach', () => {
+  const m = new Match('chatgpt', 'openclaw', rng, 'rampart', {mode:'assault', botCount:1, timeLimit:60, fragLimit:3});
+  m.time = 59.999;
+  m.step(1/60);
+  assert.equal(m.over, true);
+  assert.equal(m.snapshot().winner, m.objectiveState.defender);
+});
