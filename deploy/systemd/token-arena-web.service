@@ -1,5 +1,5 @@
 [Unit]
-Description=Token Arena web app (vinext production server :3000)
+Description=COCS web app (vinext production server :3000)
 After=network.target
 
 [Service]

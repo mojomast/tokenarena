@@ -1,4 +1,4 @@
-# TOKEN ARENA development plan
+# COCS — Colosseum Of Competitive Slop — development plan
 
 MVP implementation complete. Automated gates pass. Browser gates passed on the software compatibility renderer, with the explicit limits in VERIFICATION.md. Hardware WebGL2 visual/performance validation remains unverified in this environment; it is not represented as passed. This opening table records the original MVP checkpoint; authorized expansions are recorded below.
 

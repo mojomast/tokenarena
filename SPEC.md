@@ -1,4 +1,4 @@
-# TOKEN ARENA — game specification
+# COCS — Colosseum Of Competitive Slop — game specification
 
 Status: MVP implementation complete; verification evidence and environment limitations are tracked separately in DEVPLAN.md and VERIFICATION.md. All identities are fictional robot adaptations, not claims about products.
 

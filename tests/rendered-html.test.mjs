@@ -32,7 +32,7 @@ test("serves the game selection screen without starter metadata", async () => {
   );
   const html = await response.text();
   assert.doesNotMatch(html, developmentPreviewMeta);
-  assert.match(html, /TOKEN ARENA/);
+  assert.match(html, /Colosseum Of Competitive Slop|COCS/);
   assert.match(html, /Choose your intelligence/);
   assert.match(html, /Claude Code/);
   assert.match(html, /github\.com\/mojomast\/tokenarena/);

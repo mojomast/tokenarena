@@ -1,4 +1,4 @@
-# TOKEN ARENA — deployment on ussy.host (arena.ussyco.de)
+# COCS — deployment on ussy.host (arena.ussyco.de)
 
 Public URL: https://arena.ussyco.de (nginx + wildcard TLS for `*.ussyco.de`).
 Source: https://github.com/mojomast/tokenarena (linked from the in-game top bar, settings dialog and pause menu).

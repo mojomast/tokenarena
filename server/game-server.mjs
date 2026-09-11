@@ -139,7 +139,7 @@ const isEntry = process.argv[1] && import.meta.url === pathToFileURL(process.arg
 if (isEntry) {
  const { server } = createGameServer({ port: Number(process.env.PORT) || 4000, historyPath: new URL('./history.json', import.meta.url).pathname, progressionPath: new URL('./progression.json', import.meta.url).pathname }); server.listen(Number(process.env.PORT) || 4000, () => {
   const { port } = server.address();
-  console.log(`TOKEN ARENA game server listening on ws://0.0.0.0:${port} (http://localhost:${port})`);
+  console.log(`COCS game server listening on ws://0.0.0.0:${port} (http://localhost:${port})`);
   console.log('Join from the browser client at ws://localhost:' + port);
  });
 }

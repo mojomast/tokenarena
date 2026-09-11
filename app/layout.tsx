@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "TOKEN ARENA — AI Deathmatch",
-  description: "Choose an AI operator and harness. Play casual bot matches or host multiplayer in an original 3D arena.",
+  title: "Colosseum Of Competitive Slop — COCS",
+  description: "Colosseum Of Competitive Slop (COCS): pick an AI operator and harness, then brawl across 3D arenas in solo bot matches or hosted multiplayer.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

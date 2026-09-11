@@ -593,3 +593,27 @@ a.icon-button.github-link>span{position:absolute;width:1px;height:1px;overflow:h
 .unlock-toast span{font-size:14px}
 .unlock-toast em{font:11px monospace;color:#ffd166;font-style:normal}
 .unlock-toast .text-button{color:#9fc0b3}
+.wordmark-full{display:block;font:9px monospace;font-weight:400;letter-spacing:1.4px;color:#6d8a7f;text-transform:uppercase;margin-top:1px;white-space:nowrap}
+.title-return{align-self:center}
+.title-logo{display:flex;align-items:flex-start;justify-content:center;gap:clamp(10px,2.4vw,34px);margin:10px 0 0}
+.title-letter{display:flex;flex-direction:column;align-items:center;gap:clamp(6px,1vw,12px);opacity:0;transform:translateX(-140%) skewX(-22deg);animation:cocsSlide .52s cubic-bezier(.2,.9,.25,1.12) forwards;animation-delay:calc(var(--i) * 170ms + 120ms)}
+.title-letter b{font-family:Impact,'Arial Black','Franklin Gothic Heavy',sans-serif;font-size:clamp(66px,14vw,196px);line-height:.8;letter-spacing:clamp(-3px,-.5vw,0px);color:#eafff5;text-transform:uppercase;text-shadow:0 2px 0 #24564a,0 5px 0 #173a32,0 11px 26px rgba(0,0,0,.78),0 0 48px rgba(131,244,213,.3)}
+.title-letter i{font-style:normal;font-size:clamp(8px,1.05vw,15px);font-weight:800;letter-spacing:clamp(1px,.4vw,4px);color:#8de9cb;text-transform:uppercase;text-shadow:0 2px 7px rgba(0,0,0,.9)}
+@keyframes cocsSlide{0%{opacity:0;transform:translateX(-140%) skewX(-22deg)}72%{opacity:1;transform:translateX(0) skewX(0)}80%{filter:brightness(1.7)}100%{opacity:1;transform:translateX(0) skewX(0);filter:brightness(1)}}
+.unlock-groups{display:flex;flex-direction:column;gap:12px;max-height:430px;overflow:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:#668c7d #142326}
+.unlock-group{border:1px solid rgba(120,158,147,.2);background:rgba(10,22,26,.5);padding:10px 12px}
+.unlock-group header{display:flex;justify-content:space-between;align-items:center;font:11px monospace;letter-spacing:1.4px;color:#b4c7bf;text-transform:uppercase}
+.unlock-group header span{color:#7fae9c}
+.unlock-track{height:4px;background:rgba(90,130,120,.25);margin:8px 0 10px;overflow:hidden}
+.unlock-track i{display:block;height:100%;background:linear-gradient(90deg,#5fe0b0,#9ad9b2);transition:width .3s}
+.unlock-group ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px}
+.unlock-group li{display:flex;justify-content:space-between;gap:10px;padding:7px 9px;border:1px solid rgba(120,158,147,.16);background:rgba(8,18,22,.55)}
+.unlock-group li strong{display:block;color:#dcefe6;font-size:12px}
+.unlock-group li small{display:block;color:#8ba79b;font:10px/1.45 monospace;margin-top:3px}
+.unlock-group li em{font:9px monospace;letter-spacing:1px;font-style:normal;color:#6f8d7f;white-space:nowrap;align-self:flex-start}
+.unlock-group li.locked{opacity:.5}
+.unlock-group li.unlocked em{color:#9ad9b2}
+.rank-blurb{margin:8px 0 0;font-size:12px;color:#8ba79b;font-style:italic}
+.arsenal-list small{display:block;font-size:10px;line-height:1.4;color:#7f9d90;letter-spacing:0;margin-top:3px}
+@media(prefers-reduced-motion:reduce){.title-letter{animation:none;opacity:1;transform:none}}
+@media(max-width:600px){.title-logo{gap:8px}.title-letter b{font-size:clamp(52px,17vw,110px)}.title-letter i{font-size:8px;letter-spacing:.5px}.wordmark-full{display:none}}

@@ -1,4 +1,25 @@
-# TOKEN ARENA verification report
+# COCS verification report
+
+## COCS rebrand 2.5 - 2026-09-11
+
+- **Identity.** The game is now **COCS — Colosseum Of Competitive Slop**.
+  `app/layout.tsx` metadata, the canvas/wordmark labels, `server/game-server.mjs`
+  banner and the deploy labels all use the new name. In-app localStorage keys stay
+  `token-arena-*` so existing saves are preserved.
+- **Title screen** (`app/page.tsx`, `app/globals.css`): `C O C S` renders in big
+  industrial type with `COLOSSEUM / OF / COMPETITIVE / SLOP` stacked under each
+  letter, animated in one letter at a time (`.title-letter` / `@keyframes
+  cocsSlide`) and disabled under `prefers-reduced-motion`.
+- **Back out of the menu:** the loadout screen has a ✕ title-return button and
+  Escape now returns to the title screen when no modal is open.
+- **Copy pass:** operator tags/bios, harness descriptions, powerups, weapons,
+  modes, difficulties, gear, attachments, finishes, reticles and rank titles were
+  rewritten with tongue-in-cheek parody copy; the unlock track is grouped into
+  Gear / Weapon Mods / Weapon Finishes / Reticles with per-group progress bars.
+
+Verification: `npm run test:game` 437/437, `npm run test:server` 85/85,
+`npx tsc --noEmit` clean, `npm run build` succeeds, `node --test tests/*.test.mjs`
+1/1 (the rendered-HTML test now asserts the COCS identity).
 
 ## Title demo and weapon effects 2.4 - 2026-09-11
 

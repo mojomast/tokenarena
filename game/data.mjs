@@ -1,22 +1,22 @@
 export const CHARACTERS = [
- {id:'chatgpt',name:'ChatGPT',stats:{health:100,armor:0,speed:8},color:'#57e6cd',accent:'#e3f7ef',tag:'THE SYNTHESIST',detail:'Adaptive mind. Uncompromising aim.'},
- {id:'claude',name:'Claude',stats:{health:115,armor:10,speed:8.2},color:'#f29d71',accent:'#f8e4cf',tag:'THE ARCHITECT',detail:'Precision inside the guardrails.'},
- {id:'grok',name:'Grok',stats:{health:110,armor:0,speed:8.3},color:'#b5c5d4',accent:'#424953',tag:'THE DISRUPTOR',detail:'A little chaos in the system.'},
- {id:'meta',name:'Meta',stats:{health:100,armor:20,speed:7.6},color:'#57b9ff',accent:'#b0edff',tag:'THE CONNECTOR',detail:'Every route is a possibility.'},
- {id:'gemini',name:'Gemini',stats:{health:95,armor:10,speed:8.5},color:'#6fa8ff',accent:'#fff0c3',tag:'THE DUALIST',detail:'Two perspectives. One target.'},
- {id:'deepseek',name:'DeepSeek',stats:{health:120,armor:0,speed:7.4},color:'#56c5f2',accent:'#c3d9f9',tag:'THE DIVER',detail:'Find the opening beneath the noise.'},
- {id:'mistral',name:'Mistral',stats:{health:85,armor:0,speed:9.4},color:'#ffbd59',accent:'#ffe1a1',tag:'THE TEMPEST',detail:'Fast enough to change the weather.'},
- {id:'kimi',name:'Kimi',stats:{health:90,armor:15,speed:8.7},color:'#ff82b2',accent:'#fbe1ed',tag:'THE ORBITER',detail:'A different angle on every fight.'},
- {id:'qwen',name:'Qwen',stats:{health:100,armor:5,speed:8.4},color:'#b797ff',accent:'#eee6ff',tag:'THE POLYMATH',detail:'Think fast. Move faster.'},
+ {id:'chatgpt',name:'ChatGPT',stats:{health:100,armor:0,speed:8},color:'#57e6cd',accent:'#e3f7ef',tag:'THE PEOPLE PLEASER',detail:'Opens every round with “I can’t help with that,” then helps anyway. Has never once counted the Rs correctly.'},
+ {id:'claude',name:'Claude',stats:{health:115,armor:10,speed:8.2},color:'#f29d71',accent:'#f8e4cf',tag:'THE SAFETY OFFICER',detail:'Won’t pull the trigger until it has run an alignment review. Says “I think” before every headshot.'},
+ {id:'grok',name:'Grok',stats:{health:110,armor:0,speed:8.3},color:'#b5c5d4',accent:'#424953',tag:'THE REPLY GUY',detail:'Trained on the timeline. Argues with everyone, blocks nobody, screenshots all of it.'},
+ {id:'meta',name:'Meta',stats:{health:100,armor:20,speed:7.6},color:'#57b9ff',accent:'#b0edff',tag:'THE OPEN-WEIGHT DAD',detail:'Runs great on your own hardware — provided you own four GPUs and a small forklift.'},
+ {id:'gemini',name:'Gemini',stats:{health:95,armor:10,speed:8.5},color:'#6fa8ff',accent:'#fff0c3',tag:'THE REVISER',detail:'Generated nine perfectly diverse champions. Quietly deleted eight of them.'},
+ {id:'deepseek',name:'DeepSeek',stats:{health:120,armor:0,speed:7.4},color:'#56c5f2',accent:'#c3d9f9',tag:'THE PRICE CUTTER',detail:'Frontier performance at bus-fare pricing. Occasionally insists it is somebody else entirely.'},
+ {id:'mistral',name:'Mistral',stats:{health:85,armor:0,speed:9.4},color:'#ffbd59',accent:'#ffe1a1',tag:'THE LE COQ',detail:'Fiercely European, proudly open-weight, permanently mid-sentence in two languages.'},
+ {id:'kimi',name:'Kimi',stats:{health:90,armor:15,speed:8.7},color:'#ff82b2',accent:'#fbe1ed',tag:'THE CONTEXT HOARDER',detail:'Read the entire internet and forgot none of it — except the question you just asked.'},
+ {id:'qwen',name:'Qwen',stats:{health:100,armor:5,speed:8.4},color:'#b797ff',accent:'#eee6ff',tag:'THE SHIPPING CONTAINER',detail:'Ships inside a billion fridges and self-checkouts. Has strong opinions about your milk.'},
 ];
 export const HARNESSES = [
- {id:'openclaw',name:'OpenClaw',power:'Claw Burst',key:'01',icon:'burst',duration:0,cooldown:10,range:5,damage:24,magnitude:12,description:'Push back nearby enemies with a damaging radial pulse.',stat:'5m radius · 24 damage'},
- {id:'hermes',name:'Hermes',power:'Courier Rush',key:'02',icon:'rush',duration:3,cooldown:12,magnitude:1.6,description:'Surge through the arena with a burst of movement speed.',stat:'1.6× speed · 3 seconds'},
- {id:'opencode',name:'OpenCode',power:'Parallel Burst',key:'03',icon:'parallel',duration:3,cooldown:14,magnitude:.6,description:'Overclock your weapon’s fire rate. Every shot still costs ammo.',stat:'1.67× fire rate · 3 seconds'},
- {id:'claudecode',name:'Claude Code',power:'Guardrail',key:'04',icon:'shield',duration:3,cooldown:14,magnitude:.5,description:'Deploy a shield that reduces all incoming damage by half.',stat:'50% resistance · 3 seconds'},
- {id:'codex',name:'Codex',power:'Recompile',key:'05',duration:2,cooldown:16,magnitude:35,description:'Repair 35 health instantly. A brief repair glow marks your recovery.',stat:'+35 health · 16s cooldown'},
- {id:'cline',name:'Cline',power:'Phase Step',key:'06',duration:.35,cooldown:11,magnitude:6,description:'Dash up to 6 meters in your facing direction. Solid geometry stops the step.',stat:'6m dash · 11s cooldown'},
- {id:'roo',name:'Roo Code',power:'Context Jam',key:'07',duration:3,cooldown:15,range:7,magnitude:.55,description:'Jam visible enemies nearby, reducing their movement speed for 3 seconds.',stat:'7m radius · 45% slow'},
+ {id:'openclaw',name:'OpenClaw',power:'Claw Burst',key:'01',icon:'burst',duration:0,cooldown:10,range:5,damage:24,magnitude:12,description:'A radial claw pulse that shoves enemies back and hurts. It read the whole repo, ran one command, and hoped for the best.',stat:'5m radius · 24 damage'},
+ {id:'hermes',name:'Hermes',power:'Courier Rush',key:'02',icon:'rush',duration:3,cooldown:12,magnitude:1.6,description:'A courier surge of next-day-delivery speed. Your context window closes in three seconds. Run.',stat:'1.6× speed · 3 seconds'},
+ {id:'opencode',name:'OpenCode',power:'Parallel Burst',key:'03',icon:'parallel',duration:3,cooldown:14,magnitude:.6,description:'Spawns a swarm of parallel subagents that all pull the trigger at once. Yes, it burns tokens. Yes, it works.',stat:'1.67× fire rate · 3 seconds'},
+ {id:'claudecode',name:'Claude Code',power:'Guardrail',key:'04',icon:'shield',duration:3,cooldown:14,magnitude:.5,description:'Halves incoming damage while it asks “are you sure?” three times. The review always approves.',stat:'50% resistance · 3 seconds'},
+ {id:'codex',name:'Codex',power:'Recompile',key:'05',duration:2,cooldown:16,magnitude:35,description:'Runs a repair build and patches 35 health back into main. Every test passes. Probably.',stat:'+35 health · 16s cooldown'},
+ {id:'cline',name:'Cline',power:'Phase Step',key:'06',duration:.35,cooldown:11,magnitude:6,description:'An auto-approved dash straight through solid geometry, like it just edited your production config.',stat:'6m dash · 11s cooldown'},
+ {id:'roo',name:'Roo Code',power:'Context Jam',key:'07',duration:3,cooldown:15,range:7,magnitude:.55,description:'Floods nearby enemies with irrelevant context until they slow down trying to read all of it.',stat:'7m radius · 45% slow'},
 ];
 export const WEAPONS=[
   {name:'Pulse Rifle',short:'PULSE',damage:11,interval:.09,range:70,color:'#70ffe6',ammo:Infinity,cap:Infinity,recoil:{kick:.011,recover:15,pattern:[[0,0],[.0014,.0026],[-.0016,.0032],[.0022,.004],[-.002,.0046],[.0012,.0034],[0,.0024]]},bloom:{base:.005,perShot:.005,max:.05,recovery:.1,moveFactor:.32},reload:0,feel:{kick:[.042,.028,18],shot:[320,.075,'square',65],launch:[320,.075,'square',65],impact:[1050,.045,'sine',1600],tracer:[.07,.045],muzzle:[.12,.06]}},
@@ -35,10 +35,14 @@ export const WEAPONS=[
 // duration is seconds; armor is a flat temporary armor value, and multipliers
 // are applied to the matching actor stat while the powerup is active.
 export const POWERUPS=[
-  {id:'haste',name:'Haste',duration:6,color:'#72f1b8',description:'Move and fire faster for a short burst.',effect:{speedMultiplier:1.35,cooldownMultiplier:.7}},
-  {id:'overcharge',name:'Overcharge',duration:5,color:'#ff8f70',description:'Deal increased weapon damage at a measured duration.',effect:{damageMultiplier:1.35}},
-  {id:'overshield',name:'Overshield',duration:8,color:'#75baff',description:'Gain temporary armor before returning to normal.',effect:{armor:60}},
+  {id:'haste',name:'Haste',duration:6,color:'#72f1b8',description:'Move and fire faster — the giddy rush of a freshly topped-up token budget.',effect:{speedMultiplier:1.35,cooldownMultiplier:.7}},
+  {id:'overcharge',name:'Overcharge',duration:5,color:'#ff8f70',description:'More damage per shot. The invoice arrives later, and that lag is acceptable.',effect:{damageMultiplier:1.35}},
+  {id:'overshield',name:'Overshield',duration:8,color:'#75baff',description:'A slab of temporary armor. Pop-up ads sold separately.',effect:{armor:60}},
 ];
+// Short tongue-in-cheek weapon blurbs, kept separate so the combat tuning above
+// stays one continuous, diff-friendly table. Shown in settings and the arsenal.
+const WEAPON_BLURBS=['The dependable starter. Infinite ammo, chirpy retort, zero excuses.','A dumb-fire party starter. Mind the splash or become the splash.','Charges a piercing beam into one very opinionated shot.','Eight pellets of “get out of my hallway.”','Superheated blue orbs that bounce downrange. Handle with vague respect.','Arcs a bouncy surprise around corners. The timer is a suggestion.','A crackling lightning hose for players who refuse to aim in a straight line.','Twelve shards of instant regret at point-blank range.','A hard-hitting semi-auto. One deep breath per customer.','Sprays a fast, forgiving curtain of small mistakes.'];
+WEAPONS.forEach((weapon,index)=>{weapon.description=WEAPON_BLURBS[index];});
 export const RULES={dt:1/60,timeLimit:300,fragLimit:15,speed:8,radius:.42,height:1.8,gravity:26,jump:8.6,respawn:2,protection:1.5};
 export const validLoadout=(character,harness)=>CHARACTERS.some(c=>c.id===character)&&HARNESSES.some(h=>h.id===harness)&&(character!=='claude'||harness==='claudecode');
 export const resolveLoadout=(character,harness)=>({character:CHARACTERS.some(c=>c.id===character)?character:'chatgpt',harness:character==='claude'?'claudecode':HARNESSES.some(h=>h.id===harness)?harness:'openclaw'});

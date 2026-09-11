@@ -1,20 +1,20 @@
 export const GAME_MODES = [
- {id:'deathmatch',name:'Deathmatch',description:'Start with a Pulse Rifle. Collect weapons and supplies.',rules:{team:false,score:'frags',fragLimit:15}},
-   {id:'ctf',name:'Capture the Flag',description:'Steal the enemy flag and bring it home while your flag is safe.',rules:{team:true,score:'captures',fragLimit:3}},
-  {id:'koth',name:'King of the Hill',description:'Hold the central hill to build control, then score while your team owns it.',rules:{team:true,score:'hillTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'koth',captureSeconds:5}}},
-  {id:'domination',name:'Domination',description:'Capture three control zones and score for every second your team holds them.',rules:{team:true,score:'zoneTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'domination',captureSeconds:5}}},
-  {id:'assault',name:'Assault',description:'Attackers capture control points in order while defenders hold the line.',rules:{team:true,score:'sectors',fragLimit:3,minFragLimit:1,maxFragLimit:9,objective:{kind:'assault',captureSeconds:6}}},
- {id:'teamdeathmatch',name:'Team Deathmatch',description:'Fight as a team until your side reaches the frag limit.',rules:{team:true,score:'teamFrags',fragLimit:30}},
- {id:'instagib',name:'Instagib',description:'Rail only, unlimited ammo. One unprotected hit eliminates. No supplies or harness powers.'},
- {id:'rockets',name:'Rocket Arena',description:'Unlimited rockets for everyone. Health and armor remain available.'},
- {id:'arsenal',name:'Full Arsenal',description:'Every weapon unlocked with unlimited ammo from every spawn.'},
- {id:'combined-arms',name:'Combined Arms',description:'Command infantry, armour and aircraft across the largest battlefields. Hold zones together.',rules:{team:true,score:'zoneTime',fragLimit:200,minFragLimit:50,maxFragLimit:900,objective:{kind:'domination',captureSeconds:6},maxBots:16}},
+ {id:'deathmatch',name:'Deathmatch',description:'Everyone for themselves. Start with a Pulse Rifle, scavenge the rest, first to the frag limit wins.',rules:{team:false,score:'frags',fragLimit:15}},
+   {id:'ctf',name:'Capture the Flag',description:'Steal the enemy flag and run it home while keeping your own safe. Classic, chaotic, worth it.',rules:{team:true,score:'captures',fragLimit:3}},
+  {id:'koth',name:'King of the Hill',description:'Take the central hill and hold it second by second. Contest it to freeze the enemy clock.',rules:{team:true,score:'hillTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'koth',captureSeconds:5}}},
+  {id:'domination',name:'Domination',description:'Capture three control zones and bleed points for every second your team owns them.',rules:{team:true,score:'zoneTime',fragLimit:100,minFragLimit:1,maxFragLimit:900,objective:{kind:'domination',captureSeconds:5}}},
+  {id:'assault',name:'Assault',description:'Attackers take sectors in order, defenders hold to the last one. Breach the final sector to win.',rules:{team:true,score:'sectors',fragLimit:3,minFragLimit:1,maxFragLimit:9,objective:{kind:'assault',captureSeconds:6}}},
+ {id:'teamdeathmatch',name:'Team Deathmatch',description:'Shared team score with friendly fire off. Win together or feed together.',rules:{team:true,score:'teamFrags',fragLimit:30}},
+  {id:'instagib',name:'Instagib',description:'Rail only, unlimited ammo. One unprotected hit eliminates. No supplies, no powers, no mercy.'},
+  {id:'rockets',name:'Rocket Arena',description:'Unlimited rockets for everyone. Health and armor stay on the menu.'},
+  {id:'arsenal',name:'Full Arsenal',description:'Every weapon unlocked with unlimited ammo from the first spawn. Choose violence, repeatedly.'},
+  {id:'combined-arms',name:'Combined Arms',description:'Command infantry, armour and aircraft across the largest battlefields. Hold the zones together.',rules:{team:true,score:'zoneTime',fragLimit:200,minFragLimit:50,maxFragLimit:900,objective:{kind:'domination',captureSeconds:6},maxBots:16}},
 ];
 export const DIFFICULTIES = [
- {id:'easy',name:'Easy',description:'Relaxed reactions, loose aim and breathing room.',reaction:1.2,think:.5,error:.3,fireDelay:.48},
- {id:'normal',name:'Normal',description:'Measured reactions and forgiving aim.',reaction:.65,think:.3,error:.12,fireDelay:.2},
- {id:'hard',name:'Hard',description:'Quicker reactions and tighter aim.',reaction:.16,think:.14,error:.023,fireDelay:0},
- {id:'nightmare',name:'Nightmare',description:'Very fast reactions and precise aim.',reaction:.08,think:.1,error:.01,fireDelay:0},
+ {id:'easy',name:'Easy',description:'Relaxed reactions, loose aim and plenty of breathing room.',reaction:1.2,think:.5,error:.3,fireDelay:.48},
+ {id:'normal',name:'Normal',description:'Measured reactions and forgiving aim. The house default.',reaction:.65,think:.3,error:.12,fireDelay:.2},
+ {id:'hard',name:'Hard',description:'Quicker reactions and tighter aim. Bring a plan.',reaction:.16,think:.14,error:.023,fireDelay:0},
+ {id:'nightmare',name:'Nightmare',description:'Very fast reactions and precise aim. They already know where you spawned.',reaction:.08,think:.1,error:.01,fireDelay:0},
 ];
 export const DEFAULT_CONFIG = Object.freeze({mode:'deathmatch',botCount:2,difficulty:'easy',fragLimit:15,timeLimit:300,respawn:2,speed:1,gravity:1,damage:1,fastPowers:false,lifeSteal:false,unlimitedAmmo:false,startingWeapon:0,playerName:''});
 export const DEFAULT_DISPLAY = Object.freeze({fov:82,crosshair:'cross',color:'#c2ffea',size:1,showFps:false,showWeapon:true,resolutionScale:1});

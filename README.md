@@ -1,6 +1,8 @@
-# TOKEN ARENA
+# COCS — Colosseum Of Competitive Slop
 
-A local Three.js first-person arena-shooter prototype. Select from nine AI operators, equip one of seven compatible harnesses, choose from fourteen arenas, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+A local Three.js first-person arena-shooter where nine famous language models settle their differences with guns. Select an AI operator, strap on one of seven agent harnesses, choose an arena, and configure a match with zero to eight bots. New setups default to two Easy bots, first to 15 frags or highest score after five minutes. Claude always uses Claude Code; everyone else can equip any harness.
+
+Every operator and harness blurb is affectionate parody — jokes about the vibes and internet lore around each tool, not claims about what they actually do. AI names represent fictional robots, not factual product comparisons.
 
 **Play it live:** https://arena.ussyco.de — **Source:** https://github.com/mojomast/tokenarena (also linked from the in-game menus).
 
@@ -233,6 +235,14 @@ Version 2.0 adds progression, unlocks and gear:
 - **Unlocks.** Eight gear pieces and three weapon finishes unlock as you level, shown on a new **Rank** screen with your level, XP bar and career stats.
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
+
+Version 2.5 rebrands the game as **COCS — Colosseum Of Competitive Slop** and rewrites the whole voice:
+
+- **New identity.** The title screen shows **C O C S** in big industrial type, with `COLOSSEUM / OF / COMPETITIVE / SLOP` stacked directly beneath the letters and sliding in one letter at a time, Mega Man style. The in-game wordmark, page metadata, server banner and deployment labels all follow.
+- **Tongue-in-cheek roster.** The nine operators now carry affectionate parody tags and bios — ChatGPT is "The People Pleaser", Claude is "The Safety Officer", Grok is "The Reply Guy", Meta is "The Open-Weight Dad", Gemini is "The Reviser", DeepSeek is "The Price Cutter", Mistral is "The Le Coq", Kimi is "The Context Hoarder" and Qwen is "The Shipping Container". The quality is up for debate; the roasts are not.
+- **Harness copy with teeth.** Every harness keeps its mechanics but gains a joke explaining it (OpenCode's Parallel Burst "spawns a swarm of parallel subagents that all pull the trigger at once… yes, it burns tokens"), and powerups, modes, gear, weapon attachments, finishes, reticles, ranks and weapons all received fuller descriptive copy.
+- **Back out of the menu.** Escape or the ✕ button on the loadout screen returns you to the COCS title screen at any time.
+- **Cleaner unlock track.** The Rank screen now groups unlocks into Gear, Weapon Mods, Weapon Finishes and Reticles, each with a progress bar and a tidy card grid instead of one long list.
 
 Version 2.4 turns up the spectacle:
 
