@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.16 hardens multiplayer input:
+
+- **Input cannot be poisoned.** A client that jumps its input sequence far ahead is snapped back to the next expected value instead of being allowed to make every later input look stale (`server/room.mjs`). Stale and duplicate sequences are still ignored.
+- **Movement axes are clamped.** The server coerces `x`/`z` to finite values in `[-1,1]` and drops non-finite look values before they reach the authoritative simulation.
+
 Version 2.15 gives every weapon a range identity:
 
 - **Damage falloff.** Hitscan weapons now deal full damage inside an effective range and taper off beyond it (`game/data.mjs` `falloff:{start,end,min}`, applied by the pure `damageFalloff` helper in `game/core.mjs`). Pulse, Scattergun, Shock Beam, Flak Cannon, Marksman Rifle and SMG all fall off; the Rail Lance and the projectile/splash weapons are unchanged. Shotguns and the SMG now lose bite at distance, while snipers and launchers own the long lanes.

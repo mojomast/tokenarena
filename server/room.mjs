@@ -153,11 +153,16 @@ export class Room {
   const peer = this.peers.get(peerId);
    if (!peer || peer.disconnectedAt !== null || peer.spectate || peer.actorId === null || !this.match || this.roundOver) return;
   const i = input && typeof input === 'object' ? input : {};
-   const seq = Number.isInteger(i.seq) && i.seq > 0 ? i.seq : peer.receivedSeq + 1;
+   const requested = Number.isInteger(i.seq) && i.seq > 0 ? i.seq : peer.receivedSeq + 1;
+   // A rogue or buggy client could jump its sequence far ahead, after which every
+   // real input looks stale. Accept modest forward progress only; a stale or
+   // duplicate sequence is ignored as before.
+   const seq = requested > peer.receivedSeq + 600 ? peer.receivedSeq + 1 : requested;
    if (seq <= peer.receivedSeq) return;
    peer.receivedSeq = seq;
-    const x = Number(i.x), z = Number(i.z);
-    const ext = { x: Number.isFinite(x) ? x : 0, z: Number.isFinite(z) ? z : 0, fire: i.fire === true };
+    const axis = value => { const n = Number(value); return Number.isFinite(n) ? Math.max(-1, Math.min(1, n)) : 0; };
+    const x = axis(i.x), z = axis(i.z);
+    const ext = { x, z, fire: i.fire === true };
   if (Number.isFinite(i.yaw)) ext.yaw = i.yaw;
   if (Number.isFinite(i.pitch)) ext.pitch = Math.max(-1.45, Math.min(1.45, i.pitch));
   if (Number.isInteger(i.weapon)) ext.weapon = i.weapon;

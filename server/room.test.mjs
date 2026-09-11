@@ -417,3 +417,27 @@ test('a compatible arena is preserved when hosting',()=>{
  room.host(1,{mode:'ctf',botCount:0},'launchpad');
  assert.equal(room.mapId,'launchpad');
 });
+test('inputs are magnitude-clamped and cannot be poisoned by an absurd sequence jump',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'A');room.join(2,'B');
+ room.host(1,{botCount:0,timeLimit:30},'crosswire');
+ room.start(1);room.drain();
+ const peer=room.peers.get(1);
+ room.input(1,{seq:5,x:5,z:-9,fire:false});
+ assert.equal(peer.latest.x,1);
+ assert.equal(peer.latest.z,-1);
+ assert.equal(peer.receivedSeq,5);
+ // A rogue jump is snapped to the next expected sequence instead of honored.
+ room.input(1,{seq:1e9,x:0,z:0});
+ assert.equal(peer.receivedSeq,6);
+ assert.equal(peer.latestSeq,6);
+ // A stale sequence is ignored.
+ room.input(1,{seq:6,yaw:1,x:0,z:0});
+ assert.equal(peer.receivedSeq,6);
+ // Non-finite axes and look become safe defaults; finite axes still clamp.
+ room.input(1,{seq:7,x:NaN,yaw:Infinity,z:2});
+ assert.equal(peer.receivedSeq,7);
+ assert.equal(peer.latest.x,0);
+ assert.equal(peer.latest.z,1);
+ assert.equal(peer.latest.yaw,undefined);
+});

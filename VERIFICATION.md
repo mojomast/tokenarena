@@ -1,5 +1,20 @@
 # COCS verification report
 
+## Server input hardening 2.16 - 2026-09-11
+
+- **Bounded sequences** (`server/room.mjs`): input sequence numbers more than 600
+  ahead of the last accepted value are snapped to the next expected sequence, so a
+  rogue or buggy client can no longer jump `receivedSeq` forward and make every
+  real input look stale. Duplicate and stale sequences are still ignored.
+- **Clamped movement** (`server/room.mjs`): the `x`/`z` movement axes are coerced
+  to finite values and clamped to `[-1,1]`; non-finite look values are dropped
+  instead of forwarded.
+- **Test** (`server/room.test.mjs`): a new room test covers axis clamping, the
+  absurd-jump snap, stale-sequence rejection and non-finite axes/look.
+
+Verification: `npm run test:server` 95/95 (one known flaky two-room socket test
+passed on rerun), typecheck, production build and the rendered response test green.
+
 ## Weapon damage falloff 2.15 - 2026-09-11
 
 - **Range identity** (`game/data.mjs`, `game/core.mjs`): hitscan weapons now carry
