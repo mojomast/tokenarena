@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {ArenaView,vehicleModel,weaponModel,robotModel} from './view.mjs';
+import {ArenaView,vehicleModel,weaponModel,robotModel,shadowTick} from './view.mjs';
 import {SoftwareRenderer} from './software.mjs';
 import {ModelAssets,CameraShake,MuzzleLightPool,LowHealthOverlay} from './effects-fx.mjs';
 import {DEFAULT_DISPLAY} from './config.mjs';
@@ -289,4 +289,11 @@ test('the CPU renderer draws every instance of an InstancedMesh',t=>{
  instanced.instanceMatrix.needsUpdate=true;scene.add(instanced);
  renderer.render(scene,camera);
  assert.equal(renderer.info.render.triangles,separate,`instanced mesh should match the same four separate meshes (${separate} -> ${renderer.info.render.triangles})`);
+});
+test('shadow refresh throttles to a fixed cadence',()=>{
+ assert.deepEqual(shadowTick(undefined,2),{tick:1,refresh:false});
+ assert.deepEqual(shadowTick(1,2),{tick:0,refresh:true});
+ assert.deepEqual(shadowTick(0,3),{tick:1,refresh:false});
+ assert.deepEqual(shadowTick(1,3),{tick:2,refresh:false});
+ assert.deepEqual(shadowTick(2,3),{tick:0,refresh:true});
 });
