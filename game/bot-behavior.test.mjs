@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Match} from './core.mjs';
+import {Match, blastUnsafe} from './core.mjs';
+import {WEAPONS} from './data.mjs';
 import {botBehaviorKey} from './bot-personalities.mjs';
 
 const seeded=()=>{let n=20240910;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);};
@@ -71,4 +72,25 @@ test('an uncontested owner still scores and holds the hill',()=>{
  assert.equal(zone.owner,0);
  assert.ok(zone.progress===100);
  assert.ok(m.teamScores[0]>before,`owner should score while holding (${before} -> ${m.teamScores[0]})`);
+});
+
+test('blastUnsafe protects bots from detonating their own explosive at point-blank',()=>{
+  assert.equal(blastUnsafe(WEAPONS[1],10),false);
+  assert.equal(blastUnsafe(WEAPONS[1],4.5),true);
+  assert.equal(blastUnsafe(WEAPONS[1],4.6),false);
+  assert.equal(blastUnsafe(WEAPONS[5],3.9),true);
+  assert.equal(blastUnsafe(WEAPONS[0],1),false);
+  assert.equal(blastUnsafe(null,1),false);
+  assert.equal(blastUnsafe(WEAPONS[1],NaN),false);
+});
+
+test('a critically hurt bot with no supplies backpedals from a visible threat',()=>{
+  const m=new Match('chatgpt','openclaw',seeded(),'exchange',{mode:'deathmatch',botCount:1,difficulty:'normal',timeLimit:120,fragLimit:40});
+  m.pickups.length=0;
+  const bot=m.actors.find(a=>a.bot),human=m.actors.find(a=>!a.bot);
+  Object.assign(bot,{health:bot.maxHealth*.15,x:0,z:0,vx:0,vz:0});
+  Object.assign(human,{health:human.maxHealth,x:2,z:0});
+  Object.assign(bot.bot,{target:human.id,memory:1.5,think:0,route:[],destination:null,state:'engage'});
+  const input=m.botInput(bot,1/60)||{};
+  assert.ok((input.x??0)<-0.2,`expected retreat away from the threat on -x, got ${input.x}`);
 });
