@@ -1,6 +1,7 @@
 import {modeRule} from './config.mjs';
 import {terrainSupportAt} from './terrain.mjs';
 import {assaultTemplate,assignAssaultTeams} from './assault.mjs';
+import {payloadTemplate} from './payload.mjs';
 const point=(x,z,id,rules,radius=3.5,y=0)=>({id,x,z,radius,owner:null,captureTeam:null,progress:0,captureSeconds:rules.objective?.captureSeconds??5,y});
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
 
@@ -52,14 +53,15 @@ const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.i
   Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length
     ? ids.map((id,index)=>{const source=arena.objectiveZones[index];return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);})
     : candidatePoints(arena,ids,rules));
-export function objectiveTemplate(mode,arena){
-  const rules=modeRule(mode),kind=rules.objective?.kind,authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
-  if(kind==='koth'){
-    const b=boundsOf(arena),centerX=(b.minX+b.maxX)/2,centerZ=(b.minZ+b.maxZ)/2;
-    const source=authored.slice().sort((p,q)=>Math.hypot(p.x-centerX,p.z-centerZ)-Math.hypot(q.x-centerX,q.z-centerZ))[0];
-    return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};
-  }
-  if(kind==='domination')return {kind:'domination',zones:authored,winner:null};
-  if(kind==='assault'){const template=assaultTemplate(arena);template.zones=template.sectors;return assignAssaultTeams(template);}
-  return null;
+export function objectiveTemplate(mode,arena,config){
+ const rules=modeRule(mode),kind=rules.objective?.kind,authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
+ if(kind==='koth'){
+  const b=boundsOf(arena),centerX=(b.minX+b.maxX)/2,centerZ=(b.minZ+b.maxZ)/2;
+  const source=authored.slice().sort((p,q)=>Math.hypot(p.x-centerX,p.z-centerZ)-Math.hypot(q.x-centerX,q.z-centerZ))[0];
+  return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};
+ }
+ if(kind==='domination')return {kind:'domination',zones:authored,winner:null};
+ if(kind==='assault'){const template=assaultTemplate(arena);template.zones=template.sectors;return assignAssaultTeams(template);}
+ if(kind==='payload')return payloadTemplate(arena,{segments:Math.max(1,Math.min(6,Math.round(config?.fragLimit??rules.fragLimit??3)))});
+ return null;
 }
