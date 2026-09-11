@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Match,NAV,EDGES,moveActor,rayWorld,visible,eye,aim,floorAt,obstructed} from './core.mjs';
 import {CHARACTERS,HARNESSES,validLoadout,resolveLoadout,RULES} from './data.mjs';
+import {DEATH_STYLES} from './deaths.mjs';
 function rng(){let n=42;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
 const fresh=()=>new Match('chatgpt','openclaw',rng(),'exchange',{botCount:4,difficulty:'normal'});
 function isolate(m){m.actors.forEach((a,i)=>Object.assign(a,{x:10+i*.1,y:0,z:10,protection:0,health:100,armor:0,harnessDamageMultiplier:1}));return m.actors;}
@@ -17,3 +18,25 @@ test('movement has equal diagonal cap, collision, jump, and both ramps reach dec
 test('entire navigation graph is connected, including upper deck',()=>{const seen=new Set([0]),q=[0];while(q.length)for(const n of EDGES[q.shift()])if(!seen.has(n)){seen.add(n);q.push(n);}assert.equal(seen.size,NAV.length);assert.ok(NAV.some(n=>n.y===3.8));});
 test('pickup usefulness, timed respawn, complete fresh match reset',()=>{const m=fresh(),a=m.actors[0],p=m.pickups[0];assert.equal(m.collect(a,p),false);a.health=20;assert.equal(m.collect(a,p),true);assert.equal(a.health,55);assert.equal(p.wait,12);m.damage(a,500,a);m.rockets.push({});const n=fresh();assert.equal(n.time,0);assert.equal(n.rockets.length,0);assert.ok(n.pickups.every(p=>p.wait===0));assert.ok(n.actors.every(a=>a.frags===0&&a.deaths===0&&a.cooldown===0&&a.active===0&&a.health===a.maxHealth));});
 test('four bots complete deterministic deathmatch with supplies, powers and respawns',()=>{const m=fresh();let elevated=false;for(let i=0;i<18001&&!m.over;i++){m.step(1/60);elevated||=m.actors.slice(1).some(a=>a.y>3.5);}assert.ok(m.over);assert.ok(m.stats.kills>=15);assert.ok(m.stats.pickups>4);assert.ok(m.stats.powers>4);assert.ok(m.stats.respawns>5);assert.ok(elevated);console.log('Simulated match:',m.time.toFixed(2),'seconds',m.stats);});
+test('deaths carry a deterministic varied style, weapon and direction',()=>{
+ const m=fresh(),[a,b]=isolate(m);a.weapon=1;b.health=10;
+ m.damage(b,400,a);
+ const death=m.events.find(e=>e.type==='death'&&e.actor===b.id);
+ assert.ok(death,'death event emitted');
+ assert.ok(DEATH_STYLES.includes(death.style),`style ${death.style}`);
+ assert.equal(death.weapon,1);
+ assert.ok(death.overkill>200);
+ assert.equal(death.self,false);
+ assert.ok(death.direction&&Number.isFinite(death.direction.x)&&Number.isFinite(death.direction.z));
+ assert.ok(Number.isInteger(death.seed));
+ assert.ok(['gibs','burst','combust'].includes(death.style),`massive overkill -> ${death.style}`);
+});
+test('void falls emit a ragdoll death without a killer',()=>{
+ const m=fresh(),a=m.actors[0];
+ m.fall(a);
+ const death=m.events.find(e=>e.type==='death'&&e.fall===true);
+ assert.ok(death,'fall death emitted');
+ assert.equal(death.style,'ragdoll');
+ assert.equal(death.weapon,null);
+ assert.equal(death.direction,null);
+});
