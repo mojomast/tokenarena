@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.17 trims network payloads:
+
+- **Quantized snapshots.** The server now rounds every finite number in broadcast snapshots and event deltas to the millimetre (`game/quantize.mjs`), applied to a deep clone in `server/room.mjs`. Positions and angles to three decimals look identical but serialize several bytes smaller at the 30 Hz snapshot rate, and the authoritative simulation keeps full precision.
+
 Version 2.16 hardens multiplayer input:
 
 - **Input cannot be poisoned.** A client that jumps its input sequence far ahead is snapped back to the next expected value instead of being allowed to make every later input look stale (`server/room.mjs`). Stale and duplicate sequences are still ignored.

@@ -1,5 +1,24 @@
 # COCS verification report
 
+## Snapshot quantization 2.17 - 2026-09-11
+
+- **Payload trimming** (`game/quantize.mjs`, `game/quantize.test.mjs`): a pure
+  `quantizeNumbers(tree, precision)` rounds every finite number in a snapshot or
+  event tree to three decimals, leaving non-finite ammo sentinels, strings,
+  booleans and nulls untouched, and preserving object identity.
+- **Server wiring** (`server/room.mjs`): `wireState()` quantizes a
+  `structuredClone` of the fresh snapshot so shared nested references (powerups,
+  gear, attachments) are never mutated. Broadcast and join snapshots use
+  `wireState()`, and event deltas are quantized from a clone. Positions and angles
+  to the millimetre are visually identical but shorten every 30 Hz payload.
+- **Tests**: three pure quantization tests (precision, identity, size) plus a room
+  test proving the wired snapshot is quantized while the authoritative actor keeps
+  full precision. `server/spectator.test.mjs` now compares against the quantized
+  wire snapshot.
+
+Verification: `npm run test:server` 96/96 (known flaky socket/history tests passed
+on rerun), typecheck, production build and the rendered response test green.
+
 ## Server input hardening 2.16 - 2026-09-11
 
 - **Bounded sequences** (`server/room.mjs`): input sequence numbers more than 600

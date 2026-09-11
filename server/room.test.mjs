@@ -441,3 +441,20 @@ test('inputs are magnitude-clamped and cannot be poisoned by an absurd sequence 
  assert.equal(peer.latest.z,1);
  assert.equal(peer.latest.yaw,undefined);
 });
+test('broadcast snapshots are quantized without mutating authoritative match state',()=>{
+ const room=new Room('r',rng(),{snapshotHz:30});
+ room.join(1,'A');room.host(1,{botCount:1,timeLimit:60},'crosswire');room.start(1);room.drain();
+ const actor=room.match.actors[0];
+ Object.assign(actor,{x:1.23456789,z:2.987654321,vx:0,vz:0,grounded:true,powerups:{haste:30.123456789}});
+ for(let i=0;i<4;i++)room.tick(1/60);
+ const snap=last(room.drain(),'snapshot');
+ assert.ok(snap,'a snapshot was broadcast');
+ const wire=snap.state.actors.find(a=>a.id===actor.id);
+ assert.equal(wire.x,Math.round(wire.x*1000)/1000);
+ assert.equal(wire.z,Math.round(wire.z*1000)/1000);
+ assert.equal(snap.state.time,Math.round(snap.state.time*1000)/1000);
+ assert.equal(wire.powerups.haste,Math.round(wire.powerups.haste*1000)/1000);
+ // The clone is quantized; the real actor keeps full precision.
+ assert.notEqual(actor.powerups.haste,wire.powerups.haste);
+ assert.ok(Math.abs(actor.x-1.23456789)<1e-6);
+});

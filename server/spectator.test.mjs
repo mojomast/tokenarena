@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Room,PLAYER_LIMIT,SPECTATOR_LIMIT} from './room.mjs';
+import {quantizeNumbers} from '../game/quantize.mjs';
 function rng(){let n=11;return()=>((n=(Math.imul(n,1664525)+1013904223)>>>0)/4294967296);}
 const find=(msgs,type,to)=>msgs.find(m=>m.msg.type===type&&(to===undefined||m.to===to))?.msg;
 const last=(msgs,type)=>[...msgs].reverse().find(m=>m.msg.type===type)?.msg;
@@ -143,7 +144,7 @@ test('active spectator joins and reconnects receive lobby, targeted start and im
   assert.deepEqual(msgs.map(m=>m.msg.type),['welcome','lobby','start','snapshot']);
   assert.equal(find(msgs,'welcome',id).spectate,true);
   assert.deepEqual(find(msgs,'start',id),{type:'start',mapId:match.arena.id,config:match.config});
-  assert.deepEqual(find(msgs,'snapshot',id).state,match.snapshot());
+  assert.deepEqual(find(msgs,'snapshot',id).state,quantizeNumbers(structuredClone(match.snapshot())));
   assert.ok(find(msgs,'snapshot',id).seq>seq);
   assert.ok(msgs.filter(m=>['start','snapshot'].includes(m.msg.type)).every(m=>m.to===id));
   assert.equal(room.peers.get(id).actorId,null);

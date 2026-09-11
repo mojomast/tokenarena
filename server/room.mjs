@@ -3,6 +3,7 @@ import {normalizeConfig} from '../game/config.mjs';
 import {getMap} from '../game/maps.mjs';
 import {resolveMapForMode} from '../game/arenas.mjs';
 import {CHARACTERS,resolveLoadout,RULES} from '../game/data.mjs';
+import {quantizeNumbers} from '../game/quantize.mjs';
 import {randomUUID} from 'node:crypto';
 import {validPlayerId} from './progression.mjs';
 
@@ -44,6 +45,12 @@ export class Room {
  summary() {
   return { roomId: this.id, name: this.name, players: [...this.peers.values()].filter(p => p.disconnectedAt === null).length, started: this.started, mapId: this.mapId, config: this.config ? { ...this.config } : null };
  }
+ // Outbound snapshots are quantized from a deep clone so the authoritative match
+ // state (shared nested references such as powerups/gear) is never mutated.
+ wireState() {
+  if (!this.match) return null;
+  return quantizeNumbers(structuredClone(this.match.snapshot()));
+ }
  lobby() {
   return { type: 'lobby', roomId: this.id, name: this.name, hostId: this.hostId, started: this.started,
    config: this.config ? { ...this.config } : null, mapId: this.mapId,
@@ -73,7 +80,7 @@ export class Room {
     this.broadcast(this.lobby());
     if (this.started && !this.roundOver && this.match) {
      this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
-     this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [existing.actorId]: existing.appliedSeq }, state: this.match.snapshot() });
+     this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [existing.actorId]: existing.appliedSeq }, state: this.wireState() });
      } else if (this.match?.over) {
       this.send(peerId, { type: 'results', state: this.match.snapshot() });
      }
@@ -99,7 +106,7 @@ export class Room {
   if (requestedPlayer && active) this.send(peerId, { type: 'error', message: 'Match in progress — you joined as a spectator.' });
   if (isSpectator && this.started && !this.roundOver && this.match) {
    this.send(peerId, { type: 'start', config: { ...this.match.config }, mapId: this.match.arena.id });
-     this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [this.peers.get(peerId)?.actorId ?? -1]: 0 }, state: this.match.snapshot() });
+     this.send(peerId, { type: 'snapshot', seq: ++this.seq, acks: { [this.peers.get(peerId)?.actorId ?? -1]: 0 }, state: this.wireState() });
    } else if (isSpectator && this.match?.over) {
     this.send(peerId, { type: 'results', state: this.match.snapshot() });
    }
@@ -304,10 +311,10 @@ export class Room {
    steps++;
     for (const p of this.peers.values()) if (p.actorId !== null || p.spectate) {
      const items = this.match.events.filter(e => e.id > p.lastSerial);
-     if (items.length) { p.lastSerial = items[items.length - 1].id; this.send(p.id, { type: 'events', items }); }
+     if (items.length) { p.lastSerial = items[items.length - 1].id; this.send(p.id, { type: 'events', items: quantizeNumbers(structuredClone(items)) }); }
     }
     this.broadcastAt += RULES.dt;
-     if (!broadcasted && this.broadcastAt >= this.snapshotInterval) { broadcasted = true; this.broadcastAt = 0; const acks = {}; for (const p of this.peers.values()) if (p.actorId !== null) acks[p.actorId] = p.appliedSeq; this.broadcast({ type: 'snapshot', seq: ++this.seq, acks, state: this.match.snapshot() }); }
+     if (!broadcasted && this.broadcastAt >= this.snapshotInterval) { broadcasted = true; this.broadcastAt = 0; const acks = {}; for (const p of this.peers.values()) if (p.actorId !== null) acks[p.actorId] = p.appliedSeq; this.broadcast({ type: 'snapshot', seq: ++this.seq, acks, state: this.wireState() }); }
      if (this.match.over) {
       this.roundOver = true;
       const result = this.match.snapshot();
