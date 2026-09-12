@@ -252,6 +252,12 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.46 opens up Titan Valley and tightens objective play:
+
+- **Titan Valley is traversable again.** Its central tunnel ran the full width of the map and, with the flanking base bunkers, walled the northern half off. Four of ten team spawns, two of three capture points and three of six vehicles sat outside the navigation graph, so Combined Arms produced zero shots. The tunnel is now a shorter central passage, reconnecting the map.
+- **Bots dismount stuck vehicles.** A bot driver that cannot make progress for three seconds exits and continues on foot (with a five-second re-board cooldown), instead of grinding against terrain for the whole match.
+- **Teams defend their objectives.** In King of the Hill, Domination and Combined Arms the closest teammate holds any owned-but-empty capture point, so a side stops abandoning a hill the moment it flips.
+
 Version 2.45 puts every capture point on solid ground:
 
 - **No more buried hills.** Procedural levels now nudge a capture zone that generated inside a rock or building to the nearest clear ground before cover and supplies are placed. This fixes the colosseum, riverbend and titan-valley objectives; deliberate raised bridge/catwalk centres are left untouched.

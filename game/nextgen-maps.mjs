@@ -180,7 +180,7 @@ const titanValley = createLevel({
     ctx.addBuilding({ x: -60, z: 0, w: 20, d: 24, h: 8, rot: Math.PI / 2, roof: 'flat', door: 'east', doorWidth: 3.4, floors: 1 });
     ctx.addBuilding({ x: 60, z: 0, w: 20, d: 24, h: 8, rot: -Math.PI / 2, roof: 'flat', door: 'west', doorWidth: 3.4, floors: 1 });
     for (const [x, z] of [[-28, -30], [28, 30], [-28, 30], [28, -30]]) { ctx.addBuilding({ x, z, w: 12, d: 12, h: 4.5, roof: 'flat', door: 'south', floors: 1 }); ctx.addRock({ x: x + 8, z: z + 8, scale: 1.6 }); }
-    ctx.addTunnel([[-46, undefined, 0], [-18, undefined, 0], [0, undefined, 6], [18, undefined, 0], [46, undefined, 0]], 3.4);
+    ctx.addTunnel([[-24, undefined, 0], [-12, undefined, 5], [12, undefined, -5], [24, undefined, 0]], 3.4);
     ctx.addCavern({ x: 0, z: -30, radius: 12, height: 11 });
     ctx.addCavern({ x: 0, z: 30, radius: 12, height: 11 });
     scatter(ctx, 34, rng, 7, (c, x, z) => (Math.abs(x) > 18 ? c.addTree({ x, z, scale: .8 + rng() * .7 }) : c.addRock({ x, z, scale: .8 + rng() * .9 })));

@@ -37,6 +37,13 @@ test('payload routes stay finite and never collapse to instant delivery', () => 
   assert.equal(state.delivered, false, 'a degenerate route must not deliver in one tick');
 });
 
+test('combined-arms bots engage on titan-valley instead of idling on unreachable ground', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'titan-valley', {mode: 'combined-arms', botCount: 7, humanCount: 1, difficulty: 'normal', timeLimit: 60, fragLimit: 20});
+  for (let i = 0; i < 60 * 60 && !m.over; i++) m.step(1 / 60);
+  assert.ok(m.stats.shots > 0, `bots must fire (shots ${m.stats.shots})`);
+  assert.ok(m.teamScores[0] + m.teamScores[1] > 0 || m.stats.kills > 0, `objective must progress (${m.teamScores[0]}/${m.teamScores[1]}, kills ${m.stats.kills})`);
+});
+
 test('a zero-frag free-for-all is a draw, not a win', () => {
   assert.equal(actorWon({actors: [{frags: 0}]}, 'deathmatch', {frags: 0}), false);
   assert.equal(actorWon({actors: []}, 'instagib', {frags: 0}), false);

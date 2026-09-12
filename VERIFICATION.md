@@ -1,5 +1,24 @@
 # COCS verification report
 
+## Titan Valley traversal + objective fixes 2.46 - 2026-09-12
+
+- Reachability sweep of all next-gen maps found titan-valley with 4/10 team
+  spawns, 2/3 capture points and 3/6 vehicles outside the main nav component,
+  because the central tunnel plus base bunkers sealed the northern half. The
+  tunnel now spans [-24..24] instead of [-46..46]; the map goes from 339 to 662
+  main-component nodes and every spawn/objective/vehicle is reachable.
+- Bot drivers dismount after 3s without progress (5s re-board cooldown) instead
+  of grinding against terrain all match.
+- The closest teammate now holds an owned-but-empty KOTH/Domination/Combined-Arms
+  zone, so capturing teams no longer abandon hills.
+- New assertions (both confirmed failing against the pre-fix map): `next-gen
+  team spawns sit in the main navigation component` and `combined-arms bots
+  engage on titan-valley instead of idling on unreachable ground`.
+- Suites: nextgen-maps 11/11, hardening 14/14, map/traversal 67/67,
+  bot/mode/vehicle 119/119, slow game/expansion.test.mjs 9/9, server 107/107,
+  `tsc --noEmit` clean. Combined Arms now ends on the objective with balanced
+  scores instead of zero combat.
+
 ## Clear capture points 2.45 - 2026-09-12
 
 - `createLevel` clears any objective zone that generated inside a non-deck solid

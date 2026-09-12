@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {NEXTGEN_MAPS} from './nextgen-maps.mjs';
 import {MAPS,getMap} from './maps.mjs';
 import {GAME_MODES} from './config.mjs';
-import {floorAt,obstructed,moveActor} from './core.mjs';
+import {floorAt,obstructed,moveActor,navigation} from './core.mjs';
 import {arenaMeta,arenaSupportsMode} from './arenas.mjs';
 import {mulberry32,fbm} from './levelgen.mjs';
 
@@ -54,6 +54,22 @@ test('next-gen spawns stand on supported, unobstructed ground', () => {
       const y = floorAt(x, z, map);
       assert.notEqual(y, null, `${map.id} spawn support at ${x},${z}`);
       assert.equal(obstructed(x, y, z, 0.6, map), false, `${map.id} spawn clearance at ${x},${z}`);
+    }
+  }
+});
+
+test('next-gen team spawns sit in the main navigation component', () => {
+  for (const map of NEXTGEN_MAPS) {
+    const { nodes, edges } = navigation(map);
+    const seen = new Set([0]), queue = [0];
+    while (queue.length) for (const next of edges[queue.shift()]) if (!seen.has(next)) { seen.add(next); queue.push(next); }
+    const main = nodes.filter((_, index) => seen.has(index));
+    const team = Object.values(map.teamSpawns || {}).flat();
+    const spawns = team.length ? team : map.spawns;
+    assert.ok(spawns.length, `${map.id} has spawns`);
+    for (const [x, z] of spawns) {
+      const nearest = Math.min(...main.map(node => Math.hypot(node.x - x, node.z - z)));
+      assert.ok(nearest <= 8, `${map.id} spawn ${x},${z} reachable (nearest main node ${nearest.toFixed(1)}m)`);
     }
   }
 });
