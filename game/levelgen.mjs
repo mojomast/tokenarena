@@ -12,6 +12,8 @@
 // bots, projectiles and prediction keep working unchanged; only the look and the
 // authored layout change.
 
+import {cavernOpening} from './structures.mjs';
+
 export function mulberry32(seed) {
   let a = (seed >>> 0) || 0x6d2b79f5;
   return function () {
@@ -196,7 +198,7 @@ export function createLevel(spec) {
     ctx.addStructure({ type: 'cavern', x, z, y: terrain.height(x, z), radius, height });
     const segments = 16;
     for (let i = 0; i < segments; i++) {
-      if (i % 8 < 2) continue; // leave two openings so caverns stay enterable and navigable
+      if (cavernOpening(i)) continue; // two opposite entrances keep the cavern enterable
       const a = (i / segments) * Math.PI * 2, wx = x + Math.cos(a) * radius, wz = z + Math.sin(a) * radius, wy = terrain.height(wx, wz);
       ctx.addBlock({ x: wx, z: wz, w: radius * 0.45, d: radius * 0.45, h: wy + height, kind: 'cave' });
     }

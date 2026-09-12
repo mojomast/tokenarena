@@ -1,5 +1,29 @@
 # COCS verification report
 
+## Next-gen cavern rendering 2.28 - 2026-09-11
+
+- **Bug:** caverns rendered as a lone floating hemisphere (equator ~30% up the
+  wall, open all the way around) plus a full closed tube per tunnel. On The
+  Catacombs (five caverns joined by four tunnels) the loose shells and tubes read
+  as one merged, connected dome mass.
+- **Fix** (`game/view.mjs`, `game/structures.mjs`): a cavern now renders as a
+  stone drum split into two wall arcs with two opposite entrances, capped by a
+  dome seated on the wall tops. The arc angles are computed from the same
+  entrance rule the generator uses for its hidden collision ring, so the visible
+  openings line up with the walkable gaps. Tunnels and caverns get their own
+  materials instead of forcing the shared stone material double-sided.
+- **Shared rule** (`game/structures.mjs`, `game/levelgen.mjs`): the entrance rule
+  (`cavernOpening`) and shell dimensions (`cavernShell`) live once so the
+  generator and renderer cannot drift.
+- **Tests** (`game/structures.test.mjs`): entrance segments, the two wall arcs
+  avoiding every entrance, and positive/finite shell dimensions. Map suites
+  (`maps`, `nextgen-maps`, `expansion-maps`, `arenas`) still pass unchanged, so
+  the collision/navigation geometry is identical.
+
+Verification: 40/40 map and structure tests, `tsc --noEmit` clean, `npm run build`
+succeeds, SSR `tests/*.test.mjs` 1/1. A GPU-browser look at The Catacombs and Titan
+Valley is the honest final visual check.
+
 ## Main-menu demo reel 2.27 - 2026-09-11
 
 - **Root cause:** the showcase handed `view` a `Match.snapshot()`, which does not

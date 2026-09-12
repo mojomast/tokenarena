@@ -11,6 +11,7 @@ import {CharacterRig} from './character-anim.mjs';
 import {terrainTriangles,terrainWallTriangles} from './terrain.mjs';
 import {TEAM_PALETTE,teamPresentation,teamMark,updateTeamMark,applyActorTeam} from './team-presentation.mjs';
 import {spectateActor} from './hud.mjs';
+import {cavernShell} from './structures.mjs';
 import {surfaceTextures,clearSurfaceTextures} from './textures.mjs';
 import {addSky,addMountains,addScatter} from './environment.mjs';
 import {RoomEnvironment} from 'three/addons/environments/RoomEnvironment.js';
@@ -350,7 +351,7 @@ export class ArenaView{
   if(!structures.length&&!props.length)return;
   const shared=this.renderResources??=new Set(),cache=new Map();
   const geo=(key,make)=>{let g=cache.get(key);if(!g){g=make();cache.set(key,g);shared.add(g);}return g;};
-  const wallMat=material(arena.color,.35,.5,false),stone=material('#8a8378',.05,.92),wood=material('#6b4a2f',.1,.85),leaf=material('#4f8f4a',.15,.85),metal=material('#6b737a',.65,.45),barrel=material('#b0703f',.35,.6),dark=material('#20262b',.5,.55),glass=material('#8fd8ff',.2,.15,true);
+  const wallMat=material(arena.color,.35,.5,false),stone=material('#8a8378',.05,.92),wood=material('#6b4a2f',.1,.85),leaf=material('#4f8f4a',.15,.85),metal=material('#6b737a',.65,.45),barrel=material('#b0703f',.35,.6),dark=material('#20262b',.5,.55),glass=material('#8fd8ff',.2,.15,true),tunnelMat=material('#7c756a',.04,.94),caveMat=material('#6a6258',.03,.96);tunnelMat.side=T.DoubleSide;caveMat.side=T.DoubleSide;
   const hash3=(x,y,z,s)=>{let h=Math.imul(Math.round(x*13)+1,374761393)^Math.imul(Math.round(y*13)+7,668265263)^Math.imul(Math.round(z*13)+3,s|0);h=Math.imul(h^(h>>>13),1274126177);h^=h>>>16;return (h>>>0)/4294967295;};
   const mesh=(g,m,x,y,z,rx=0,ry=0,rz=0)=>{const o=new T.Mesh(g,m);o.position.set(x,y,z);o.rotation.set(rx,ry,rz);o.castShadow=true;o.receiveShadow=true;world.add(o);return o;};
   for(const s of structures){
@@ -371,10 +372,11 @@ export class ArenaView{
    }else if(s.type==='tunnel'){
     const r=s.radius??3,pts=s.points.map(p=>new T.Vector3(p[0],p[1]+r*.45,p[2])),curve=new T.CatmullRomCurve3(pts);
     const g=geo(`tun|${r}|${s.points.map(p=>p.map(n=>Math.round(n)).join('.')).join('_')}`,()=>new T.TubeGeometry(curve,Math.max(10,s.points.length*8),r,14,true));
-    const m=mesh(g,stone,0,0,0);m.material.side=T.DoubleSide;
+    mesh(g,tunnelMat,0,0,0);
    }else if(s.type==='cavern'){
-    const r=s.radius??12,h=s.height??8,g=geo(`cav|${r}`,()=>new T.SphereGeometry(r,24,12,0,Math.PI*2,0,Math.PI/2));
-    const m=mesh(g,stone,s.x,s.y+h*.3,s.z);m.scale.set(1,Math.max(.4,h*.7/(r||1)),1);m.material.side=T.DoubleSide;
+    const shell=cavernShell(s.radius??12,s.height??8),base=s.y??0,dome=geo(`cavdome|${shell.radius}`,()=>new T.SphereGeometry(shell.radius,28,12,0,Math.PI*2,0,Math.PI/2));
+    for(const arc of shell.arcs){const key=`cavarc|${shell.radius}|${arc.thetaStart.toFixed(3)}|${arc.thetaLength.toFixed(3)}`,wg=geo(key,()=>new T.CylinderGeometry(shell.radius,shell.radius,1,28,1,true,arc.thetaStart,arc.thetaLength));const m=mesh(wg,caveMat,s.x,base+shell.wallHeight/2,s.z);m.scale.set(1,shell.wallHeight,1);}
+    const roof=mesh(dome,caveMat,s.x,base+shell.wallHeight,s.z);roof.scale.set(1,shell.domeHeight/shell.radius,1);
    }else if(s.type==='bridge'){
     const q=((Math.round((s.rot||0)/(Math.PI/2))%4)+4)%4,along=q%2?'z':'x',len=q%2?(s.d??s.w):(s.w??s.d),wid=q%2?(s.w??s.d):(s.d??s.w),rail=gx=>geo(gx,()=>(gx==='rail-x'?new T.BoxGeometry(1,.12,.12):new T.BoxGeometry(.12,.12,1)));
     for(const side of[-1,1]){const m=mesh(along==='x'?rail('rail-x'):rail('rail-z'),metal,s.x,s.y+(s.thickness??.5)+.45,s.z+(along==='x'?side*(wid/2-.1):0));m.rotation.y=(s.rot||0);m.scale.set(along==='x'?len:1,1,along==='x'?1:len);}
