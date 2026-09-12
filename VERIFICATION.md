@@ -1,5 +1,25 @@
 # COCS verification report
 
+## Action-following arena tour 2.34 - 2026-09-11
+
+- **Bug:** the flyover orbited the arena centre, which is frequently a central
+  building or roof, so the camera circled a rooftop while the fight happened
+  elsewhere; the action point was also the mean of every bot, which pulls toward
+  the middle on spread-out maps.
+- **Fix** (`game/director.mjs`, `app/page.tsx`): the flyover now orbits the live
+  action point itself (radius ~16–30m, altitude ~14m) so the fight stays framed.
+  The action point is the centroid of the **densest cluster** of nearby live actors
+  (falling back to the global centroid when players are spread out), eased over
+  time. The action point is computed before the rig pose so the orbit and the aim
+  agree on the same frame.
+- **Tests** (`game/director.test.mjs`): the action point follows a three-actor
+  cluster rather than the global mean, and the returned camera pose sits within the
+  tour radius of the action.
+
+Verification: `game/director.test.mjs` 12/12, `tsc --noEmit` clean, `npm run build`
+succeeds, SSR `tests/*.test.mjs` 1/1. GPU-browser confirmation remains the honest
+final check.
+
 ## Steady arena tour 2.33 - 2026-09-11
 
 - **Bug:** the menu camera kept zooming in and out. Three stacked causes: the

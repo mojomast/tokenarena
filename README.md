@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.34 makes the arena tour follow the fight:
+
+- **Orbits the action, not the arena.** The flyover camera now circles the live action cluster instead of the arena centre (which is often a central building or rooftop), so the fight stays framed. It sits at a tighter radius (~16–30m) and higher altitude to look over low cover.
+- **Densest-cluster aiming.** The action point is the centroid of the largest cluster of nearby live actors — falling back to the global centroid when everyone is spread out — eased over time, instead of the average of every bot. A couple of duels off in one corner now draw the camera instead of a rooftop at map centre.
+
 Version 2.33 steadies the arena tour:
 
 - **No more zoom pumping.** The flyover orbit radius is now nearly constant (a gentle ±12% weave instead of ±26%), the tour field of view is fixed at 72°, and the occlusion pull-in is disabled for tours — the high flyover doesn't need it and it was dollying the camera toward cover. Non-tour playback keeps a smoothed, asymmetric pull-in for real camera-behind-cover moments.

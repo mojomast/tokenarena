@@ -190,3 +190,14 @@ test('the flyover rig is reserved for tours',()=>{
  for(let i=0;i<300;i++)seen.add(d.update(state(i*.2,actors),1/60,[]).rig);
  assert.ok(!seen.has('flyover'),'random cuts never choose flyover');
 });
+
+test('the tour action point follows the densest cluster and the camera orbits it',()=>{
+ const d=new CinematicDirector({random:seeded(51),center:{x:0,z:0},radius:11,tour:true,tourRadius:24});
+ const actors=[actor(1,20,20),actor(2,21,19),actor(3,19,21),actor(4,-30,-30)];
+ d.reframe(state(0,actors));
+ for(let i=0;i<40;i++)d.update(state(i/60,actors),1/60,[]);
+ assert.ok(d.aim.x>15&&d.aim.z>15,`expected the three-actor cluster (~20,20), got ${d.aim.x.toFixed(1)},${d.aim.z.toFixed(1)}`);
+ const pose=finite(d.update(state(1,actors),1/60,[]));
+ const orbit=Math.hypot(pose.x-d.aim.x,pose.z-d.aim.z);
+ assert.ok(orbit<=24*1.1+1,`camera should orbit the action, distance ${orbit.toFixed(1)}`);
+});

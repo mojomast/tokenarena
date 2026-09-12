@@ -104,6 +104,7 @@ export class CinematicDirector{
   const s=state&&typeof state==='object'?state:{};
   if(Array.isArray(s.actors))this._actors=s.actors;
   this._refreshPois(s);
+  if(this.tour)this.aim=this._actionPoint(s,step);
   let time;
   if(Number.isFinite(s.time)){time=s.time;this._time=time;}else{this._time+=step;time=this._time;}
   const raw=Array.isArray(events)?events:(Array.isArray(s.events)?s.events:[]);
@@ -145,8 +146,8 @@ export class CinematicDirector{
   if(this._rig==='firstperson'&&target){
    baseYaw=num(target.yaw,0);basePitch=num(target.pitch,0);
   }else{
-   const aim=this.tour?this._actionPoint(s,step):this._aimPoint(target);
-   this.aim={x:aim.x,y:aim.y,z:aim.z};
+   const aim=this.tour?this.aim:this._aimPoint(target);
+   if(!this.tour)this.aim={x:aim.x,y:aim.y,z:aim.z};
    const dx=aim.x-this._pos.x,dy=aim.y-this._pos.y,dz=aim.z-this._pos.z;
    const horizontal=Math.hypot(dx,dz);
    baseYaw=Math.atan2(-dx,-dz);
@@ -190,12 +191,17 @@ export class CinematicDirector{
  _aimPoint(target){if(!target)return {x:this.center.x,y:1.5,z:this.center.z};return {x:num(target.x),y:num(target.y)+1.2,z:num(target.z)};}
 
  _actionPoint(s,step){
-  const actors=Array.isArray(s?.actors)?s.actors:[];
-  let sx=0,sy=0,sz=0,n=0;
-  for(const a of actors){if(!a||!(num(a.health,0)>0)||!Number.isFinite(a.x)||!Number.isFinite(a.z))continue;sx+=a.x;sy+=num(a.y)+1.2;sz+=a.z;n++;}
-  const tx=n?sx/n:this.center.x,ty=n?sy/n:1.5,tz=n?sz/n:this.center.z;
+  const actors=[];
+  for(const a of Array.isArray(s?.actors)?s.actors:[]){if(a&&num(a.health,0)>0&&Number.isFinite(a.x)&&Number.isFinite(a.z))actors.push(a);}
+  let tx=this.center.x,ty=1.5,tz=this.center.z;
+  if(actors.length){
+   let bestN=0,bx=0,by=0,bz=0;
+   for(const a of actors){let n=0,sx=0,sy=0,sz=0;for(const b of actors){if(Math.abs(b.x-a.x)<=22&&Math.abs(b.z-a.z)<=22){n++;sx+=b.x;sy+=num(b.y)+1.2;sz+=b.z;}}if(n>bestN){bestN=n;bx=sx/n;by=sy/n;bz=sz/n;}}
+   if(bestN<=1){let sx=0,sy=0,sz=0;for(const a of actors){sx+=a.x;sy+=num(a.y)+1.2;sz+=a.z;}tx=sx/actors.length;ty=sy/actors.length;tz=sz/actors.length;}
+   else{tx=bx;ty=by;tz=bz;}
+  }
   if(!this._action)this._action={x:tx,y:ty,z:tz};
-  else{const k=1-Math.exp(-5*clamp(num(step,1/60),0,.1));this._action.x+=(tx-this._action.x)*k;this._action.y+=(ty-this._action.y)*k;this._action.z+=(tz-this._action.z)*k;}
+  else{const k=1-Math.exp(-3*clamp(num(step,1/60),0,.1));this._action.x+=(tx-this._action.x)*k;this._action.y+=(ty-this._action.y)*k;this._action.z+=(tz-this._action.z)*k;}
   return this._action;
  }
 
@@ -208,11 +214,11 @@ export class CinematicDirector{
   const rig=this._rig;
   let x=base.x,y=base.y,z=base.z,h=heading,roll=0;
   if(rig==='flyover'){
-   const R=this.tourRadius,a=time*.28,w=.85+.12*Math.sin(time*.13);
-   x=this.center.x+Math.cos(a)*R*w;z=this.center.z+Math.sin(a)*R*w;
-   y=12+3*Math.sin(time*.19)+1.5*Math.sin(time*.43);
-   h=Math.atan2(-(this.aim.x-x),-(this.aim.z-z));
-   roll=Math.sin(time*.37)*.045;
+   const c=this.aim||this.center,R=this.tourRadius,a=time*.28,w=.9+.08*Math.sin(time*.13);
+   x=c.x+Math.cos(a)*R*w;z=c.z+Math.sin(a)*R*w;
+   y=14+2.5*Math.sin(time*.19)+1.2*Math.sin(time*.43);
+   h=Math.atan2(-(c.x-x),-(c.z-z));
+   roll=Math.sin(time*.37)*.035;
   }else if(rig==='orbit'||!target){
    const angle=time*.5+.7,r=this.radius*(1+.2*Math.sin(time*.37));
    x=base.x+Math.cos(angle)*r;z=base.z+Math.sin(angle)*r;y=base.y+3.5;h=angle+Math.PI;
