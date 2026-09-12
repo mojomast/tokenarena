@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.41 gives bots a reachable objective slot:
+
+- **No more stalled captures.** When an objective marker sits inside a wall, under a bridge deck or off the nav grid, bots now retarget a nearby standable spot (checking the zone centre, then nearby nav nodes, then a widening ring) instead of pressing into the blocked centre.
+
 Version 2.40 hardens game modes and bot behavior:
 
 - **Correct endings.** Assault now ends the moment attackers capture the configured sector count (it previously kept running and handed the clock win to the defenders), and payload ends on a score-limit checkpoint win too. A zero-frag free-for-all is a draw instead of awarding everyone the win bonus, and payload routes can no longer go non-finite or deliver instantly.

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Match} from './core.mjs';
+import {Match, obstructed} from './core.mjs';
+import {RULES} from './data.mjs';
 import {actorWon} from './outcome.mjs';
 import {payloadTemplate, stepPayload} from './payload.mjs';
 import {botBehavior} from './bot-personalities.mjs';
@@ -103,4 +104,17 @@ test('bots make objective progress on a large combined-arms map', () => {
   const zones = m.objectiveState.zones;
   assert.ok(zones.some(zone => zone.owner !== null || zone.progress > 0), 'bots should contest or capture objectives');
   assert.ok(m.stats.shots > 0, 'bots should engage');
+});
+
+test('bots get a standable objective slot when the centre is inside geometry', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'crosswire', {mode: 'koth', botCount: 1, humanCount: 1});
+  m.arena = {id: 'slots', bounds: {minX: -20, maxX: 20, minZ: -20, maxZ: 20}, blocks: [{kind: 'cover', x: 0, z: 0, w: 6, d: 6, h: 5}], spawns: [[-10, 0], [10, 0]], teamSpawns: {0: [[-10, 0]], 1: [[10, 0]]}, pickups: [], vehicles: []};
+  m.nav = [{x: 4, z: 0}, {x: -4, z: 0}, {x: 0, z: 5}];
+  m.spawns = [{x: -10, y: 0, z: 0}, {x: 10, y: 0, z: 0}];
+  m.teamSpawns = {0: [[-10, 0]], 1: [[10, 0]]};
+  const bot = m.actors.find(a => a.bot);
+  const zone = {id: 'alpha', x: 0, z: 0, radius: 3.5, owner: null, captureTeam: null, progress: 0, y: 0};
+  const slot = m.zoneSlot(bot, zone, bot.team ?? 0);
+  assert.ok(Number.isFinite(slot.x) && Number.isFinite(slot.z));
+  assert.equal(obstructed(slot.x, slot.y, slot.z, RULES.radius * .9, m.arena), false, 'slot must be standable');
 });

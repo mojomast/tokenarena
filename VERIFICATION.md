@@ -1,5 +1,13 @@
 # COCS verification report
 
+## Reachable objective slots 2.41 - 2026-09-12
+
+- `Match.zoneSlot` now falls back to the zone centre, then nearby nav nodes, then a
+  widening ring of standable ground when a captured objective's slot is obstructed
+  or off the nav grid, so bots no longer stall at blocked markers.
+- New assertion in `game/hardening.test.mjs` (fails pre-fix). Targeted suites
+  134/134. Full suite not rerun.
+
 ## Mode and bot hardening 2.40 - 2026-09-12
 
 - Assault and payload end on their score-limit wins instead of running to the clock.
