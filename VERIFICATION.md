@@ -1,5 +1,20 @@
 # COCS verification report
 
+## Manual reduce-motion override 2.25 - 2026-09-11
+
+- **Display setting** (`game/config.mjs`, `game/config.test.mjs`):
+  `normalizeDisplay` accepts a `reducedMotion` boolean (default false, non-boolean
+  coerced to false). A test covers true/false/invalid input.
+- **Runtime** (`app/page.tsx`, `app/game-ui/configuration.tsx`): the module-level
+  `reducedMotion()` now returns true when a manual override is set or when the OS
+  prefers reduced motion, and the override is synced from the display config on
+  every change. Graphics & settings gains a **Reduce motion** toggle, so players
+  can trim camera shake, animated menus, radar sweep and decorative effects even
+  when their OS preference is not set.
+
+Verification: `npm run test:game` config tests pass, typecheck, production build
+and the rendered response test green.
+
 ## Server input rate limiting 2.24 - 2026-09-11
 
 - **Per-peer budget** (`server/room.mjs`): each peer may submit at most 120 game

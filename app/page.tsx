@@ -33,7 +33,8 @@ const defaultNetUrl=typeof window!=='undefined'&&!['localhost','127.0.0.1'].incl
 const powerIcon=(id:string,size=22)=>id==='openclaw'?<Sparkles size={size}/>:id==='hermes'?<Zap size={size}/>:id==='opencode'?<Terminal size={size}/>:id==='codex'?<RotateCcw size={size}/>:id==='cline'?<SkipForward size={size}/>:id==='roo'?<AudioLines size={size}/>:<Shield size={size}/>;
 const GitHubMark=({size=18}:{size?:number})=><svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z"/></svg>;
 const clock=(t:number)=>`${Math.floor(Math.max(0,t)/60).toString().padStart(2,'0')}:${Math.floor(Math.max(0,t)%60).toString().padStart(2,'0')}`;
-const reducedMotion=()=>typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true;
+let reducedOverride=false;
+const reducedMotion=()=>reducedOverride||(typeof window!=='undefined'&&window.matchMedia?.('(prefers-reduced-motion: reduce)').matches===true);
 const BRAND={name:'Colosseum Of Competitive Slop',abbr:'COCS',tagline:'Nine language models. Seven harnesses. One glorious colosseum of slop.'};
 const ACRONYM=[{letter:'C',word:'COLOSSEUM'},{letter:'O',word:'OF'},{letter:'C',word:'COMPETITIVE'},{letter:'S',word:'SLOP'}];
 const UNLOCK_GROUPS=[{kind:'gear',label:'GEAR'},{kind:'attachment',label:'WEAPON MODS'},{kind:'finish',label:'WEAPON FINISHES'},{kind:'crosshair',label:'RETICLES'}];
@@ -182,7 +183,7 @@ export default function Home(){
   },[]);
   useEffect(()=>{let saved=false;try{saved=JSON.parse(localStorage.getItem('token-arena-settings')||'{}').touch===true;}catch{}setTouchControls(saved||isTouchDevice());},[]);
   useEffect(()=>{runtime.current?.view.setCharacter(character);},[character,ready]);
- useEffect(()=>{runtime.current?.view.setDisplay(display);},[display,ready]);
+ useEffect(()=>{runtime.current?.view.setDisplay(display);reducedOverride=display.reducedMotion===true;},[display,ready]);
    useEffect(()=>{if(ready)try{localStorage.setItem('token-arena-customization',JSON.stringify({config,display,mapId}));}catch{}},[config,display,mapId,ready]);
    useEffect(()=>{const next=resolveMapForMode(mapId,config.mode,{legacy:legacyMaps});if(next!==mapId){setMapId(next);setNotice('Arena changed to match the selected mode.');}},[config.mode,mapId,legacyMaps]);
    useEffect(()=>{const r=runtime.current;if(!r||!ready)return;r.legacyArenas=legacyMaps;if(showcase)r.buildShowcase?.();else{r.showcase=null;r.showcaseMatchedId=null;r.view.setShowcase(null);r.view.setCinema(false);r.view.setDirector(null);r.view.setPreviewRect(null);setShowcaseLive(false);}},[showcase,ready,legacyMaps]);
@@ -252,7 +253,7 @@ export default function Home(){
     <div className="title-start" role="button" aria-label="Press any key or click to enter"><span className="title-pulse"/>PRESS ANY KEY <small>or click to enter</small></div>
     <div className="title-meta"><span>{selectableMaps.length} ARENAS</span><span>{CHARACTERS.length} OPERATORS</span><span>{HARNESSES.length} HARNESSES</span><span>{GAME_MODES.length} MODES</span></div>
    </div>
-   <div className="title-footer"><span>v2.24 · INPUT CAP</span>{githubLink}</div>
+   <div className="title-footer"><span>v2.25 · REDUCE MOTION</span>{githubLink}</div>
   </div>}
   {mode==='selection'&&<div className={`selection-screen${showcaseLive?' has-showcase':''}${entered?'':' awaiting-start'}`}>
   <header className="topbar"><Wordmark sub="CUSTOM MATCH / 03"/><div className="header-right"><button className="icon-button title-return" aria-label="Return to title screen" title="Return to title screen" onClick={exitToTitle}><X size={18}/></button>{settingsButton}<button className="icon-button" aria-label={muted?'Unmute audio':'Mute audio'} onClick={()=>saveSettings(sensitivity,!muted)}>{muted?<VolumeX size={19}/>:<Volume2 size={19}/>}</button>{githubLink}</div></header>

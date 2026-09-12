@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.25 adds a manual reduce-motion option:
+
+- **Accessibility toggle.** Graphics & settings gains a **Reduce motion** switch that trims camera shake, animated menus, the radar sweep and decorative effects even when the operating system does not request reduced motion. It is stored with your display preferences (`game/config.mjs`) and folds into the same `reducedMotion()` check the renderer already uses.
+
 Version 2.24 bounds multiplayer input flooding:
 
 - **Per-peer input budget.** The server accepts at most 120 game inputs per peer per second and drops the excess before any simulation work (`server/room.mjs`). Legit clients send at 60 Hz, so the cap is invisible in normal play but stops a flooding client from forcing unbounded simulation work. The window resets on reconnect.
