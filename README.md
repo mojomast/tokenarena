@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.36 cleans up the cavern tunnels:
+
+- **Arches, not buried pipes.** Tunnels were full tubes centred above the terrain, so their lower half sank into the ground (z-fighting and shimmer along the length) and their tops poked through the dome shells. They now render as open stone arches that follow the terrain — the path is resampled against the heightfield and a semicircular cross-section is extruded along it — resting on the ground and tucking under the dome walls. Tunnel self-shadowing is disabled to remove shadow acne on the double-sided surface.
+
 Version 2.35 gives the arena tour interior awareness:
 
 - **It flies inside.** The director now receives the arena's structure volumes — buildings, caverns and tunnels — and when the densest action cluster is inside one, it shrinks its orbit and drops to eye level inside that room, cavern or tunnel instead of circling the roof. When the fight moves back outside, it eases back out. An 0.8s hysteresis hold stops it flickering between indoor and outdoor framing at a doorway.

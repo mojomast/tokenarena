@@ -372,10 +372,19 @@ export class ArenaView{
     mesh(g,stone,s.x,(s.y??0)+h/2,s.z);mesh(cap,stone,s.x,(s.y??0)+h-.14,s.z);mesh(cap,stone,s.x,(s.y??0)+.14,s.z);
    }else if(s.type==='tunnel'){
     const r=s.radius??3,caverns=structures.filter(c=>c.type==='cavern'),raw=s.points;
+    const groundAt=(x,z)=>{const h=arena.terrain?.height?arena.terrain.height(x,z):null;return Number.isFinite(h)?h:null;};
     const trimmed=raw.map((p,i)=>{const neighbor=i===0?raw[1]:i===raw.length-1?raw[raw.length-2]:null;if(!neighbor)return p;const c=caverns.find(c=>Math.hypot(c.x-p[0],c.z-p[2])<1.5);if(!c)return p;const dx=neighbor[0]-p[0],dz=neighbor[2]-p[2],len=Math.hypot(dx,dz)||1,trim=Math.min(c.radius??12,len*.9);return [p[0]+dx/len*trim,p[1],p[2]+dz/len*trim];});
-    const pts=trimmed.map(p=>new T.Vector3(p[0],p[1]+r*.45,p[2])),curve=new T.CatmullRomCurve3(pts);
-    const g=geo(`tun|${r}|${trimmed.map(p=>p.map(n=>Math.round(n)).join('.')).join('_')}`,()=>new T.TubeGeometry(curve,Math.max(10,trimmed.length*8),r,14,true));
-    mesh(g,tunnelMat,0,0,0);
+    // An open arch that follows the terrain, rather than a tube half-buried in it:
+    // buried double-sided tubes z-fight along their length and poke through the domes.
+    const path=[];
+    for(let i=0;i<trimmed.length-1;i++){const a=trimmed[i],b=trimmed[i+1],len=Math.hypot(b[0]-a[0],b[2]-a[2]),n=Math.max(1,Math.ceil(len/5));for(let k=0;k<=n;k++){if(i>0&&k===0)continue;const t=k/n,x=a[0]+(b[0]-a[0])*t,z=a[2]+(b[2]-a[2])*t,g=groundAt(x,z);path.push({x,z,y:Number.isFinite(g)?g:(a[1]+(b[1]-a[1])*t)-1.2});}}
+    const R=Math.max(.5,r*.95),ring=8,verts=[],idx=[];
+    const tangent=i=>{const a=path[Math.max(0,i-1)],b=path[Math.min(path.length-1,i+1)];const tx=b.x-a.x,tz=b.z-a.z,l=Math.hypot(tx,tz)||1;return {x:tx/l,z:tz/l};};
+    for(let i=0;i<path.length;i++){const p=path[i],t=tangent(i),sx=-t.z,sz=t.x;for(let j=0;j<=ring;j++){const a=Math.PI*j/ring;verts.push(p.x+sx*R*Math.cos(a),p.y+R*Math.sin(a),p.z+sz*R*Math.cos(a));}}
+    for(let i=0;i<path.length-1;i++)for(let j=0;j<ring;j++){const a=i*(ring+1)+j,b=a+1,c=a+ring+1,d=c+1;idx.push(a,c,d,a,d,b);}
+    const key=`tun|${r}|${trimmed.map(p=>p.map(n=>Math.round(n)).join('.')).join('_')}`;
+    const g=path.length>1?geo(key,()=>{const bg=new T.BufferGeometry();bg.setAttribute('position',new T.Float32BufferAttribute(verts,3));bg.setIndex(idx);bg.computeVertexNormals();return bg;}):null;
+    if(g){const m=mesh(g,tunnelMat,0,0,0);m.castShadow=false;}
    }else if(s.type==='cavern'){
     const shell=cavernShell(s.radius??12,s.height??8),base=s.y??0,dome=geo(`cavdome|${shell.radius}`,()=>new T.SphereGeometry(shell.radius,28,12,0,Math.PI*2,0,Math.PI/2));
     for(const arc of shell.arcs){const key=`cavarc|${shell.radius}|${arc.thetaStart.toFixed(3)}|${arc.thetaLength.toFixed(3)}`,wg=geo(key,()=>new T.CylinderGeometry(shell.radius,shell.radius,1,28,1,true,arc.thetaStart,arc.thetaLength));const m=mesh(wg,caveMat,s.x,base+shell.wallHeight/2,s.z);m.scale.set(1,shell.wallHeight,1);}

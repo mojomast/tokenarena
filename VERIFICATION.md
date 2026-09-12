@@ -1,5 +1,20 @@
 # COCS verification report
 
+## Clean cavern tunnels 2.36 - 2026-09-11
+
+- **Bug:** tunnels rendered as full `TubeGeometry` pipes centred ~1.2m above the
+  terrain, so their lower half sank into the ground (z-fighting/shimmer along the
+  whole length) and their tops poked through the dome shells near the walls. The
+  double-sided tube also self-shadowed, adding shadow acne.
+- **Fix** (`game/view.mjs`): a tunnel is now an open stone arch built from a
+  terrain-following ribbon — the path is resampled every ~5m against
+  `arena.terrain.height`, and a semicircular cross-section (feet on the ground,
+  apex under the cavern wall top) is extruded along it. No buried geometry, no caps
+  to intersect, and the tunnel mesh no longer casts shadows.
+
+Verification: syntax check, `tsc --noEmit` clean, `npm run build` succeeds, SSR
+`tests/*.test.mjs` 1/1. GPU-browser confirmation remains the honest final check.
+
 ## Interior-aware arena tour 2.35 - 2026-09-11
 
 - **Change** (`game/interiors.mjs`, `game/director.mjs`, `app/page.tsx`): the
