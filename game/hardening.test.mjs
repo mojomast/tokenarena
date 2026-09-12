@@ -118,3 +118,13 @@ test('bots get a standable objective slot when the centre is inside geometry', (
   assert.ok(Number.isFinite(slot.x) && Number.isFinite(slot.z));
   assert.equal(obstructed(slot.x, slot.y, slot.z, RULES.radius * .9, m.arena), false, 'slot must be standable');
 });
+
+test('bots do not churn into and out of passenger seats', () => {
+  const m = new Match('chatgpt', 'openclaw', () => .5, 'blood-gulch', {mode: 'ctf', botCount: 7, timeLimit: 120});
+  let enters = 0, exits = 0;
+  const emit = m.emit.bind(m);
+  m.emit = (type, data) => { if (type === 'vehicle-enter') enters++; if (type === 'vehicle-exit') exits++; return emit(type, data); };
+  for (let i = 0; i < 15 * 60 && !m.over; i++) m.step(1 / 60);
+  assert.ok(enters + exits < 30, `vehicle seat churn (${enters} enter / ${exits} exit)`);
+  assert.equal(m.actors.filter(a => a.bot && a.vehicleSeat === 'passenger').length, 0, 'no bot rides as cargo');
+});

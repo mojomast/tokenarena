@@ -1,5 +1,13 @@
 # COCS verification report
 
+## No vehicle-seat churn 2.42 - 2026-09-12
+
+- Bots only volunteer for a vehicle when a driver/gunner seat is open; the
+  passenger bail-out from 2.40 no longer causes an enter/eject loop. Blood Gulch
+  CTF: 97 enter / 94 exit over 20s dropped to 3 / 0, shots rose 160 -> 289.
+- New assertion in `game/hardening.test.mjs` (fails pre-fix). Targeted suites
+  141/141. Full suite not rerun.
+
 ## Reachable objective slots 2.41 - 2026-09-12
 
 - `Match.zoneSlot` now falls back to the zone centre, then nearby nav nodes, then a
