@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.39 moves the Titan Valley vehicle spawns onto clear ground:
+
+- **No more clipping at spawn.** The two Pumas that sat inside the small valley buildings, the two parked in the cavern wall rings, and the Hornet stuck in cover now spawn at clear coordinates verified against collision (with margin).
+
 Version 2.38 supercharges the Puma's mounted chaingun:
 
 - **Much faster, never overheats.** Fire interval drops from 0.12s to 0.045s (~2.7x) and heat/overheat are removed, so it lays down unlimited sustained fire. Dual barrels unchanged, so expect roughly double the old damage output.

@@ -185,8 +185,8 @@ const titanValley = createLevel({
     ctx.addCavern({ x: 0, z: 30, radius: 12, height: 11 });
     scatter(ctx, 34, rng, 7, (c, x, z) => (Math.abs(x) > 18 ? c.addTree({ x, z, scale: .8 + rng() * .7 }) : c.addRock({ x, z, scale: .8 + rng() * .9 })));
     ctx.addObjective(0, 0, 6); ctx.addObjective(-34, -26, 4); ctx.addObjective(34, 26, 4);
-    ctx.addVehicle({ kind: 'puma', x: -34, z: 34, yaw: 0 }); ctx.addVehicle({ kind: 'puma', x: 34, z: -34, yaw: Math.PI }); ctx.addVehicle({ kind: 'puma', x: 0, z: 40, yaw: Math.PI }); ctx.addVehicle({ kind: 'puma', x: 0, z: -40, yaw: 0 });
-    ctx.addVehicle({ kind: 'hornet', x: -50, z: -40, yaw: 0 }); ctx.addVehicle({ kind: 'hornet', x: 50, z: 40, yaw: Math.PI });
+    ctx.addVehicle({ kind: 'puma', x: -37, z: 35, yaw: 0 }); ctx.addVehicle({ kind: 'puma', x: 37, z: -37, yaw: Math.PI }); ctx.addVehicle({ kind: 'puma', x: 0, z: 48, yaw: Math.PI }); ctx.addVehicle({ kind: 'puma', x: 0, z: -48, yaw: 0 });
+    ctx.addVehicle({ kind: 'hornet', x: -49, z: -37, yaw: 0 }); ctx.addVehicle({ kind: 'hornet', x: 49, z: 39, yaw: Math.PI });
     ctx.addPickup('rocket', 0, -24); ctx.addPickup('rocket', 0, 24); ctx.addPickup('rail', -34, 0); ctx.addPickup('rail', 34, 0); ctx.addPickup('health', -60, 30); ctx.addPickup('health', 60, -30); ctx.addPickup('armor', 0, 0);
   },
 });

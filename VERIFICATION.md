@@ -1,5 +1,14 @@
 # COCS verification report
 
+## Titan Valley spawn fix 2.39 - 2026-09-12
+
+- Reproduced: two Pumas spawned inside the small valley buildings, two inside the
+  cavern wall rings, and a Hornet inside cover.
+- Moved the four Pumas and two Hornets to collision-free coordinates (checked with
+  the vehicle radius plus 0.75m margin).
+- Targeted map/mode suites pass 44/44 (`extra-modes`, `mode-data`,
+  `expansion-maps`, `maps`, `arenas`). Full suite not rerun.
+
 ## Rapid chaingun 2.38 - 2026-09-12
 
 - `CHAINGUN.interval` 0.12 -> 0.045s; heat/overheat removed (`heatPerShot: 0`)
