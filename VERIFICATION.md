@@ -1,5 +1,29 @@
 # COCS verification report
 
+## Main-menu demo reel 2.27 - 2026-09-11
+
+- **Root cause:** the showcase handed `view` a `Match.snapshot()`, which does not
+  include the event stream, and forced `view.lastEvent=0`, so `view.effect()` never
+  ran and the director never saw highlights. The menu therefore showed moving
+  actors with no muzzle flashes, tracers, explosions, rail beams or death effects.
+- **Fix** (`app/page.tsx`): the cinematic branch attaches the live `events` array
+  and the match `serial` to the showcase state each frame, and both showcase
+  `setMatch` calls seed the renderer cursor with the real serial (not zero). The
+  renderer now plays the same effects a match does, and `CinematicDirector` receives
+  real highlights to cut to.
+- **More scenarios** (`game/showcase.mjs`): the reel grew from Combined Arms and
+  Instagib to six — adding Rocket Arena, Capture the Flag, Payload and Assault —
+  with shorter rounds and a tighter 2.1s cut cadence so the menu rotates features.
+- **Director highlights** (`game/director.mjs`): explosions, flag pickups/returns,
+  captures, vehicle destructions/splatters, payload deliveries, assault breaches
+  and confirmed melee hits now prompt a cut (melee whiffs do not).
+- **Tests**: `game/showcase.test.mjs` asserts the six-mode reel and wrap-around;
+  `game/director.test.mjs` adds an explosion/melee-highlight test.
+
+Verification: showcase/director tests pass, `tsc --noEmit` clean, `npm run build`
+succeeds, SSR `tests/*.test.mjs` 1/1. Effects are logic- and build-verified; a
+GPU-browser look at the menu is still the honest final check.
+
 ## Spectator follow-target cycling 2.26 - 2026-09-11
 
 - **Pure helpers** (`game/hud.mjs`, `game/hud.test.mjs`): `spectateActor(actors,

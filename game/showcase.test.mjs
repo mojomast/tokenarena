@@ -4,15 +4,18 @@ import {Match} from './core.mjs';
 import {pickShowcase,seatShowcaseVehicles,SHOWCASES} from './showcase.mjs';
 import {maxBotsFor} from './arenas.mjs';
 
-test('showcase cycles between combined arms and instagib', () => {
-  const combined = pickShowcase(0, () => 0);
-  const rail = pickShowcase(1, () => 0);
-  assert.equal(combined.mode, 'combined-arms');
-  assert.equal(rail.mode, 'instagib');
-  assert.ok(['skyfall-basin', 'trenchline', 'signal-ridge', 'warfront'].includes(combined.mapId));
-  assert.ok(combined.botCount <= maxBotsFor('combined-arms'));
-  assert.ok(rail.botCount <= maxBotsFor('instagib'));
-  assert.equal(pickShowcase(SHOWCASES.length, () => 0).mode, 'combined-arms');
+test('showcase reel cycles through every scenario', () => {
+  assert.ok(SHOWCASES.length >= 5, 'the reel shows several feature sets');
+  const modes = SHOWCASES.map(s => s.mode);
+  for (const expected of ['combined-arms', 'instagib', 'rockets', 'ctf', 'payload', 'assault']) assert.ok(modes.includes(expected), expected);
+  SHOWCASES.forEach((scenario, index) => {
+    const spec = pickShowcase(index, () => 0);
+    assert.equal(spec.mode, scenario.mode);
+    assert.ok(spec.botCount <= maxBotsFor(scenario.mode));
+    assert.ok(spec.botCount >= 4);
+  });
+  assert.equal(pickShowcase(SHOWCASES.length, () => 0).mode, SHOWCASES[0].mode);
+  assert.equal(pickShowcase(-1, () => 0).mode, SHOWCASES[SHOWCASES.length - 1].mode);
 });
 
 test('combined arms showcase seats bots inside vehicles', () => {

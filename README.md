@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.27 makes the main-menu demo reel actually show the game:
+
+- **The weapon effects were missing.** The menu showcase handed the renderer a `Match.snapshot()` — which never carries the simulation's event stream — and reset the renderer's event cursor to zero, so muzzle flashes, tracers, explosions, rail beams, jump-pad bursts and death animations never played behind the menu. The demo now forwards the live event list and the true serial cursor, so the same effects used in a real match play in the menu, and the camera director sees kills, explosions and captures to cut toward.
+- **More scenarios.** The reel grew from two demos to six: **Combined Arms** (vehicles and aircraft), **Instagib** (rail beams), **Rocket Arena** (splash explosions), **Capture the Flag** (flag runs), **Payload** (the escort cart) and **Assault** (sector breaches). Rounds are shorter and cuts come every 2.1s, so the menu cycles through the game's modes and features.
+
 Version 2.26 lets spectators choose who to watch:
 
 - **Follow cycling.** In a spectated match, `[` and `]` cycle the camera through the live players, and the `FOLLOWING <name>` readout tracks the selection. Dead players are skipped, and the target resets when a new match starts. The selection logic lives in the pure `spectateActor`/`nextSpectateTarget` helpers in `game/hud.mjs`.

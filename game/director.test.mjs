@@ -151,3 +151,15 @@ test('pois derive from zones and poi index clamps',()=>{
  assert.equal(d.cyclePoi(1),1);
  assert.equal(d.cyclePoi(1),0);
 });
+
+test('explosions and confirmed melee hits prompt a cut; whiffs do not',()=>{
+ const actors=[actor(1,0,0),actor(2,8,1)];
+ const d=new CinematicDirector({random:seeded(21)});
+ d.reframe(state(0,actors));d.update(state(0,actors),1/60,[]);d.update(state(.05,actors),1/60,[]);
+ const explosion={type:'explosion',id:60,time:.1,pos:{x:8,y:1,z:1}};
+ assert.equal(d.update(state(.1,actors),1/60,[explosion]).cut,true);
+ const d2=new CinematicDirector({random:seeded(22)});
+ d2.reframe(state(0,actors));d2.update(state(0,actors),1/60,[]);d2.update(state(.05,actors),1/60,[]);
+ assert.equal(d2.update(state(.1,actors),1/60,[{type:'melee',id:70,time:.1,actor:1,hit:null}]).cut,false);
+ assert.equal(d2.update(state(.2,actors),1/60,[{type:'melee',id:71,time:.2,actor:1,hit:2}]).cut,true);
+});

@@ -1,6 +1,6 @@
 export const CAMERA_RIGS=['orbit','chase','dolly','crane','tripod','follow','firstperson'];
 
-const HIGHLIGHTS={death:true,explosion:true,capture:true};
+const HIGHLIGHTS={death:true,explosion:true,capture:true,'flag-pickup':true,'flag-return':true,'vehicle-destroyed':true,'vehicle-splatter':true,'payload-delivered':true,'assault-breach':true};
 const MAX_PITCH=1.45;
 const clamp=(v,lo,hi)=>v<lo?lo:v>hi?hi:v;
 const num=(v,d=0)=>Number.isFinite(v)?v:d;
@@ -108,7 +108,7 @@ export class CinematicDirector{
    const key=this._eventKey(ev);
    if(this._seen.has(key))continue;
    this._remember(key);
-   if(HIGHLIGHTS[ev.type])highlight=ev;
+   if(HIGHLIGHTS[ev.type]||(ev.type==='melee'&&ev.hit!=null))highlight=ev;
   }
   let target=this._actorById(this._targetId);
   if(this._targetId!=null&&!target)this._targetId=null;
