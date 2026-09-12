@@ -1,5 +1,14 @@
 # COCS verification report
 
+## Settings consistency 2.44 - 2026-09-12
+
+- The "Unlimited unlocked ammo" toggle is enabled in every mode and reflects
+  `config.unlimitedAmmo` (previously shown checked+disabled outside Deathmatch
+  while the config did not apply it).
+- Fixed a missing `recover` field in the showcase bot literal from 2.40; this was
+  a `tsc --noEmit` failure (the vinext build does not typecheck). `tsc` and SSR
+  now pass.
+
 ## Spawn safety net 2.43 - 2026-09-12
 
 - `Match.spawn` nudges an actor to the nearest clear nav point when the chosen

@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.44 tightens settings consistency:
+
+- **Unlimited ammo is a real choice in every mode.** The modifier is no longer force-disabled outside Deathmatch; the toggle now reflects and controls the actual setting (matching how the README documents it).
+- **Typecheck clean.** Fixed a missing bot field in the showcase spawn path that the 2.40 hardening introduced.
+
 Version 2.43 adds a spawn safety net:
 
 - **Never spawn inside geometry.** If the chosen spawn point is obstructed (a blocked authored marker, a bad map sample), the match nudges the actor to the nearest clear navigation point, so no mode can strand a player or bot inside a wall.
