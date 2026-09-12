@@ -473,3 +473,15 @@ test('a melee press is forwarded as a one-shot edge and consumed on tick',()=>{
  room.input(1,{seq:4,melee:true});
  assert.equal(peer.edgeMelee,true,'release then press re-arms');
 });
+test('game inputs are rate limited per peer',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);room.drain();
+ const peer=room.peers.get(1);
+ for(let i=1;i<=300;i++)room.input(1,{seq:i,x:0,z:0});
+ assert.ok(peer.receivedSeq<=120,`accepted too many: ${peer.receivedSeq}`);
+ assert.ok(peer.receivedSeq>=100,`accepted too few: ${peer.receivedSeq}`);
+ // A fresh window accepts again.
+ peer.inputRate=null;
+ room.input(1,{seq:200,x:0,z:0});
+ assert.equal(peer.receivedSeq,200);
+});

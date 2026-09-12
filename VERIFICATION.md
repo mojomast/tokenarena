@@ -1,5 +1,18 @@
 # COCS verification report
 
+## Server input rate limiting 2.24 - 2026-09-11
+
+- **Per-peer budget** (`server/room.mjs`): each peer may submit at most 120 game
+  inputs per rolling one-second window (`INPUT_RATE_LIMIT`); excess messages are
+  dropped before any simulation work. Clients send at 60 Hz, so the budget leaves
+  generous headroom while bounding the work a flooding client can force. The
+  window resets on reconnect.
+- **Test** (`server/room.test.mjs`): 300 rapid inputs accept at most the budget,
+  and a fresh window accepts again.
+
+Verification: `npm run test:server` 98/98 (the known flaky two-room socket test
+passed on rerun), typecheck, production build and the rendered response test green.
+
 ## Connection quality indicator 2.23 - 2026-09-11
 
 - **Pure grader** (`game/hud.mjs`, `game/hud.test.mjs`): `connectionQuality`

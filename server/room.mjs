@@ -9,6 +9,9 @@ import {validPlayerId} from './progression.mjs';
 
 export const PLAYER_LIMIT = 8;
 export const SPECTATOR_LIMIT = 24;
+// Clients send inputs at 60 Hz; allow generous headroom and drop the excess so a
+// flooding client cannot burn simulation time or unbounded server work.
+export const INPUT_RATE_LIMIT = 120;
 const clean = name => String(name ?? '').replace(/[\u0000-\u001f\u007f]/g, '').trim().slice(0, 20);
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const bounded = (value, max) => typeof value === 'string' && value.length <= max;
@@ -69,6 +72,7 @@ export class Room {
      existing.disconnectedAt = null;
      if (validPlayerId(playerId)) existing.playerId = playerId;
      existing.voiceSession = null;
+     existing.inputRate = null;
      existing.latest = null;
      existing.receivedSeq = existing.appliedSeq = existing.latestSeq = 0;
       existing.edgeFire = existing.edgeJump = existing.edgePower = existing.edgeInteract = false;
@@ -161,6 +165,10 @@ export class Room {
  input(peerId, input) {
   const peer = this.peers.get(peerId);
    if (!peer || peer.disconnectedAt !== null || peer.spectate || peer.actorId === null || !this.match || this.roundOver) return;
+  const now = Date.now();
+  if (!peer.inputRate || now - peer.inputRate.at >= 1000) peer.inputRate = { at: now, count: 0 };
+  if (peer.inputRate.count >= INPUT_RATE_LIMIT) return;
+  peer.inputRate.count++;
   const i = input && typeof input === 'object' ? input : {};
    const requested = Number.isInteger(i.seq) && i.seq > 0 ? i.seq : peer.receivedSeq + 1;
    // A rogue or buggy client could jump its sequence far ahead, after which every
