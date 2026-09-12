@@ -1,5 +1,22 @@
 # COCS verification report
 
+## Spectator follow-target cycling 2.26 - 2026-09-11
+
+- **Pure helpers** (`game/hud.mjs`, `game/hud.test.mjs`): `spectateActor(actors,
+  targetId)` resolves the watched actor (falling back to the first live actor, then
+  slot zero) and `nextSpectateTarget(actors, currentId, step)` cycles only through
+  live actors in either direction. Tests cover dead-target fallback, forward and
+  reverse cycling past dead actors, and the empty roster.
+- **Camera** (`game/view.mjs`): when spectating, the render camera follows the
+  selected target instead of always slot zero.
+- **UI** (`app/page.tsx`): spectators cycle the followed actor with `[` / `]`
+  (the HUD follows the same id so `FOLLOWING <name>` stays in sync) and the bottom
+  HUD advertises `[ / ] FOLLOW`. The target resets to auto on a new match.
+
+Verification: `npm run test:game` HUD tests pass, typecheck, production build and
+the rendered response test green. Manual multi-client spectator playtesting on
+hardware is still recommended.
+
 ## Manual reduce-motion override 2.25 - 2026-09-11
 
 - **Display setting** (`game/config.mjs`, `game/config.test.mjs`):

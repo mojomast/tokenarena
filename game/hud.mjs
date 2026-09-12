@@ -224,3 +224,17 @@ export function connectionQuality(state) {
   const label = loss >= .15 || jitter >= 80 ? 'POOR' : loss >= .04 || jitter >= 35 ? 'FAIR' : 'GOOD';
   return { label, tone: label === 'GOOD' ? 'good' : label === 'FAIR' ? 'fair' : 'poor', ms, jitter: Math.round(jitter), loss: Math.round(loss * 100) };
 }
+
+// Spectator follow helpers: resolve a watched actor and cycle to the next live one.
+export function spectateActor(actors, targetId) {
+  const list = Array.isArray(actors) ? actors : [];
+  return list.find(a => a.id === targetId && a.health > 0) || list.find(a => a.health > 0) || list[0] || null;
+}
+
+export function nextSpectateTarget(actors, currentId, step = 1) {
+  const live = (Array.isArray(actors) ? actors : []).filter(a => a.health > 0);
+  if (!live.length) return null;
+  const cur = live.findIndex(a => a.id === currentId);
+  const index = ((cur < 0 ? 0 : cur) + (step >= 0 ? 1 : -1) + live.length) % live.length;
+  return live[index].id;
+}

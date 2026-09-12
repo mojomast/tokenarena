@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.26 lets spectators choose who to watch:
+
+- **Follow cycling.** In a spectated match, `[` and `]` cycle the camera through the live players, and the `FOLLOWING <name>` readout tracks the selection. Dead players are skipped, and the target resets when a new match starts. The selection logic lives in the pure `spectateActor`/`nextSpectateTarget` helpers in `game/hud.mjs`.
+
 Version 2.25 adds a manual reduce-motion option:
 
 - **Accessibility toggle.** Graphics & settings gains a **Reduce motion** switch that trims camera shake, animated menus, the radar sweep and decorative effects even when the operating system does not request reduced motion. It is stored with your display preferences (`game/config.mjs`) and folds into the same `reducedMotion()` check the renderer already uses.

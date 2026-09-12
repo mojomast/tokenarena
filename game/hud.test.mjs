@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -246,4 +246,15 @@ test('connection quality grades jitter and loss and reports interpolation delay'
   assert.equal(connectionQuality({ jitter: 5, lossRate: .2, renderDelay: .15 }).label, 'POOR');
   assert.equal(connectionQuality(null).label, 'GOOD');
   assert.equal(connectionQuality(null).ms, 0);
+});
+
+test('spectator helpers follow a live target and cycle through live actors', () => {
+  const actors = [{id: 0, health: 0}, {id: 1, health: 80}, {id: 2, health: 60}, {id: 3, health: 0}];
+  assert.equal(spectateActor(actors, 2).id, 2);
+  assert.equal(spectateActor(actors, 0).id, 1, 'a dead target falls back to the first live actor');
+  assert.equal(spectateActor([], 5), null);
+  assert.equal(nextSpectateTarget(actors, 1, 1), 2);
+  assert.equal(nextSpectateTarget(actors, 2, 1), 1, 'cycles past dead actors');
+  assert.equal(nextSpectateTarget(actors, 1, -1), 2, 'reverse wraps');
+  assert.equal(nextSpectateTarget([{id: 0, health: 0}], null, 1), null);
 });
