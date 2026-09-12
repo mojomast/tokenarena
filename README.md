@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.43 adds a spawn safety net:
+
+- **Never spawn inside geometry.** If the chosen spawn point is obstructed (a blocked authored marker, a bad map sample), the match nudges the actor to the nearest clear navigation point, so no mode can strand a player or bot inside a wall.
+
 Version 2.42 stops bots churning in vehicle seats:
 
 - **Ride like a crew, not cargo.** Bots now board only when a driver or gunner seat is free. Combined with the earlier passenger bail-out this removes the enter/eject loop and keeps gun crews fighting (Blood Gulch CTF shots up ~80% across the same window).

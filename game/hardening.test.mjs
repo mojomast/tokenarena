@@ -128,3 +128,13 @@ test('bots do not churn into and out of passenger seats', () => {
   assert.ok(enters + exits < 30, `vehicle seat churn (${enters} enter / ${exits} exit)`);
   assert.equal(m.actors.filter(a => a.bot && a.vehicleSeat === 'passenger').length, 0, 'no bot rides as cargo');
 });
+
+test('a blocked spawn point is nudged to clear ground', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'crosswire', {mode: 'deathmatch', botCount: 0, humanCount: 1});
+  m.arena = {id: 'spawnsafe', bounds: {minX: -20, maxX: 20, minZ: -20, maxZ: 20}, blocks: [{kind: 'cover', x: 0, z: 0, w: 8, d: 8, h: 5}], spawns: [[0, 0]], teamSpawns: {0: [[0, 0]], 1: [[0, 0]]}, pickups: [], vehicles: []};
+  m.spawns = [{x: 0, y: 0, z: 0}];
+  m.nav = [{x: 8, z: 0}, {x: -8, z: 0}];
+  const actor = m.actors[0];
+  m.spawn(actor);
+  assert.equal(obstructed(actor.x, actor.y, actor.z, RULES.radius, m.arena), false, 'spawn is nudged clear');
+});

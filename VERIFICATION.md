@@ -1,5 +1,13 @@
 # COCS verification report
 
+## Spawn safety net 2.43 - 2026-09-12
+
+- `Match.spawn` nudges an actor to the nearest clear nav point when the chosen
+  spawn is obstructed or unsupported, hardening every mode/map against bad
+  authored spawns.
+- New assertion in `game/hardening.test.mjs` (fails pre-fix). Targeted suites
+  150/150. Full suite not rerun.
+
 ## No vehicle-seat churn 2.42 - 2026-09-12
 
 - Bots only volunteer for a vehicle when a driver/gunner seat is open; the
