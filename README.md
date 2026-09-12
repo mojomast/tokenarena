@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.35 gives the arena tour interior awareness:
+
+- **It flies inside.** The director now receives the arena's structure volumes — buildings, caverns and tunnels — and when the densest action cluster is inside one, it shrinks its orbit and drops to eye level inside that room, cavern or tunnel instead of circling the roof. When the fight moves back outside, it eases back out. An 0.8s hysteresis hold stops it flickering between indoor and outdoor framing at a doorway.
+- **Pure volume math.** `game/interiors.mjs` turns buildings into inset rotated boxes, caverns into cylinders and tunnels into capsule segments, and picks the containing volume with the least clearance.
+
 Version 2.34 makes the arena tour follow the fight:
 
 - **Orbits the action, not the arena.** The flyover camera now circles the live action cluster instead of the arena centre (which is often a central building or rooftop), so the fight stays framed. It sits at a tighter radius (~16–30m) and higher altitude to look over low cover.

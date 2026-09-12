@@ -1,5 +1,25 @@
 # COCS verification report
 
+## Interior-aware arena tour 2.35 - 2026-09-11
+
+- **Change** (`game/interiors.mjs`, `game/director.mjs`, `app/page.tsx`): the
+  director now receives the arena's structure volumes and, when the action cluster
+  is inside a building, cavern or tunnel, shrinks the flyover orbit and drops to
+  eye level inside that volume instead of circling the roof. When the fight moves
+  back outside it eases out again, with an 0.8s hysteresis hold so a fight near a
+  doorway does not flicker between indoor and outdoor framing.
+- **Pure volume math** (`buildInteriors`, `interiorAt`, `interiorCenter`,
+  `nearestOnSegment`): buildings become inset rotated boxes, caverns cylinders and
+  tunnels capsule segments; `interiorAt` picks the containing volume with the
+  least clearance.
+- **Tests** (`game/interiors.test.mjs`, `game/director.test.mjs`): volume building
+  (including rotated half-extents and skipped arches), containment/rejection, and a
+  tour that stays under the roof and inside the room when the fight is indoors.
+
+Verification: interiors + director suites pass, `tsc --noEmit` clean,
+`npm run build` succeeds, SSR `tests/*.test.mjs` 1/1. GPU-browser confirmation
+remains the honest final check.
+
 ## Action-following arena tour 2.34 - 2026-09-11
 
 - **Bug:** the flyover orbited the arena centre, which is frequently a central

@@ -201,3 +201,14 @@ test('the tour action point follows the densest cluster and the camera orbits it
  const orbit=Math.hypot(pose.x-d.aim.x,pose.z-d.aim.z);
  assert.ok(orbit<=24*1.1+1,`camera should orbit the action, distance ${orbit.toFixed(1)}`);
 });
+
+test('the tour flies inside a structure when the fight is indoors',()=>{
+ const structures=[{type:'building',x:0,z:0,y:0,w:16,d:16,h:6,rot:0}];
+ const d=new CinematicDirector({random:seeded(61),center:{x:0,z:0},radius:11,tour:true,tourRadius:26,structures});
+ const actors=[actor(1,2,1),actor(2,-2,-1),actor(3,1,-2)];
+ d.reframe(state(0,actors));
+ for(let i=0;i<60;i++)d.update(state(i/60,actors),1/60,[]);
+ const pose=finite(d.update(state(1,actors),1/60,[]));
+ assert.ok(pose.y<6,`indoor camera should stay under the roof, y=${pose.y.toFixed(2)}`);
+ assert.ok(Math.abs(pose.x)<=8&&Math.abs(pose.z)<=8,`indoor camera should stay in the room, ${pose.x.toFixed(1)},${pose.z.toFixed(1)}`);
+});

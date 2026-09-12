@@ -1,3 +1,5 @@
+import {buildInteriors,interiorAt,interiorCenter} from './interiors.mjs';
+
 export const CAMERA_RIGS=['orbit','chase','dolly','crane','tripod','follow','firstperson','flyover'];
 
 const HIGHLIGHTS={death:true,explosion:true,capture:true,'flag-pickup':true,'flag-return':true,'vehicle-destroyed':true,'vehicle-splatter':true,'payload-delivered':true,'assault-breach':true};
@@ -36,6 +38,9 @@ export class CinematicDirector{
   this.tourRadius=Number.isFinite(options.tourRadius)?Math.max(6,options.tourRadius):Math.max(14,this.radius*2.2);
   this.aim={x:this.center.x,y:1.5,z:this.center.z};
   this._action=null;
+  this.interiors=buildInteriors(options.structures);
+  this._interiorVol=null;
+  this._interiorHold=0;
   if(this.tour)this._rig='flyover';
  }
 
@@ -128,7 +133,7 @@ export class CinematicDirector{
    this._needsCut=false;
   }
   this._forceCut=false;
-  const pose=this._rigPose(time,target);
+  const pose=this._rigPose(time,target,step);
   const px=fin(pose.x,this.center.x),py=fin(pose.y,3.5),pz=fin(pose.z,this.center.z);
   const ph=fin(pose.heading,this._heading),pr=fin(pose.roll,0);
   const k=this._rig==='firstperson'?1:1-Math.exp(-3*step);
@@ -190,6 +195,14 @@ export class CinematicDirector{
 
  _aimPoint(target){if(!target)return {x:this.center.x,y:1.5,z:this.center.z};return {x:num(target.x),y:num(target.y)+1.2,z:num(target.z)};}
 
+ _interiorVolume(step){
+  if(!this.interiors?.length)return null;
+  const vol=interiorAt(this.interiors,this.aim);
+  if(vol){this._interiorVol=vol;this._interiorHold=.8;return vol;}
+  if(this._interiorHold>0){this._interiorHold-=step;return this._interiorVol;}
+  this._interiorVol=null;return null;
+ }
+
  _actionPoint(s,step){
   const actors=[];
   for(const a of Array.isArray(s?.actors)?s.actors:[]){if(a&&num(a.health,0)>0&&Number.isFinite(a.x)&&Number.isFinite(a.z))actors.push(a);}
@@ -207,18 +220,28 @@ export class CinematicDirector{
 
  _dampAngle(a,b,k){const d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*k;}
 
- _rigPose(time,target){
+ _rigPose(time,target,step){
   const base=target?{x:num(target.x),y:num(target.y),z:num(target.z)}:{x:this.center.x,y:1.5,z:this.center.z};
   const speed=target?Math.hypot(num(target.vx),num(target.vz)):0;
   const heading=target&&speed>.5?Math.atan2(-num(target.vx),-num(target.vz)):target?num(target.yaw):0;
   const rig=this._rig;
   let x=base.x,y=base.y,z=base.z,h=heading,roll=0;
   if(rig==='flyover'){
-   const c=this.aim||this.center,R=this.tourRadius,a=time*.28,w=.9+.08*Math.sin(time*.13);
-   x=c.x+Math.cos(a)*R*w;z=c.z+Math.sin(a)*R*w;
-   y=14+2.5*Math.sin(time*.19)+1.2*Math.sin(time*.43);
-   h=Math.atan2(-(c.x-x),-(c.z-z));
-   roll=Math.sin(time*.37)*.035;
+   const vol=this._interiorVolume(step);
+   if(vol){
+    const c=interiorCenter(vol,this.aim)||this.aim,maxR=vol.kind==='box'?Math.min(vol.hw,vol.hd):vol.r,R=Math.max(1.2,Math.min(this.tourRadius,maxR*.6)),a=time*.34;
+    x=c.x+Math.cos(a)*R;z=c.z+Math.sin(a)*R;
+    if(vol.kind==='seg')y=clamp(this.aim.y+1.1,c.y+1,c.y+vol.r+.7);
+    else{const ceil=vol.base+(vol.height??4);y=clamp(this.aim.y+2.2,vol.base+.9,ceil-.6);}
+    h=Math.atan2(-(this.aim.x-x),-(this.aim.z-z));
+    roll=Math.sin(time*.4)*.03;
+   }else{
+    const c=this.aim||this.center,R=this.tourRadius,a=time*.28,w=.9+.08*Math.sin(time*.13);
+    x=c.x+Math.cos(a)*R*w;z=c.z+Math.sin(a)*R*w;
+    y=14+2.5*Math.sin(time*.19)+1.2*Math.sin(time*.43);
+    h=Math.atan2(-(c.x-x),-(c.z-z));
+    roll=Math.sin(time*.37)*.035;
+   }
   }else if(rig==='orbit'||!target){
    const angle=time*.5+.7,r=this.radius*(1+.2*Math.sin(time*.37));
    x=base.x+Math.cos(angle)*r;z=base.z+Math.sin(angle)*r;y=base.y+3.5;h=angle+Math.PI;
