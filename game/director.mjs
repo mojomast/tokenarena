@@ -235,7 +235,7 @@ export class CinematicDirector{
  }
 
  _pickRig(current){
-  const weights={orbit:2,chase:3,dolly:2,crane:1.5,tripod:1.5,follow:2,firstperson:1};
+  const weights={orbit:1.5,chase:3,dolly:1,crane:2,tripod:1,follow:3,firstperson:1};
   const pool=[];
   for(const rig of CAMERA_RIGS){
    if(rig===current)continue;

@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.30 keeps the demo camera out of walls:
+
+- **Camera line-of-sight.** The menu director now casts a ray from the followed actor back toward the camera and, when scenery blocks the view, pulls the camera in front of the obstruction and re-aims it — so orbit, tripod and dolly shots stop ending up behind walls, roofs and domes. The clamp math is the pure, tested `clearCameraPosition` helper (`game/camera.mjs`).
+- **Closer, steadier rigs.** The showcase orbit radius dropped from 16 to 11, and rig weighting now favours chase/follow/crane over ground-level tripod/dolly, so cuts spend more time on readable subjects.
+
 Version 2.29 trims the cavern tunnel visuals:
 
 - **Tunnels meet the domes.** Tunnel tubes were built centre-to-centre, so they pierced through the new cavern walls. Each tube endpoint that lands on a cavern is now trimmed back to that cavern's radius, so tunnels visibly terminate at the wall like real entrances instead of passing through the shell.

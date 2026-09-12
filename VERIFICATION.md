@@ -1,5 +1,24 @@
 # COCS verification report
 
+## Demo camera line-of-sight 2.30 - 2026-09-11
+
+- **Bug:** the menu showcase director had no scene awareness, so orbit, tripod,
+  dolly and crane rigs regularly placed the camera behind walls, roofs, domes and
+  terrain, hiding the followed actor.
+- **Fix** (`game/view.mjs`, `game/camera.mjs`, `app/page.tsx`): the cinematic
+  branch now casts a ray from the followed actor's head back toward the camera
+  against the arena group and, when scenery blocks the view, pulls the camera in
+  front of the obstruction and re-aims it. The clamp/aim math is the pure
+  `clearCameraPosition` helper (throttled to every other frame, menu-only, skipped
+  for the software renderer). The showcase orbit radius dropped from 16 to 11 and
+  rig weighting now favours chase/follow/crane over ground-level tripod/dolly.
+- **Tests** (`game/camera.test.mjs`): pull-in along the same ray with correct
+  yaw/pitch, no-op on clear or too-close views, and a minimum stand-off.
+
+Verification: `game/camera.test.mjs` 3/3, `tsc --noEmit` clean, `npm run build`
+succeeds, SSR `tests/*.test.mjs` 1/1. A GPU-browser look at the menu reel is still
+the honest final check.
+
 ## Cavern tunnel trim 2.29 - 2026-09-11
 
 - **Fix** (`game/view.mjs`): tunnel tubes are built centre-to-centre, so after the
