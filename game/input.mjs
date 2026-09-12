@@ -49,6 +49,7 @@ export function controlsFromState(state = {}) {
   if (state.jump || codes.has('Space')) controls.jump = true;
   if (state.power) controls.power = true;
   if (state.interact) controls.interact = true;
+  if (state.melee) controls.melee = true;
   if (Number.isInteger(state.weapon) && state.weapon >= 0) controls.weapon = state.weapon;
   return controls;
 }

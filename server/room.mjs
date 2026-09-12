@@ -73,6 +73,7 @@ export class Room {
      existing.receivedSeq = existing.appliedSeq = existing.latestSeq = 0;
       existing.edgeFire = existing.edgeJump = existing.edgePower = existing.edgeInteract = false;
      existing.lastJump = existing.lastPower = existing.lastInteract = false;
+     existing.edgeMelee = existing.lastMelee = false;
     this.peers.set(peerId, existing);
     if (this.hostId === oldId) this.hostId = peerId;
     else if (!this.hostId && existing.spectate !== true) this.hostId = peerId;
@@ -119,6 +120,7 @@ export class Room {
   peer.latest = null;
     peer.edgeFire = peer.edgeJump = peer.edgePower = peer.edgeInteract = false;
    peer.lastJump = peer.lastPower = peer.lastInteract = false;
+   peer.edgeMelee = peer.lastMelee = false;
   this.broadcast(this.lobby());
  }
  expireGrace(now = Date.now()) {
@@ -147,7 +149,7 @@ export class Room {
   const humanCount = Math.min(PLAYER_LIMIT, players.length);
    this.match = new Match('chatgpt', 'openclaw', this.random, this.mapId, { ...this.config ?? {}, humanCount, loadouts: players.map(p => { const profile = this.progression?.get(p.playerId); return { character: p.character, harness: p.harness, gear: profile?.gear, attachments: profile?.attachments }; }) });
   let i = 0;
-   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = p.edgeInteract = false; p.lastJump = p.lastPower = p.lastInteract = false; i++; }
+   for (const p of players) { p.actorId = i; this.match.actors[i].name = p.name; p.latest = null; p.receivedSeq = p.latestSeq = p.appliedSeq = 0; p.lastSerial = 0; p.edgeJump = p.edgePower = p.edgeInteract = false; p.lastJump = p.lastPower = p.lastInteract = false; p.edgeMelee = p.lastMelee = false; i++; }
    for (const p of this.peers.values()) { p.edgeFire = false; if (p.spectate) p.lastSerial = 0; }
   this.started = true;
   this.roundOver = false;
@@ -187,6 +189,8 @@ export class Room {
    peer.lastInteract = i.interact === true;
    if (i.reload === true && !peer.lastReload) peer.edgeReload = true;
    peer.lastReload = i.reload === true;
+   if (i.melee === true && !peer.lastMelee) peer.edgeMelee = true;
+   peer.lastMelee = i.melee === true;
  }
  setGear(peerId, gear, attachments, now = Date.now()) {
   const peer = this.peers.get(peerId);
@@ -265,6 +269,7 @@ export class Room {
   peer.latest = null;
     peer.edgeFire = peer.edgeJump = peer.edgePower = peer.edgeInteract = false;
    peer.lastJump = peer.lastPower = peer.lastInteract = false;
+   peer.edgeMelee = peer.lastMelee = false;
   peer.actorId = null;
   peer.voiceSession = null;
   this.peers.delete(peerId);
@@ -295,13 +300,14 @@ export class Room {
   let broadcasted = false;
   while (this.tickAcc >= RULES.dt && steps < 5) {
      const inputs = {};
-     for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeFire || p.edgeJump || p.edgePower || p.edgeInteract || p.edgeReload)) {
+     for (const p of this.peers.values()) if (p.actorId !== null && (p.latest || p.edgeFire || p.edgeJump || p.edgePower || p.edgeInteract || p.edgeReload || p.edgeMelee)) {
      const ext = { ...(p.latest ?? {}) };
      if (p.edgeFire) { ext.fire = true; p.edgeFire = false; }
     if (p.edgeJump) { ext.jump = true; p.edgeJump = false; }
      if (p.edgePower) { ext.power = true; p.edgePower = false; }
      if (p.edgeInteract) { ext.interact = true; p.edgeInteract = false; }
      if (p.edgeReload) { ext.reload = true; p.edgeReload = false; }
+     if (p.edgeMelee) { ext.melee = true; p.edgeMelee = false; }
     inputs[p.actorId] = ext;
    }
      this.match.step(RULES.dt, { inputs });

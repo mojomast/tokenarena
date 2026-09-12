@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.22 adds a melee attack:
+
+- **Point-blank finisher.** Every loadout can now swing a short forward arc (`F`, or the touch `MELEE` button): 2.4m range, 45 damage, 0.6s cooldown, no ammo. It rewards closing the distance and finishing hurt targets instead of reloading into them.
+- **Simulated and networked.** The swing is authoritative in `game/core.mjs`, gated by line of sight and the attacker's arc, consumes spawn protection, and emits a `melee` hit/whiff event. Bots swing at point-blank visible targets. Multiplayer forwards it as a consumed one-shot edge (hold does not repeat), and the on-screen controls drive the same pure action mapping.
+
 Version 2.21 tells you what killed you:
 
 - **Kill feed weapons.** Every kill-feed line now names the weapon used (`PULSE`, `RAIL`, `SCATTER`, …) between killer and victim. Void deaths stay weaponless. The label comes from the pure `killFeedWeapon` helper in `game/hud.mjs`, fed by the weapon index already carried on death events.

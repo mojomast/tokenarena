@@ -3,7 +3,7 @@
 export const TOUCH_DEADZONE=.14;
 export const TOUCH_SPRINT=.9;
 export const TOUCH_LOOK_SCALE=.004;
-export const TOUCH_BUTTONS=Object.freeze(['fire','ads','jump','crouch','reload','power','interact','swap','voice']);
+export const TOUCH_BUTTONS=Object.freeze(['fire','ads','jump','crouch','reload','power','melee','interact','swap','voice']);
 // Screen-space joystick vector: x right, y down, magnitude clamped to 1.
 export function joystickVector(dx,dy,radius=1){
  const r=Math.max(1e-6,Number(radius)||1),nx=(Number(dx)||0)/r,ny=(Number(dy)||0)/r,magnitude=Math.hypot(nx,ny);
@@ -44,6 +44,7 @@ export function applyTouchAction(runtime,action,pressed){
   if(action==='jump')runtime.jump=true;
   else if(action==='reload')runtime.reload=true;
   else if(action==='power')runtime.power=true;
+  else if(action==='melee')runtime.melee=true;
   else if(action==='interact')runtime.interact=true;
  }
  return runtime;

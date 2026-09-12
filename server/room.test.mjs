@@ -458,3 +458,18 @@ test('broadcast snapshots are quantized without mutating authoritative match sta
  assert.notEqual(actor.powerups.haste,wire.powerups.haste);
  assert.ok(Math.abs(actor.x-1.23456789)<1e-6);
 });
+test('a melee press is forwarded as a one-shot edge and consumed on tick',()=>{
+ const room=new Room('r',rng());
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);room.drain();
+ const peer=room.peers.get(1);
+ room.input(1,{seq:1,melee:true});
+ assert.equal(peer.edgeMelee,true);
+ room.input(1,{seq:2,melee:true});
+ assert.equal(peer.edgeMelee,true,'holding melee does not re-arm it');
+ room.tick(1/60);
+ assert.equal(peer.edgeMelee,false,'the tick consumes the edge');
+ room.input(1,{seq:3,melee:false});
+ assert.equal(peer.edgeMelee,false);
+ room.input(1,{seq:4,melee:true});
+ assert.equal(peer.edgeMelee,true,'release then press re-arms');
+});

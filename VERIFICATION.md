@@ -1,5 +1,26 @@
 # COCS verification report
 
+## Melee attack 2.22 - 2026-09-11
+
+- **Simulation** (`game/core.mjs`): a new `Match.melee(actor)` swings a short
+  forward arc (`MELEE`: 2.4u range, 45 damage, 0.6s cooldown). It requires a
+  healthy actor, a live enemy inside the arc and a clear line of sight, consumes
+  spawn protection on use, and emits a `melee` event carrying the hit actor (or
+  null on a whiff). The cooldown decays in the step loop and each actor field is
+  initialized on spawn. Bots swing at point-blank visible targets.
+- **Input path** (`game/input.mjs`, `app/page.tsx`, `server/room.mjs`,
+  `game/touch.mjs`): `controlsFromState` forwards `melee`; the page binds `F` and
+  resets it after each step; the server converts a held melee into a consumed
+  one-shot edge like reload; the touch cluster gains a `MELEE` button through the
+  pure `applyTouchAction` helper. `TOUCH_BUTTONS` now lists 10 actions.
+- **Tests**: `game/melee.test.mjs` covers a hit, cooldown refusal, out-of-range and
+  behind misses, and teammate immunity; `game/input.test.mjs` covers the control;
+  `server/room.test.mjs` covers edge latching, hold behaviour and re-arm;
+  `game/touch.test.mjs` covers the touch action.
+
+Verification: `npm run test:game` 536/536, `npm run test:server` 97/97, typecheck,
+production build and the rendered response test green.
+
 ## Kill feed weapon labels 2.21 - 2026-09-11
 
 - **Feed context** (`game/core.mjs`): death feed entries now carry the killing

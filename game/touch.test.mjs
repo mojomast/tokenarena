@@ -30,8 +30,9 @@ test('look steps accumulate yaw and clamp pitch',()=>{
  assert.equal(look.pitch,1.45);
  assert.deepEqual(lookStep(0,0,1),{yaw:0,pitch:0});
  assert.equal(applyLook(null,10,10),null);
- assert.equal(TOUCH_BUTTONS.length,9);
+ assert.equal(TOUCH_BUTTONS.length,10);
  assert.ok(TOUCH_BUTTONS.includes('voice'));
+ assert.ok(TOUCH_BUTTONS.includes('melee'));
 });
 
 test('applyTouchAction tracks held buttons and latches one-shot actions',()=>{
@@ -48,10 +49,12 @@ test('applyTouchAction tracks held buttons and latches one-shot actions',()=>{
  applyTouchAction(runtime,'reload',true);
  applyTouchAction(runtime,'power',true);
  applyTouchAction(runtime,'interact',true);
+ applyTouchAction(runtime,'melee',true);
  assert.equal(runtime.jump,true);
  assert.equal(runtime.reload,true);
  assert.equal(runtime.power,true);
  assert.equal(runtime.interact,true);
+ assert.equal(runtime.melee,true);
  // Releasing one-shots must not re-arm them, and swap is handled by the caller.
  applyTouchAction(runtime,'jump',false);
  applyTouchAction(runtime,'swap',true);

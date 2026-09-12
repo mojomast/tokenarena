@@ -6,8 +6,8 @@ import {applyTouchAction,moveAxis} from '../../game/touch.mjs';
 // On-screen mobile controls: a left thumbstick, a drag-anywhere look surface and
 // a cluster of action buttons. All state is written imperatively to the runtime
 // so the per-frame loop never re-renders React.
-const ACTIONS=['ads','jump','crouch','reload','power','interact','swap','voice'];
-const LABELS:Record<string,string>={ads:'ADS',jump:'JUMP',crouch:'SLIDE',reload:'RELOAD',power:'POWER',interact:'USE',swap:'SWAP',voice:'TALK'};
+const ACTIONS=['ads','jump','crouch','reload','power','melee','interact','swap','voice'];
+const LABELS:Record<string,string>={ads:'ADS',jump:'JUMP',crouch:'SLIDE',reload:'RELOAD',power:'POWER',interact:'USE',swap:'SWAP',voice:'TALK',melee:'MELEE'};
 
 export function TouchControls({runtime,visible,onLook,onSwap,onPause}:{runtime:any;visible:boolean;onLook:(dx:number,dy:number)=>void;onSwap:()=>void;onPause:()=>void}){
  const stick=useRef<HTMLDivElement|null>(null),knob=useRef<HTMLDivElement|null>(null),state=useRef({stickId:null as number|null,lookId:null as number|null,center:{x:0,y:0},last:{x:0,y:0}});

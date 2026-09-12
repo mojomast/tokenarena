@@ -83,3 +83,7 @@ test('analog touch move overrides keys and explicit posture flags register', () 
   assert.equal(held.sprint, true);
   assert.equal(held.crouch, true);
 });
+test('melee registers as a provided one-shot control', () => {
+  assert.equal(controlsFromState({ melee: true }).melee, true);
+  assert.equal(controlsFromState({}).melee, undefined);
+});
