@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -238,4 +238,12 @@ test('kill feed weapon labels map a kill weapon index or fall back to none', () 
   assert.equal(killFeedWeapon({}, WEAPONS), null);
   assert.equal(killFeedWeapon(null, WEAPONS), null);
   assert.equal(killFeedWeapon({weapon: 99}, WEAPONS), null);
+});
+
+test('connection quality grades jitter and loss and reports interpolation delay', () => {
+  assert.deepEqual(connectionQuality({ jitter: 5, lossRate: 0, renderDelay: .1 }), { label: 'GOOD', tone: 'good', ms: 100, jitter: 5, loss: 0 });
+  assert.equal(connectionQuality({ jitter: 40, lossRate: 0, renderDelay: .12 }).label, 'FAIR');
+  assert.equal(connectionQuality({ jitter: 5, lossRate: .2, renderDelay: .15 }).label, 'POOR');
+  assert.equal(connectionQuality(null).label, 'GOOD');
+  assert.equal(connectionQuality(null).ms, 0);
 });

@@ -215,3 +215,12 @@ export function weaponRangeLabel(weapon) {
   const span = info.factor < 1 ? `${Math.round(info.start)}–${Math.round(info.end)}m · ${Math.round(info.factor * 100)}%` : `${Math.round(info.range)}m`;
   return `${info.band} · ${span}`;
 }
+
+// Connection quality from the client's jitter/loss/interpolation estimators.
+export function connectionQuality(state) {
+  const jitter = Math.max(0, Number(state?.jitter) || 0);
+  const loss = Math.max(0, Math.min(1, Number(state?.lossRate) || 0));
+  const ms = Math.max(0, Math.round((Number(state?.renderDelay) || 0) * 1000));
+  const label = loss >= .15 || jitter >= 80 ? 'POOR' : loss >= .04 || jitter >= 35 ? 'FAIR' : 'GOOD';
+  return { label, tone: label === 'GOOD' ? 'good' : label === 'FAIR' ? 'fair' : 'poor', ms, jitter: Math.round(jitter), loss: Math.round(loss * 100) };
+}

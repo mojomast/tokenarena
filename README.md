@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.23 shows your connection quality online:
+
+- **Latency chip.** Network matches display a colour-coded `GOOD` / `FAIR` / `POOR` chip with the current interpolation delay, graded from the same jitter and packet-loss estimators the netcode already uses (`connectionQuality` in `game/hud.mjs`). It turns amber or red before the connection becomes unplayable.
+
 Version 2.22 adds a melee attack:
 
 - **Point-blank finisher.** Every loadout can now swing a short forward arc (`F`, or the touch `MELEE` button): 2.4m range, 45 damage, 0.6s cooldown, no ammo. It rewards closing the distance and finishing hurt targets instead of reloading into them.

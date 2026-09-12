@@ -708,3 +708,7 @@ html, body { overscroll-behavior: none; }
 .touch-pause { min-width: 46px; padding: 12px 8px; }
 @media (max-width: 420px) { .touch-stick { width: 112px; height: 112px; } .touch-knob { width: 50px; height: 50px; margin: -25px 0 0 -25px; } .touch-button { min-width: 50px; padding: 12px 9px; } }
 .arsenal-list em{display:inline-block;font-style:normal;font-size:10px;letter-spacing:.5px;color:#9ad9c4;margin:2px 0 0 8px;border:1px solid #4f7d6c66;border-radius:4px;padding:1px 5px}
+.net-quality{border:1px solid #6fa89a55;border-radius:4px;padding:2px 7px;letter-spacing:1px}
+.net-quality.good{color:#9ff0c4;border-color:#6fe0a455}
+.net-quality.fair{color:#ffd88a;border-color:#e0c06f55}
+.net-quality.poor{color:#ff9f9f;border-color:#e06f6f66}

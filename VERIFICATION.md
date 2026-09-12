@@ -1,5 +1,18 @@
 # COCS verification report
 
+## Connection quality indicator 2.23 - 2026-09-11
+
+- **Pure grader** (`game/hud.mjs`, `game/hud.test.mjs`): `connectionQuality`
+  grades the client's existing jitter/loss estimators into GOOD/FAIR/POOR with a
+  colour tone and the current interpolation delay in milliseconds. A test covers
+  each grade, the loss-driven POOR case and the empty-input default.
+- **HUD** (`app/page.tsx`, `app/globals.css`): network matches show a colour-coded
+  `GOOD · 100MS` chip in the bottom HUD, derived from the live NetClient timing
+  state added to the decorated snapshot.
+
+Verification: `npm run test:game` HUD tests pass, typecheck, production build and
+the rendered response test green.
+
 ## Melee attack 2.22 - 2026-09-11
 
 - **Simulation** (`game/core.mjs`): a new `Match.melee(actor)` swings a short
