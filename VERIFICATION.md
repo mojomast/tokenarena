@@ -1,5 +1,20 @@
 # COCS verification report
 
+## Kill feed weapon labels 2.21 - 2026-09-11
+
+- **Feed context** (`game/core.mjs`): death feed entries now carry the killing
+  `weapon` index (or `null` for void deaths), matching the weapon already present
+  on the `death` event.
+- **Pure helper** (`game/hud.mjs`, `game/hud.test.mjs`): `killFeedWeapon(entry,
+  weapons)` resolves that index to a short weapon name and returns `null` for
+  environment kills or unknown indices. A test covers falloff-free mapping,
+  missing/unknown weapons and null input.
+- **HUD** (`app/page.tsx`): the in-match kill feed renders the weapon between the
+  killer and victim.
+
+Verification: `npm run test:game` HUD tests pass, typecheck, production build and
+the rendered response test green.
+
 ## Weapon range readout 2.20 - 2026-09-11
 
 - **Pure helpers** (`game/hud.mjs`, `game/hud.test.mjs`): `weaponRangeInfo` returns

@@ -118,6 +118,12 @@ export function ammoText(value) {
   return Number.isFinite(n) ? String(n) : '∞';
 }
 
+// Short weapon name for a kill-feed entry, or null for environment kills.
+export function killFeedWeapon(entry, weapons = []) {
+  if (!entry || !Number.isInteger(entry.weapon)) return null;
+  return weapons[entry.weapon]?.short ?? null;
+}
+
 const teamLabel = team => Number(team) === 0 ? 'RED' : Number(team) === 1 ? 'BLUE' : `TEAM ${team}`;
 
 export function matchStartBanner(hud, duration = 2.6) {

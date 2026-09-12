@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.21 tells you what killed you:
+
+- **Kill feed weapons.** Every kill-feed line now names the weapon used (`PULSE`, `RAIL`, `SCATTER`, …) between killer and victim. Void deaths stay weaponless. The label comes from the pure `killFeedWeapon` helper in `game/hud.mjs`, fed by the weapon index already carried on death events.
+
 Version 2.20 makes weapon range legible:
 
 - **Range badges.** Graphics & settings now labels every weapon with its range band and effective distance — `SHORT · 6–24m · 40%`, `LONG · 16–70m · 62%` — derived by the pure `weaponRangeInfo`/`weaponRangeLabel` helpers in `game/hud.mjs`, so the falloff added in 2.15 is visible when picking a loadout.

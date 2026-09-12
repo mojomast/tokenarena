@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -229,4 +229,13 @@ test('weapon range labels expose band, effective range and falloff', () => {
   assert.equal(weaponRangeLabel({range: 52, falloff: {start: 14, end: 52, min: .5}}), 'MID · 14–52m · 50%');
   assert.equal(weaponRangeLabel({range: 70, falloff: {start: 16, end: 70, min: .62}}), 'LONG · 16–70m · 62%');
   assert.deepEqual(weaponRangeInfo({}), {band: 'SHORT', start: 0, end: 0, range: 0, factor: 1});
+});
+
+test('kill feed weapon labels map a kill weapon index or fall back to none', () => {
+  assert.equal(killFeedWeapon({weapon: 2}, WEAPONS), 'RAIL');
+  assert.equal(killFeedWeapon({weapon: 0}, WEAPONS), 'PULSE');
+  assert.equal(killFeedWeapon({weapon: null}, WEAPONS), null);
+  assert.equal(killFeedWeapon({}, WEAPONS), null);
+  assert.equal(killFeedWeapon(null, WEAPONS), null);
+  assert.equal(killFeedWeapon({weapon: 99}, WEAPONS), null);
 });
