@@ -1,5 +1,24 @@
 # COCS verification report
 
+## Steady demo camera 2.31 - 2026-09-11
+
+- **Bug:** the 2.30 occlusion pull-in was throttled to every other frame, so the
+  camera alternated between the blocked director pose and the corrected pose at
+  ~30 Hz — a high-speed flicker between two spots.
+- **Fix** (`game/view.mjs`, `game/camera.mjs`): the correction now runs every frame
+  and eases a single stand-off distance (`this._camWant`) toward the clear or
+  blocked value, snapping only on a director cut, and leaves the director pose
+  untouched once it is effectively clear. Oscillating ray hits are averaged by the
+  easing instead of flickering. The distance decision is the pure
+  `occlusionDistance` helper.
+- **Tests** (`game/camera.test.mjs`): `occlusionDistance` returns the stand-off or
+  the full distance, clamps to the minimum and degrades safely on missing input,
+  alongside the existing `clearCameraPosition` cases.
+
+Verification: `game/camera.test.mjs` 4/4, `tsc --noEmit` clean, `npm run build`
+succeeds, SSR `tests/*.test.mjs` 1/1. GPU-browser confirmation of the menu reel is
+still the honest final check.
+
 ## Demo camera line-of-sight 2.30 - 2026-09-11
 
 - **Bug:** the menu showcase director had no scene awareness, so orbit, tripod,

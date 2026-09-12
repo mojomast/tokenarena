@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.31 stops the demo camera flickering:
+
+- **No more pose alternation.** The 2.30 occlusion correction was throttled, so on blocked shots the camera jumped between the director pose and the pulled-in pose at ~30 Hz. It now evaluates every frame and eases a single stand-off distance toward the clear or blocked value (snapping only on a cut), so the camera slides in and out of cover instead of flickering.
+
 Version 2.30 keeps the demo camera out of walls:
 
 - **Camera line-of-sight.** The menu director now casts a ray from the followed actor back toward the camera and, when scenery blocks the view, pulls the camera in front of the obstruction and re-aims it — so orbit, tripod and dolly shots stop ending up behind walls, roofs and domes. The clamp math is the pure, tested `clearCameraPosition` helper (`game/camera.mjs`).
