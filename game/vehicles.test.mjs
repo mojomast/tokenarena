@@ -143,18 +143,17 @@ test('muzzles remain paired and mounted on distinct sides', () => {
   assert.equal(muzzles[0].heading, vehicle.heading);
 });
 
-test('chaingun alternates muzzles and enters deterministic overheat state', () => {
+test('chaingun alternates muzzles and fires continuously without overheating', () => {
   const vehicle = createVehicle();
   stepVehicle(vehicle, { fire: true }, 0.01);
   assert.equal(vehicle.lastStep.fired, true);
   assert.equal(vehicle.lastStep.muzzle, 0);
   assert.deepEqual(vehicle.lastStep.muzzles, [0, 1]);
-  for (let i = 0; i < 10; i++) stepVehicle(vehicle, { fire: true }, 0.12);
-  assert.equal(vehicle.overheated, true);
-  assert.equal(vehicle.lastStep.fired, false);
-  stepVehicle(vehicle, {}, 4);
-  assert.equal(vehicle.overheated, false);
+  let fired = 0;
+  for (let i = 0; i < 40; i++) { stepVehicle(vehicle, { fire: true }, 0.045); if (vehicle.lastStep.fired) fired++; }
+  assert.ok(fired >= 39, `kept firing (${fired}/40)`);
   assert.equal(vehicle.heat, 0);
+  assert.equal(vehicle.overheated, false);
 });
 
 test('respawnVehicle restores clean spawn state including arcade fields', () => {

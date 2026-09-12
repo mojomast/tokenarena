@@ -58,3 +58,15 @@ test('audio voices are capped, disconnected on disposal, and muted without alloc
   for(let i=0;i<100;i++)audio.tone(100);assert.equal(audio.voices.size,30);assert.equal(nodes.length,90);
   const ctx=audio.ctx;audio.dispose();assert.equal(audio.voices.size,0);assert.ok(ctx.closed);assert.ok(nodes.every(n=>n.disconnected));
 });
+test('mounted chaingun uses its own heavier voice and dedupes the paired barrels',()=>{
+ const {audio}=audioFixture(),chains=[];
+ audio._chaingun=(pan,vol)=>chains.push({pan,vol});
+ audio.event({type:'vehicle-shot',actor:7,vehicle:1,weapon:0,time:1,from:{x:0,z:0}},player);
+ audio.event({type:'vehicle-shot',actor:7,vehicle:1,weapon:0,time:1,from:{x:0,z:0}},player);
+ assert.equal(chains.length,1,'paired barrels share a single report');
+ audio.event({type:'vehicle-shot',actor:7,vehicle:1,weapon:0,time:2,from:{x:0,z:0}},player);
+ assert.equal(chains.length,2);
+ audio.event({type:'vehicle-shot',actor:0,vehicle:1,weapon:0,time:3,from:{x:20,z:0}},player);
+ assert.equal(chains.length,3);
+ assert.ok(chains.at(-1).vol<1,'remote chaingun falls off with distance');
+});

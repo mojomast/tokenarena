@@ -1,5 +1,14 @@
 # COCS verification report
 
+## Rapid chaingun 2.38 - 2026-09-12
+
+- `CHAINGUN.interval` 0.12 -> 0.045s; heat/overheat removed (`heatPerShot: 0`)
+  for unlimited sustained fire.
+- Dedicated `SynthAudio._chaingun` voice for `vehicle-shot` with per-shot pitch
+  wobble; paired barrels still dedupe to one report.
+- Targeted vehicle/audio suites pass (44/44): `vehicles`, `vehicle-gameplay`,
+  `vehicle-seats`, `feedback`, `weapon-simulation`. Full suite not rerun.
+
 ## Correctness pass 2.37 - 2026-09-12
 
 - **Movement/spawns:** team-only maps derive FFA spawns from the nav graph (ten

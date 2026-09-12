@@ -10,14 +10,14 @@ const CHAINGUN = freeze({
   id: 'mounted-chaingun',
   name: 'Mounted Chaingun',
   damage: 5,
-  interval: 0.12,
-  sustainedDps: 41.6666666667,
+  interval: 0.045,
+  sustainedDps: 111.1111111111,
   barrels: 2,
   range: 55,
-  heatPerShot: 0.16,
+  heatPerShot: 0,
   maxHeat: 1,
-  coolRate: 0.32,
-  overheatCooldown: 1.5
+  coolRate: 1,
+  overheatCooldown: 0
 });
 
 export const PUMA = freeze({

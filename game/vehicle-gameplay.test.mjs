@@ -24,8 +24,10 @@ test('Puma enter, drive, paired chainguns, turret tracking and exit remain autho
   assert.equal(a.vehicleId,m.vehicles[0].id);
   for(let i=0;i<60;i++)m.step(1/60,{inputs:{0:{x:1,z:0,yaw:-Math.PI/2,pitch:0,fire:true}}});
   assert.ok(a.x>-42);
-  assert.ok(m.vehicles[0].heat>0);
-  assert.equal(m.events.filter(e=>e.type==='vehicle-shot').length,16);
+  assert.equal(m.vehicles[0].heat,0,'unlimited chaingun never builds heat');
+  const shots=m.events.filter(e=>e.type==='vehicle-shot').length;
+  assert.ok(shots>=38&&shots<=48,`rapid chaingun fire produced ${shots} barrel shots`);
+  assert.equal(shots%2,0,'both barrels fire per cycle');
   assert.ok(m.vehicles[0].turretYaw>=-1e-9&&m.vehicles[0].turretYaw<=1e-9);
   const snapshot=m.snapshot().vehicles[0];
   assert.ok(Number.isFinite(snapshot.turretYaw)&&Number.isFinite(snapshot.roll)&&Number.isFinite(snapshot.pitchBody));
@@ -49,10 +51,10 @@ test('a moving Puma runs over and splatters a grounded non-occupant',()=>{
   const m=new Match('chatgpt','openclaw',()=>.5,'blood-gulch',{mode:'deathmatch',botCount:1,respawn:5});
   const [a,target]=m.actors;
   Object.assign(a,{x:-46,y:0,z:0,yaw:Math.PI/2,pitch:0,grounded:true,protection:0});
-  Object.assign(target,{x:-38,y:0,z:0,health:100,armor:0,protection:0,grounded:true,bot:null});
+  Object.assign(target,{x:-38,y:0,z:0,health:5000,armor:0,protection:0,grounded:true,bot:null});
   m.step(1/60,{inputs:{0:{interact:true}}});
   for(let i=0;i<120&&target.health>0;i++)m.step(1/60,{inputs:{0:{x:1,z:0,yaw:-Math.PI/2,pitch:0}}});
-  assert.ok(target.health<100);
+  assert.ok(target.health<5000);
   assert.ok(m.events.some(e=>e.type==='vehicle-splatter'&&e.actor===target.id));
 });
 

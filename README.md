@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.38 supercharges the Puma's mounted chaingun:
+
+- **Much faster, never overheats.** Fire interval drops from 0.12s to 0.045s (~2.7x) and heat/overheat are removed, so it lays down unlimited sustained fire. Dual barrels unchanged, so expect roughly double the old damage output.
+- **Heavier voice.** `vehicle-shot` no longer borrows the pulse-rifle sound; a dedicated layered chaingun report (low thump, metallic crack, spinning-barrel pitch wobble) plays with its own longer falloff.
+
 Version 2.37 is a correctness pass:
 
 - **Movement and spawns.** Team-only maps (Riverbend, Convoy Line, Titan Valley and friends) no longer collapse teamless modes onto a single origin — free-for-all spawns are derived from the navigation graph, so Deathmatch/Instagib/Rockets/Arsenal start with ten valid spawns and stay mobile. Airborne actors no longer snap down onto solid cover (jumps keep their apex), and an idle touch joystick no longer suppresses WASD.
