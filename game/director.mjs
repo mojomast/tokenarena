@@ -1,4 +1,4 @@
-export const CAMERA_RIGS=['orbit','chase','dolly','crane','tripod','follow','firstperson'];
+export const CAMERA_RIGS=['orbit','chase','dolly','crane','tripod','follow','firstperson','flyover'];
 
 const HIGHLIGHTS={death:true,explosion:true,capture:true,'flag-pickup':true,'flag-return':true,'vehicle-destroyed':true,'vehicle-splatter':true,'payload-delivered':true,'assault-breach':true};
 const MAX_PITCH=1.45;
@@ -32,6 +32,11 @@ export class CinematicDirector{
   this._needsCut=true;
   this._forceCut=false;
   this._seen=new Set();
+  this.tour=options.tour===true;
+  this.tourRadius=Number.isFinite(options.tourRadius)?Math.max(6,options.tourRadius):Math.max(14,this.radius*2.2);
+  this.aim={x:this.center.x,y:1.5,z:this.center.z};
+  this._action=null;
+  if(this.tour)this._rig='flyover';
  }
 
  get rig(){return this._rig;}
@@ -112,14 +117,12 @@ export class CinematicDirector{
   }
   let target=this._actorById(this._targetId);
   if(this._targetId!=null&&!target)this._targetId=null;
-  const timeCut=time-this._lastCutTime>=this.cutEvery;
-  const highlightCut=!!highlight&&!this.reduced;
+  const timeCut=!this.tour&&time-this._lastCutTime>=this.cutEvery;
+  const highlightCut=!this.tour&&!!highlight&&!this.reduced;
   const autoCut=this._needsCut||timeCut||highlightCut;
   const cutoff=autoCut||this._forceCut;
   if(autoCut){
-   this._rig=this._pickRig(this._rig);
-   this._targetId=this._pickTarget(highlight);
-   target=this._actorById(this._targetId);
+   if(!this.tour){this._rig=this._pickRig(this._rig);this._targetId=this._pickTarget(highlight);target=this._actorById(this._targetId);}
    this._lastCutTime=time;
    this._needsCut=false;
   }
@@ -142,7 +145,8 @@ export class CinematicDirector{
   if(this._rig==='firstperson'&&target){
    baseYaw=num(target.yaw,0);basePitch=num(target.pitch,0);
   }else{
-   const aim=this._aimPoint(target);
+   const aim=this.tour?this._actionPoint(s,step):this._aimPoint(target);
+   this.aim={x:aim.x,y:aim.y,z:aim.z};
    const dx=aim.x-this._pos.x,dy=aim.y-this._pos.y,dz=aim.z-this._pos.z;
    const horizontal=Math.hypot(dx,dz);
    baseYaw=Math.atan2(-dx,-dz);
@@ -152,8 +156,8 @@ export class CinematicDirector{
   const pitch=clamp(fin(basePitch+this._lookPitch,basePitch),-MAX_PITCH,MAX_PITCH);
   const roll=this.reduced?0:clamp(fin(this._roll),-.15,.15);
   const speed=target?Math.hypot(num(target.vx),num(target.vz)):0;
-  let want=target?66+4*clamp(speed/6,0,1):70;
-  if(target&&(target.sprinting===true||speed>6.5))want+=8*clamp(Math.max(target.sprinting===true?1:0,(speed-6.5)/2),0,1);
+  let want=this.tour?71+4*Math.sin(time*.31):target?66+4*clamp(speed/6,0,1):70;
+  if(!this.tour&&target&&(target.sprinting===true||speed>6.5))want+=8*clamp(Math.max(target.sprinting===true?1:0,(speed-6.5)/2),0,1);
   want=clamp(want,55,85);
   this._fov+=(want-this._fov)*(1-Math.exp(-3*step));
   return {
@@ -185,6 +189,16 @@ export class CinematicDirector{
 
  _aimPoint(target){if(!target)return {x:this.center.x,y:1.5,z:this.center.z};return {x:num(target.x),y:num(target.y)+1.2,z:num(target.z)};}
 
+ _actionPoint(s,step){
+  const actors=Array.isArray(s?.actors)?s.actors:[];
+  let sx=0,sy=0,sz=0,n=0;
+  for(const a of actors){if(!a||!(num(a.health,0)>0)||!Number.isFinite(a.x)||!Number.isFinite(a.z))continue;sx+=a.x;sy+=num(a.y)+1.2;sz+=a.z;n++;}
+  const tx=n?sx/n:this.center.x,ty=n?sy/n:1.5,tz=n?sz/n:this.center.z;
+  if(!this._action)this._action={x:tx,y:ty,z:tz};
+  else{const k=1-Math.exp(-5*clamp(num(step,1/60),0,.1));this._action.x+=(tx-this._action.x)*k;this._action.y+=(ty-this._action.y)*k;this._action.z+=(tz-this._action.z)*k;}
+  return this._action;
+ }
+
  _dampAngle(a,b,k){const d=Math.atan2(Math.sin(b-a),Math.cos(b-a));return a+d*k;}
 
  _rigPose(time,target){
@@ -193,7 +207,13 @@ export class CinematicDirector{
   const heading=target&&speed>.5?Math.atan2(-num(target.vx),-num(target.vz)):target?num(target.yaw):0;
   const rig=this._rig;
   let x=base.x,y=base.y,z=base.z,h=heading,roll=0;
-  if(rig==='orbit'||!target){
+  if(rig==='flyover'){
+   const R=this.tourRadius,a=time*.32,w=.72+.26*Math.sin(time*.21);
+   x=this.center.x+Math.cos(a)*R*w;z=this.center.z+Math.sin(a)*R*w;
+   y=10+3.5*Math.sin(time*.27)+2*Math.sin(time*.51);
+   h=Math.atan2(-(this.aim.x-x),-(this.aim.z-z));
+   roll=Math.sin(time*.37)*.045;
+  }else if(rig==='orbit'||!target){
    const angle=time*.5+.7,r=this.radius*(1+.2*Math.sin(time*.37));
    x=base.x+Math.cos(angle)*r;z=base.z+Math.sin(angle)*r;y=base.y+3.5;h=angle+Math.PI;
   }else if(rig==='chase'){
@@ -235,10 +255,10 @@ export class CinematicDirector{
  }
 
  _pickRig(current){
-  const weights={orbit:1.5,chase:3,dolly:1,crane:2,tripod:1,follow:3,firstperson:1};
+  const weights={orbit:1.5,chase:3,dolly:1,crane:2,tripod:1,follow:3,firstperson:1,flyover:0};
   const pool=[];
   for(const rig of CAMERA_RIGS){
-   if(rig===current)continue;
+   if(rig===current||!(weights[rig]>0))continue;
    const weight=Math.max(1,Math.round((weights[rig]??1)*2));
    for(let i=0;i<weight;i++)pool.push(rig);
   }

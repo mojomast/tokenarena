@@ -1,5 +1,25 @@
 # COCS verification report
 
+## Arena-tour demo camera 2.32 - 2026-09-11
+
+- **Change** (`game/director.mjs`, `app/page.tsx`, `game/view.mjs`): the menu
+  showcase now runs a `tour` director. A new `flyover` rig orbits the whole arena
+  on a smooth looping path (weaving radius and height) and aims at the live action
+  centroid instead of a specific actor. Tours disable time and highlight cuts, so
+  the camera never snaps to a new bot mid-shot.
+- **Smooth aim** (`_actionPoint`): the aim is the centroid of live actors with an
+  exponential ease, so deaths and spawns shift the view gradually instead of
+  yanking it. The occlusion pull-in now rays from that aim point.
+- **Reserved rig**: `flyover` has zero selection weight, so random Theater cuts
+  never choose it; only a tour sets it.
+- **Tests** (`game/director.test.mjs`): a tour never cuts (including on a death
+  highlight), eases toward a distant action cluster rather than snapping, and the
+  flyover rig is never picked by the normal rig chooser.
+
+Verification: `game/director.test.mjs` 11/11, `tsc --noEmit` clean, `npm run build`
+succeeds, SSR `tests/*.test.mjs` 1/1. GPU-browser confirmation remains the honest
+final check.
+
 ## Steady demo camera 2.31 - 2026-09-11
 
 - **Bug:** the 2.30 occlusion pull-in was throttled to every other frame, so the

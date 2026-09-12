@@ -163,3 +163,30 @@ test('explosions and confirmed melee hits prompt a cut; whiffs do not',()=>{
  assert.equal(d2.update(state(.1,actors),1/60,[{type:'melee',id:70,time:.1,actor:1,hit:null}]).cut,false);
  assert.equal(d2.update(state(.2,actors),1/60,[{type:'melee',id:71,time:.2,actor:1,hit:2}]).cut,true);
 });
+
+test('tour mode flies the arena without cutting and eases toward the action',()=>{
+ const d=new CinematicDirector({random:seeded(31),center:{x:0,z:0},radius:11,tour:true,tourRadius:30});
+ const near=[actor(1,-10,0),actor(2,-8,2)];
+ const far=[actor(1,20,20),actor(2,22,18)];
+ d.reframe(state(0,near));
+ assert.equal(d.rig,'flyover');
+ assert.equal(finite(d.update(state(0,near),1/60,[])).cut,true,'first frame places the camera');
+ assert.equal(finite(d.update(state(.1,near),1/60,[])).cut,false);
+ assert.equal(d.rig,'flyover');
+ const highlight={type:'death',id:9,time:.2,actor:1,pos:{x:-10,z:0}};
+ assert.equal(finite(d.update(state(.2,near),1/60,[highlight])).cut,false,'highlights do not cut a tour');
+ const before=d.aim.x;
+ d.reframe(state(.3,far));
+ d.update(state(.3,far),1/60,[]);
+ assert.ok(d.aim.x>before,`aim should move toward the action (${before} -> ${d.aim.x})`);
+ assert.ok(d.aim.x<20,'aim eases toward the centroid rather than snapping');
+});
+
+test('the flyover rig is reserved for tours',()=>{
+ const d=new CinematicDirector({random:seeded(42),cutEvery:.1});
+ const actors=[actor(1,0,0),actor(2,5,3),actor(3,-4,2)];
+ d.reframe(state(0,actors));
+ const seen=new Set();
+ for(let i=0;i<300;i++)seen.add(d.update(state(i*.2,actors),1/60,[]).rig);
+ assert.ok(!seen.has('flyover'),'random cuts never choose flyover');
+});

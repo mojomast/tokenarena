@@ -252,6 +252,12 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.32 turns the menu reel into an arena tour:
+
+- **The camera flies the arena, not a bot.** The showcase now uses a free-flying `flyover` rig that orbits the whole battlefield on a smooth looping path — weaving its radius and height — and always aims at the live action centroid rather than a specific actor. With no target binding and cuts disabled during a tour, the camera stops jumping between bots.
+- **Smooth aim.** The action point is a centroid of the live actors with an exponential ease, so deaths and respawns slide the view instead of yanking it; the occlusion pull-in now rays from that point.
+- The flyover rig is reserved for tours, so normal Theater playback keeps its existing rigs and cuts.
+
 Version 2.31 stops the demo camera flickering:
 
 - **No more pose alternation.** The 2.30 occlusion correction was throttled, so on blocked shots the camera jumped between the director pose and the pulled-in pose at ~30 Hz. It now evaluates every frame and eases a single stand-off distance toward the clear or blocked value (snapping only on a cut), so the camera slides in and out of cover instead of flickering.

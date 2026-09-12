@@ -496,7 +496,8 @@ export class ArenaView{
    // never alternates between two poses or pops across an obstruction.
    _clearCamera(player,delta,snap){
     if(this.renderer?.isSoftware===true||!this.worldGroup||!player)return;
-    const head=new T.Vector3(player.x||0,(player.y||0)+1.35,player.z||0),cam=this.camera.position;
+    const aim=this.director?.aim,cam=this.camera.position;
+    const head=aim&&Number.isFinite(aim.x)?new T.Vector3(aim.x,aim.y,aim.z):new T.Vector3(player.x||0,(player.y||0)+1.35,player.z||0);
     const dx=head.x-cam.x,dy=head.y-cam.y,dz=head.z-cam.z,dist=Math.hypot(dx,dy,dz);
     if(!(dist>2.2)){this._camWant=undefined;return;}
     const out=new T.Vector3(-dx/dist,-dy/dist,-dz/dist);
