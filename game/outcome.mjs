@@ -8,5 +8,5 @@ export function actorWon(result, mode, actor) {
   if (teamMode(mode)) return result.winner !== null && result.winner !== undefined && result.winner === actor.team;
   const frags = (result.actors ?? []).map(item => Number(item.frags) || 0);
   const max = frags.length ? Math.max(...frags) : 0;
-  return (Number(actor.frags) || 0) === max;
+  return max > 0 && (Number(actor.frags) || 0) === max;
 }

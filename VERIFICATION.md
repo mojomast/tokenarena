@@ -1,5 +1,15 @@
 # COCS verification report
 
+## Mode and bot hardening 2.40 - 2026-09-12
+
+- Assault and payload end on their score-limit wins instead of running to the clock.
+- Zero-frag FFA is a draw; payload routes are finite and non-degenerate.
+- Bots: no self-vehicle parking, gunners fire, unreachable routes no longer stall
+  them, ledge guard armed from spawn, passengers eject, Roo spares teammates,
+  personality strafe blends, suppression degrades aim and encourages retreat.
+- New `game/hardening.test.mjs`; all 10 cases fail against the pre-fix modules and
+  pass now. Targeted suites 163/163 and 66/66. Full suite not rerun.
+
 ## Titan Valley spawn fix 2.39 - 2026-09-12
 
 - Reproduced: two Pumas spawned inside the small valley buildings, two inside the

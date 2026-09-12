@@ -60,7 +60,7 @@ export function botBehavior(actor){
   objective:clamp(blend(r.objective,p.objective)+(botNoise(id,6)-.5)*.16,0,1),
   supply:clamp(blend(r.supply,p.supply)+(botNoise(id,7)-.5)*.16,0,1),
   vehicle:clamp(blend(r.vehicle,p.vehicle)+(botNoise(id,8)-.5)*.2,0,1),
-  strafe:clamp(blend(r.strafe,p.strafe,1)*(.86+botNoise(id,9)*.28),.3,1.4),
+  strafe:clamp(blend(r.strafe,p.strafe)*(.86+botNoise(id,9)*.28),.3,1.4),
   range:[Math.max(2,Math.min(lo,hi-.5)),Math.max(lo+.5,hi)],
   spacing:clamp(blend(r.spacing,p.spacing)+(botNoise(id,10)-.5)*.7,1.6,4.2),
   retreat:clamp((hints?.retreatHealth??.4)+(botNoise(id,11)-.5)*.22,.12,.8),

@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.40 hardens game modes and bot behavior:
+
+- **Correct endings.** Assault now ends the moment attackers capture the configured sector count (it previously kept running and handed the clock win to the defenders), and payload ends on a score-limit checkpoint win too. A zero-frag free-for-all is a draw instead of awarding everyone the win bonus, and payload routes can no longer go non-finite or deliver instantly.
+- **Bots play the objective.** Mounted bots no longer retarget the vehicle they are riding (which parked them permanently on vehicle maps), bot gunners now fire the mounted gun, unreachable routes no longer shadow the destination, the ledge guard is armed from spawn, passenger bots bail out, Roo no longer jams teammates, personality strafe actually varies, and suppression now widens aim error and pushes bots toward cover.
+
 Version 2.39 moves the Titan Valley vehicle spawns onto clear ground:
 
 - **No more clipping at spawn.** The two Pumas that sat inside the small valley buildings, the two parked in the cavern wall rings, and the Hornet stuck in cover now spawn at clear coordinates verified against collision (with margin).

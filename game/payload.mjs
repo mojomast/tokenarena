@@ -5,15 +5,17 @@ export const PAYLOAD_MODE_ID='payload';
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
 const insideBlock=(arena,x,z,y=0)=>(arena.blocks||[]).some(block=>Math.abs(x-block.x)<=block.w/2&&Math.abs(z-block.z)<=block.d/2&&y<block.h-1e-6);
 const inBounds=(arena,x,z)=>{const b=boundsOf(arena);return x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.maxZ;};
-const pair=value=>Array.isArray(value)?{x:value[0],z:value[1]}:value&&Number.isFinite(value.x)?{x:value.x,z:value.z}:null;
+const pair=value=>Array.isArray(value)?(Number.isFinite(value[0])&&Number.isFinite(value[1])?{x:value[0],z:value[1]}:null):value&&Number.isFinite(value.x)&&Number.isFinite(value.z)?{x:value.x,z:value.z}:null;
 const teamList=(teams,key,alt)=>{const source=teams?.[key]??teams?.[alt];return Array.isArray(source)?source.map(pair).filter(Boolean):[];};
 // Pick roughly even waypoints across the map on walkable ground, anchored to the
 // attacker and defender spawns so the route reads as a push across the arena.
 export function payloadPath(arena,segments=3){
  const b=boundsOf(arena),teams=arena.teamSpawns||{};
  const red=teamList(teams,0,'red'),blue=teamList(teams,1,'blue'),spawns=(arena.spawns||[]).map(pair).filter(Boolean);
- const start=red[0]||spawns[0]||{x:b.minX+(b.maxX-b.minX)*.12,z:(b.minZ+b.maxZ)/2};
- const end=blue[0]||spawns[spawns.length-1]||{x:b.maxX-(b.maxX-b.minX)*.12,z:(b.minZ+b.maxZ)/2};
+ let start=red[0]||spawns[0]||{x:b.minX+(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};
+ let end=blue[0]||spawns[spawns.length-1]||{x:b.maxX-(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};
+ if(!Number.isFinite(start.x)||!Number.isFinite(start.z))start={x:b.minX+(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};
+ if(!Number.isFinite(end.x)||!Number.isFinite(end.z)||Math.hypot(end.x-start.x,end.z-start.z)<1){const centreX=(b.minX+b.maxX)/2;end={x:start.x<=centreX?b.maxX-(b.maxX-b.minX)*.12:b.minX+(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};}
  const push=(candidate,used)=>{const point=candidate?pair(candidate):null;if(!point)return;const x=point.x,z=point.z,y=Number.isFinite(candidate.y)?candidate.y:0;if(!Number.isFinite(x)||!Number.isFinite(z)||!inBounds(arena,x,z)||insideBlock(arena,x,z,y))return;if(used.some(other=>Math.hypot(other.x-x,other.z-z)<1.5))return;used.push({x,y,z});};
  const candidates=[];
  for(const zone of arena.objectiveZones||[])push(zone,candidates);
