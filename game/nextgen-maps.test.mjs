@@ -58,6 +58,18 @@ test('next-gen spawns stand on supported, unobstructed ground', () => {
   }
 });
 
+test('next-gen objectives sit clear of walls and rocks', () => {
+  for (const map of NEXTGEN_MAPS) {
+    for (const zone of map.objectiveZones) {
+      const y = floorAt(zone.x, zone.z, map);
+      assert.notEqual(y, null, `${map.id} objective support at ${zone.x},${zone.z}`);
+      assert.ok(Number.isFinite(zone.y), `${map.id} objective height at ${zone.x},${zone.z}`);
+      const buried = map.blocks.some(block => block.kind !== 'deck' && Math.abs(zone.x - block.x) < block.w / 2 + 0.6 && Math.abs(zone.z - block.z) < block.d / 2 + 0.6 && y < block.h - 1e-6);
+      assert.equal(buried, false, `${map.id} objective clearance at ${zone.x},${zone.z}`);
+    }
+  }
+});
+
 test('next-gen maps advertise only modes they can actually play', () => {
   for (const map of NEXTGEN_MAPS) {
     assert.ok(arenaSupportsMode(map.id, map.mode), `${map.id} supports its own mode`);

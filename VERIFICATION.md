@@ -1,5 +1,16 @@
 # COCS verification report
 
+## Clear capture points 2.45 - 2026-09-12
+
+- `createLevel` clears any objective zone that generated inside a non-deck solid
+  to the nearest clear ground before cover, nav and pickups are placed. Deck
+  (bridge/catwalk) centres are preserved. A sweep of all 33 maps shows zero
+  buried objective zones.
+- New assertion `next-gen objectives sit clear of walls and rocks` in
+  `game/nextgen-maps.test.mjs`, confirmed failing against the pre-fix generator.
+- Targeted map/mode suites 121/121 and the slow `game/expansion.test.mjs` 9/9
+  (which exercises full next-gen bot matches) pass.
+
 ## Settings consistency 2.44 - 2026-09-12
 
 - The "Unlimited unlocked ammo" toggle is enabled in every mode and reflects

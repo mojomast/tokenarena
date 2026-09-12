@@ -221,6 +221,17 @@ export function createLevel(spec) {
   }
   if (ctx.teamSpawns[0].length && !ctx.teamSpawns[1].length) ctx.teamSpawns[1] = ctx.teamSpawns[0].map(([x, z]) => [-x, -z]);
   if (!ctx.objectiveZones.length) ctx.objectiveZones = [{ x: 0, z: 0, radius: 4, y: terrain.height(0, 0) }, { x: -size.w * 0.25, z: 0, radius: 3.5, y: terrain.height(-size.w * 0.25, 0) }, { x: size.w * 0.25, z: 0, radius: 3.5, y: terrain.height(size.w * 0.25, 0) }];
+  // Capture points must sit on standable ground. Nudge any zone that landed
+  // inside a non-deck solid (rock, building) to the nearest clear spot. Decks
+  // (bridges/catwalks) are excluded so objectives may sit on the raised centre
+  // platforms layouts author.
+  const blockedObjective = (x, z, r) => { const y = terrain.height(x, z); return ctx.blocks.some(b => b.kind !== 'deck' && Math.abs(x - b.x) < b.w / 2 + r && Math.abs(z - b.z) < b.d / 2 + r && y < b.h - 1e-6); };
+  for (const zone of ctx.objectiveZones) {
+    for (let ring = 1; ring <= 16 && blockedObjective(zone.x, zone.z, 0.6); ring++) for (let a = 0; a < 8; a++) {
+      const nx = zone.x + Math.cos(a / 8 * Math.PI * 2) * ring, nz = zone.z + Math.sin(a / 8 * Math.PI * 2) * ring;
+      if (nx > bounds.minX + 1 && nx < bounds.maxX - 1 && nz > bounds.minZ + 1 && nz < bounds.maxZ - 1 && !blockedObjective(nx, nz, 0.6)) { zone.x = nx; zone.z = nz; zone.y = terrain.height(nx, nz); break; }
+    }
+  }
   // Scatter low cover near the action so lanes read and the turbo-jump cover
   // behaviour has anchors on every generated map.
   if (!ctx.blocks.some(b => b.kind === 'cover')) {

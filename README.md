@@ -252,6 +252,10 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.45 puts every capture point on solid ground:
+
+- **No more buried hills.** Procedural levels now nudge a capture zone that generated inside a rock or building to the nearest clear ground before cover and supplies are placed. This fixes the colosseum, riverbend and titan-valley objectives; deliberate raised bridge/catwalk centres are left untouched.
+
 Version 2.44 tightens settings consistency:
 
 - **Unlimited ammo is a real choice in every mode.** The modifier is no longer force-disabled outside Deathmatch; the toggle now reflects and controls the actual setting (matching how the README documents it).
