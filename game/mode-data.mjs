@@ -49,6 +49,21 @@ const candidatePoints=(arena,ids,rules)=>{
   const spread=spreadPoints(safe,ids.length);
   return ids.map((id,index)=>{const candidate=spread[index]||{x:b.minX+(b.maxX-b.minX)/2,z:b.minZ+(b.maxZ-b.minZ)/2,y:0};return point(candidate.x,candidate.z,id,rules,radius,candidate.y??0);});
 };
+// Capture points must sit on ground an actor can actually stand on. Next-gen
+// maps put some centres on solid bridge/catwalk decks with no step-up, so nudge
+// any obstructed zone to the nearest clear ground within the map.
+const clearZone=(arena,zone)=>{
+  if(!arena.terrain)return zone;
+  const radius=Math.max(.6,(zone.radius??3.5)*.5);
+  for(let ring=0;ring<=20;ring++)for(let a=0;a<(ring===0?1:8);a++){
+    const angle=a/(ring===0?1:8)*Math.PI*2,nx=zone.x+Math.cos(angle)*ring,nz=zone.z+Math.sin(angle)*ring;
+    if(!Number.isFinite(nx)||!Number.isFinite(nz))continue;
+    const ground=terrainHeight(arena,nx,nz);
+    if(ground===null||obstructedByBlocks(arena,nx,nz,ground,radius))continue;
+    return {...zone,x:nx,z:nz,y:ground};
+  }
+  return zone;
+};
 const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.id],ids,rules,arena)||(
   Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length
     ? ids.map((id,index)=>{const source=arena.objectiveZones[index];return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);})
@@ -58,9 +73,9 @@ export function objectiveTemplate(mode,arena,config){
  if(kind==='koth'){
   const b=boundsOf(arena),centerX=(b.minX+b.maxX)/2,centerZ=(b.minZ+b.maxZ)/2;
   const source=authored.slice().sort((p,q)=>Math.hypot(p.x-centerX,p.z-centerZ)-Math.hypot(q.x-centerX,q.z-centerZ))[0];
-  return {kind:'koth',zones:[{...source,id:'hill',captureSeconds:rules.objective.captureSeconds}],winner:null};
+  return {kind:'koth',zones:[clearZone(arena,{...source,id:'hill',captureSeconds:rules.objective.captureSeconds})],winner:null};
  }
- if(kind==='domination')return {kind:'domination',zones:authored,winner:null};
+ if(kind==='domination')return {kind:'domination',zones:authored.map(zone=>clearZone(arena,zone)),winner:null};
  if(kind==='assault'){const template=assaultTemplate(arena);template.zones=template.sectors;return assignAssaultTeams(template);}
  if(kind==='payload')return payloadTemplate(arena,{segments:Math.max(1,Math.min(6,Math.round(config?.fragLimit??rules.fragLimit??3)))});
  return null;

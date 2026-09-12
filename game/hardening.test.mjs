@@ -1,6 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Match, obstructed} from './core.mjs';
+import {MAPS} from './maps.mjs';
+import {arenaMeta} from './arenas.mjs';
 import {RULES} from './data.mjs';
 import {actorWon} from './outcome.mjs';
 import {payloadTemplate, stepPayload} from './payload.mjs';
@@ -35,6 +37,22 @@ test('payload routes stay finite and never collapse to instant delivery', () => 
   const actor = {x: state.position.x, y: state.position.y, z: state.position.z, team: 0, health: 100};
   stepPayload(state, [actor], 1 / 60, {teamScores: {0: 0, 1: 0}, scoreLimit: 3});
   assert.equal(state.delivered, false, 'a degenerate route must not deliver in one tick');
+});
+
+test('objective zones land on navigable ground on every objective map', () => {
+  for (const map of MAPS) {
+    const meta = arenaMeta(map.id);
+    if (!meta) continue;
+    for (const mode of ['koth', 'domination']) {
+      if (!meta.play.includes(mode)) continue;
+      const m = new Match('chatgpt', 'openclaw', seeded(), map.id, {mode, botCount: 0, humanCount: 1, timeLimit: 5, fragLimit: 5});
+      for (const zone of m.objectiveState.zones) {
+        let nearest = Infinity;
+        for (const node of m.nav) nearest = Math.min(nearest, Math.hypot(node.x - zone.x, node.z - zone.z));
+        assert.ok(nearest <= 2.5, `${map.id} ${mode} zone ${zone.id} must be navigable (nearest ${nearest.toFixed(1)}m)`);
+      }
+    }
+  }
 });
 
 test('combined-arms bots engage on titan-valley instead of idling on unreachable ground', () => {

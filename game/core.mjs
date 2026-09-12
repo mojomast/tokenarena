@@ -206,6 +206,8 @@ export class Match{
    this.flagSpawns=flagPoints(this.arena.flagSpawns,{0:this.teamSpawns[0][0],1:this.teamSpawns[1][0]});
     this.flags=this.config.mode==='ctf'?{0:{team:0,state:'at-base',x:this.flagSpawns[0][0],z:this.flagSpawns[0][1],carrier:null},1:{team:1,state:'at-base',x:this.flagSpawns[1][0],z:this.flagSpawns[1][1],carrier:null}}:[];
     this.objectiveState=objectiveTemplate(this.config.mode,this.arena,this.config);this.objectiveEventState=new Map();
+  // Objective zones must sit on ground the nav graph can reach; a zone on an isolated walkable pocket leaves bots stranded just outside its radius.
+  if(this.objectiveState&&(this.objectiveState.kind==='koth'||this.objectiveState.kind==='domination'))for(const zone of this.objectiveState.zones){const node=this.nav[nearest(zone,this.nav)];if(node&&Math.hypot(node.x-zone.x,node.z-zone.z)>2.5){zone.x=node.x;zone.z=node.z;if(Number.isFinite(node.y))zone.y=node.y;}}
   this.vehicles=(this.arena.vehicles||[]).map((template,id)=>{const vehicle=createVehicle(template),position={x:Number.isFinite(template.x)?template.x:0,y:Number.isFinite(template.y)?template.y:floorAt(template.x||0,template.z||0,this.arena)??0,z:Number.isFinite(template.z)?template.z:0};vehicle.id=template.id??`${vehicle.template}-${id}`;vehicle.kind=template.kind??GUNTRUCK.id;vehicle.spawn={...position};respawnVehicle(vehicle,position,template.yaw??0);return vehicle;});
   this.pickups=this.arena.pickups.map(([kind,x,z],id)=>({id,kind,x,z,y:floorAt(x,z,this.arena),wait:0}));
  this.pickups=this.pickups.filter(p=>this.config.mode!=='instagib'&&(modeWeapon(this.config)===null||p.kind==='health'||p.kind==='armor'));

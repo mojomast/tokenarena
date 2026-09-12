@@ -252,6 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.47 puts capture points where players can actually reach them:
+
+- **No more stranded hills.** Next-gen bridges and catwalks are solid, unclimbable columns (there is no step-up), so capture points authored on them could never be taken — King of the Hill on Frost Gate, Slagworks, The Forge and Convoy Line had no scoring at all. Capture zones are now nudged onto clear ground and snapped to the nearest navigation node when a match starts.
+- King of the Hill now scores on Frost Gate, The Forge, Slagworks, Convoy Line and The Catacombs; Domination center points on those maps are contestable instead of unreachable.
+
 Version 2.46 opens up Titan Valley and tightens objective play:
 
 - **Titan Valley is traversable again.** Its central tunnel ran the full width of the map and, with the flanking base bunkers, walled the northern half off. Four of ten team spawns, two of three capture points and three of six vehicles sat outside the navigation graph, so Combined Arms produced zero shots. The tunnel is now a shorter central passage, reconnecting the map.

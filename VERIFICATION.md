@@ -1,5 +1,23 @@
 # COCS verification report
 
+## Reachable capture points 2.47 - 2026-09-12
+
+- A sweep of King of the Hill across every map found Frost Gate, Slagworks,
+  The Forge and Convoy Line scoring exactly zero: their capture centres were
+  authored on solid bridge/catwalk decks, which the movement model cannot climb
+  (no step-up; jump apex 1.42m vs deck tops 2.7-5.5m), and the nav graph has no
+  nodes on decks.
+- `mode-data.mjs` now clears each KOTH/Domination zone onto unobstructed ground,
+  and the `Match` constructor snaps any zone whose nearest nav node is >2.5m
+  away (isolated walkable pockets left bots standing just outside the radius).
+- KOTH now scores on Frost Gate/Forge/Slagworks/Convoy-line/Catacombs
+  (22-33 per 40s window); Domination centre points are contestable.
+- New assertion `objective zones land on navigable ground on every objective
+  map` (confirmed failing pre-fix: `frost-gate koth zone hill ... nearest
+  6.0m`).
+- Suites: broad game regression 158/158, slow game/expansion.test.mjs 9/9,
+  server 107/107, `tsc --noEmit` clean.
+
 ## Titan Valley traversal + objective fixes 2.46 - 2026-09-12
 
 - Reachability sweep of all next-gen maps found titan-valley with 4/10 team
