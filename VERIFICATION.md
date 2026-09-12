@@ -1,5 +1,15 @@
 # COCS verification report
 
+## Cavern tunnel trim 2.29 - 2026-09-11
+
+- **Fix** (`game/view.mjs`): tunnel tubes are built centre-to-centre, so after the
+  2.28 wall rework they pierced the cavern shells. Each endpoint that lands within
+  1.5u of a cavern centre is now moved `min(cavernRadius, segmentLength*.9)` toward
+  its neighbour, so the visible tube terminates at the wall.
+
+Verification: `tsc --noEmit` clean, `npm run build` succeeds, `game/structures`
+and `game/maps` tests pass, SSR `tests/*.test.mjs` 1/1.
+
 ## Next-gen cavern rendering 2.28 - 2026-09-11
 
 - **Bug:** caverns rendered as a lone floating hemisphere (equator ~30% up the

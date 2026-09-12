@@ -370,8 +370,10 @@ export class ArenaView{
     const r=s.radius??.6,h=s.height??5,g=geo(`col|${r.toFixed(2)}|${h.toFixed(1)}`,()=>new T.CylinderGeometry(r,r,h,12)),cap=geo(`cap|${r.toFixed(2)}`,()=>new T.CylinderGeometry(r*1.35,r*1.35,.28,12));
     mesh(g,stone,s.x,(s.y??0)+h/2,s.z);mesh(cap,stone,s.x,(s.y??0)+h-.14,s.z);mesh(cap,stone,s.x,(s.y??0)+.14,s.z);
    }else if(s.type==='tunnel'){
-    const r=s.radius??3,pts=s.points.map(p=>new T.Vector3(p[0],p[1]+r*.45,p[2])),curve=new T.CatmullRomCurve3(pts);
-    const g=geo(`tun|${r}|${s.points.map(p=>p.map(n=>Math.round(n)).join('.')).join('_')}`,()=>new T.TubeGeometry(curve,Math.max(10,s.points.length*8),r,14,true));
+    const r=s.radius??3,caverns=structures.filter(c=>c.type==='cavern'),raw=s.points;
+    const trimmed=raw.map((p,i)=>{const neighbor=i===0?raw[1]:i===raw.length-1?raw[raw.length-2]:null;if(!neighbor)return p;const c=caverns.find(c=>Math.hypot(c.x-p[0],c.z-p[2])<1.5);if(!c)return p;const dx=neighbor[0]-p[0],dz=neighbor[2]-p[2],len=Math.hypot(dx,dz)||1,trim=Math.min(c.radius??12,len*.9);return [p[0]+dx/len*trim,p[1],p[2]+dz/len*trim];});
+    const pts=trimmed.map(p=>new T.Vector3(p[0],p[1]+r*.45,p[2])),curve=new T.CatmullRomCurve3(pts);
+    const g=geo(`tun|${r}|${trimmed.map(p=>p.map(n=>Math.round(n)).join('.')).join('_')}`,()=>new T.TubeGeometry(curve,Math.max(10,trimmed.length*8),r,14,true));
     mesh(g,tunnelMat,0,0,0);
    }else if(s.type==='cavern'){
     const shell=cavernShell(s.radius??12,s.height??8),base=s.y??0,dome=geo(`cavdome|${shell.radius}`,()=>new T.SphereGeometry(shell.radius,28,12,0,Math.PI*2,0,Math.PI/2));

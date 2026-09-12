@@ -252,8 +252,11 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
-Version 2.28 fixes the next-gen cavern domes:
+Version 2.29 trims the cavern tunnel visuals:
 
+- **Tunnels meet the domes.** Tunnel tubes were built centre-to-centre, so they pierced through the new cavern walls. Each tube endpoint that lands on a cavern is now trimmed back to that cavern's radius, so tunnels visibly terminate at the wall like real entrances instead of passing through the shell.
+
+Version 2.28 fixes the next-gen cavern domes:
 - **Domes no longer look connected.** A cavern used to render as a single floating hemisphere whose rim hovered partway up the wall (open all the way around), with each tunnel a full closed tube — so on **The Catacombs**, where five caverns are joined by four tunnels, the shells read as one merged mass. Caverns now render as a stone drum split into two wall arcs with two opposite entrances, capped by a dome seated on the wall top, and tunnels read as separate covered passages.
 - **Visible openings match collision.** The wall arcs are derived from the same entrance rule the generator uses for its hidden collision ring (`game/structures.mjs`), so the gaps you see are the gaps you can walk through.
 - Cavern, tunnel, column and rock surfaces no longer force the shared stone material double-sided.
