@@ -100,7 +100,7 @@ export function killBanner(hud, player) {
   const latest = hud?.feed?.[0], when = Number(hud?.time), at = Number(latest?.time);
   if (!latest || !player || !Number.isFinite(at) || !Number.isFinite(when)) return null;
   const age = Math.max(0, when - at);
-  if (latest.self) return {kind: 'self', text: 'ELIMINATED', age};
+  if (latest.self && latest.victim === player.name) return {kind: 'self', text: 'ELIMINATED', age};
   if (latest.killer === player.name && latest.victim !== player.name) return {kind: 'kill', text: `YOU ELIMINATED ${latest.victim ?? ''}`.trim(), age};
   if (latest.victim === player.name && latest.killer !== player.name) return {kind: 'death', text: `${latest.killer ?? 'ARENA'} ELIMINATED YOU`, age};
   return null;

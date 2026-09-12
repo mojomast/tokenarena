@@ -51,11 +51,28 @@ export class ProgressionStore{
  }
  trim(){while(this.players.size>this.max)this.players.delete(this.players.keys().next().value);}
  persist(){
-  if(!this.file)return;
-  fs.mkdirSync(path.dirname(this.file),{recursive:true});
+  if(!this.file)return true;
   const tmp=`${this.file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
-  fs.writeFileSync(tmp,JSON.stringify([...this.players.values()],null,1));
-  fs.renameSync(tmp,this.file);
+  try{
+   fs.mkdirSync(path.dirname(this.file),{recursive:true});
+   fs.writeFileSync(tmp,JSON.stringify([...this.players.values()],null,1));
+   fs.renameSync(tmp,this.file);
+   this._dirty=false;this._retryAt=0;this._failures=0;this.lastPersistError=null;
+   return true;
+  }catch(error){
+   // Keep the award in memory and retry later; a disk error must not abort the
+   // room tick or block the results broadcast.
+   this._dirty=true;this.lastPersistError=error;
+   this._failures=(this._failures??0)+1;
+   this._retryAt=Date.now()+Math.min(30000,1000*2**Math.min(this._failures-1,5));
+   try{fs.unlinkSync(tmp);}catch{}
+   return false;
+  }
+ }
+ flush(){
+  if(!this.file||!this._dirty)return true;
+  if(this._retryAt&&Date.now()<this._retryAt)return false;
+  return this.persist();
  }
  all(){return [...this.players.values()].map(profile=>({...profile,gear:{...profile.gear},attachments:{...profile.attachments},unlocks:{...profile.unlocks}}));}
 }

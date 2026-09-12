@@ -131,3 +131,19 @@ test('a completed Room match records into the shared history',()=>{
  assert.ok(e.players.some(p=>p.name==='A'));
  assert.ok(e.players.some(p=>p.name==='B'));
 });
+test('team history retains winner and scores for every team mode',()=>{
+ for(const mode of ['ctf','teamdeathmatch','koth','domination','assault','payload','combined-arms']){
+  const h=new MatchHistory();
+  const entry=h.record({config:{mode,fragLimit:3,timeLimit:60},time:20,actors,teamScores:{0:2,1:1},winner:0});
+  assert.equal(entry.mode,mode);
+  assert.deepEqual(entry.teamScores,{0:2,1:1},`${mode} scores`);
+  assert.equal(entry.winner,0,`${mode} winner`);
+ }
+});
+test('an explicit ending reason overrides the score-limit inference',()=>{
+ const h=new MatchHistory();
+ const timed=h.record({config:{mode:'teamdeathmatch',fragLimit:30,timeLimit:60},time:60,actors,teamScores:{0:1,1:0},winner:0,endingReason:'time'});
+ assert.equal(timed.endedBy,'time');
+ const frag=h.record({config:{mode:'teamdeathmatch',fragLimit:30,timeLimit:60},time:60,actors,teamScores:{0:30,1:0},winner:0,endingReason:'frag'});
+ assert.equal(frag.endedBy,'frag');
+});

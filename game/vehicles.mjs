@@ -213,6 +213,7 @@ export function vehicleSeatOpen(vehicle, role = 'driver', index = 0) {
 }
 
 export function vehicleSeatFor(vehicle) {
+  if (!vehicle || vehicle.health <= 0 || vehicle.respawnTimer > 0) return null;
   if (vehicleSeatOpen(vehicle, 'driver')) return { role: 'driver', index: 0 };
   if (vehicleSeatOpen(vehicle, 'gunner')) return { role: 'gunner', index: 0 };
   const layout = vehicleConfig(vehicle)?.seatLayout || GUNTRUCK.seatLayout;
@@ -271,11 +272,15 @@ export function leaveVehicleSeat(vehicle, actorId) {
 }
 
 function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
-  vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * dt);
-  vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - dt);
-  if (vehicle.overheated) {
-    vehicle.overheatTimer = Math.max(0, vehicle.overheatTimer - dt);
-    vehicle.overheated = vehicle.overheatTimer > 0;
+  // A gunner owns the mounted gun: skip its timers here so the weapon-only
+  // step does not advance heat, cooldown and overheat twice per tick.
+  if (vehicle.gunner == null) {
+    vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * dt);
+    vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - dt);
+    if (vehicle.overheated) {
+      vehicle.overheatTimer = Math.max(0, vehicle.overheatTimer - dt);
+      vehicle.overheated = vehicle.overheatTimer > 0;
+    }
   }
   const position = vehicle.position, velocity = vehicle.velocity;
   let heading = number(vehicle.heading, 0);
@@ -338,20 +343,22 @@ function stepFlight(vehicle, input, dt, collision, ground, config, gun) {
   vehicle.pitchBody = number(vehicle.pitchBody, 0) + (pitchTarget - number(vehicle.pitchBody, 0)) * blend;
   vehicle.roll = number(vehicle.roll, 0) + (rollTarget - number(vehicle.roll, 0)) * blend;
   vehicle.grounded = position.y <= minY + 1e-3;
-  if (Number.isFinite(input.turretYaw)) {
-    const traverse = number(config.traverseRate, 2.2) * clamp(number(input.traverseScale, 1), 0.5, 2) * dt;
-    vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
-  } else {
-    vehicle.turretYaw = number(vehicle.turretYaw, 0);
-  }
-  if (input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
-    vehicle.heat = Math.min(gun.maxHeat, vehicle.heat + gun.heatPerShot);
-    vehicle.fireCooldown = gun.interval;
-    vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };
-    vehicle.muzzleIndex = (vehicle.muzzleIndex + 1) % 2;
-    if (vehicle.heat >= gun.maxHeat) {
-      vehicle.overheated = true;
-      vehicle.overheatTimer = gun.overheatCooldown;
+  if (vehicle.gunner == null) {
+    if (Number.isFinite(input.turretYaw)) {
+      const traverse = number(config.traverseRate, 2.2) * clamp(number(input.traverseScale, 1), 0.5, 2) * dt;
+      vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
+    } else {
+      vehicle.turretYaw = number(vehicle.turretYaw, 0);
+    }
+    if (input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
+      vehicle.heat = Math.min(gun.maxHeat, vehicle.heat + gun.heatPerShot);
+      vehicle.fireCooldown = gun.interval;
+      vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };
+      vehicle.muzzleIndex = (vehicle.muzzleIndex + 1) % 2;
+      if (vehicle.heat >= gun.maxHeat) {
+        vehicle.overheated = true;
+        vehicle.overheatTimer = gun.overheatCooldown;
+      }
     }
   }
   return vehicle;
@@ -377,11 +384,15 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
 
   if (config.flight) return stepFlight(vehicle, input, duration, collision, ground, config, gun);
 
-  vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * duration);
-  vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - duration);
-  if (vehicle.overheated) {
-    vehicle.overheatTimer = Math.max(0, vehicle.overheatTimer - duration);
-    vehicle.overheated = vehicle.overheatTimer > 0;
+  // A gunner owns the mounted gun: skip its timers here so the weapon-only
+  // step does not advance heat, cooldown and overheat twice per tick.
+  if (vehicle.gunner == null) {
+    vehicle.heat = Math.max(0, vehicle.heat - gun.coolRate * duration);
+    vehicle.fireCooldown = Math.max(0, vehicle.fireCooldown - duration);
+    if (vehicle.overheated) {
+      vehicle.overheatTimer = Math.max(0, vehicle.overheatTimer - duration);
+      vehicle.overheated = vehicle.overheatTimer > 0;
+    }
   }
 
   const throttle = clamp(number(input.throttle, 0), -1, 1);
@@ -502,11 +513,13 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
   vehicle.heading = Number.isFinite(heading) ? heading : 0;
   vehicle.speed = speed;
 
-  if (Number.isFinite(input.turretYaw)) {
-    const traverse = number(config.traverseRate, 1.75) * clamp(number(input.traverseScale, 1), 0.5, 2) * duration;
-    vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
-  } else {
-    vehicle.turretYaw = number(vehicle.turretYaw, 0);
+  if (vehicle.gunner == null) {
+    if (Number.isFinite(input.turretYaw)) {
+      const traverse = number(config.traverseRate, 1.75) * clamp(number(input.traverseScale, 1), 0.5, 2) * duration;
+      vehicle.turretYaw = wrapAngle(approachAngle(number(vehicle.turretYaw, 0), input.turretYaw, traverse));
+    } else {
+      vehicle.turretYaw = number(vehicle.turretYaw, 0);
+    }
   }
 
   const next = {
@@ -545,7 +558,7 @@ export function stepVehicle(vehicle, input = {}, dt = 0, collision, ground) {
   if (!Number.isFinite(vehicle.roll)) vehicle.roll = 0;
   vehicle.grounded = groundY === null ? true : grounded;
 
-  if (input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
+  if (vehicle.gunner == null && input.fire === true && !vehicle.overheated && vehicle.fireCooldown <= 0) {
     vehicle.heat = Math.min(gun.maxHeat, vehicle.heat + gun.heatPerShot);
     vehicle.fireCooldown = gun.interval;
     vehicle.lastStep = { fired: true, muzzle: vehicle.muzzleIndex, muzzles: [0, 1] };

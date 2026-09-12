@@ -1,5 +1,6 @@
 import {Match} from '../game/core.mjs';
 import {normalizeConfig} from '../game/config.mjs';
+import {actorWon} from '../game/outcome.mjs';
 import {getMap} from '../game/maps.mjs';
 import {resolveMapForMode} from '../game/arenas.mjs';
 import {CHARACTERS,resolveLoadout,RULES} from '../game/data.mjs';
@@ -333,17 +334,15 @@ export class Room {
       this.roundOver = true;
       const result = this.match.snapshot();
       const mode = this.match.config.mode;
-      const objectiveEnded = mode === 'ctf' ? 'capture' : mode === 'teamdeathmatch' ? 'frag' : mode === 'koth' || mode === 'domination' ? 'objective' : null;
-      this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: result.actors, teamScores: result.teamScores, winner: result.winner, endingReason: result.winner === null ? null : objectiveEnded });
+      try { this.history?.record({ roomId: this.id, mapId: this.mapId, config: this.match.config, time: this.match.time, actors: result.actors, teamScores: result.teamScores, winner: result.winner, endingReason: result.overReason ?? null }); }
+      catch (error) { this.lastPersistError = error; }
       if (this.progression) {
-       const teamMode = ['ctf', 'teamdeathmatch', 'koth', 'domination', 'combined-arms'].includes(mode);
-       const maxFrags = Math.max(...result.actors.map(a => Number(a.frags) || 0));
        for (const p of this.peers.values()) {
         if (!p.playerId || p.actorId === null || p.spectate) continue;
         const actor = result.actors.find(a => a.id === p.actorId);
-        const win = teamMode ? result.winner === actor?.team : (Number(actor?.frags) || 0) === maxFrags;
-        const award = this.progression.award(p.playerId, { win, actor, mode });
-        if (award) this.send(p.id, { type: 'progression', ...award });
+        const win = actorWon(result, mode, actor);
+        try { const award = this.progression.award(p.playerId, { win, actor, mode }); if (award) this.send(p.id, { type: 'progression', ...award }); }
+        catch (error) { this.lastPersistError = error; }
        }
       }
       this.broadcast({ type: 'results', state: result }); break;

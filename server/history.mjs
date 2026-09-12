@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {teamMode} from '../game/config.mjs';
 
 export const HISTORY_CAP = 50;
 const SCORE_STAT_FIELDS = ['captures', 'flagPickups', 'flagReturns', 'flagDrops', 'objectiveTime', 'objectiveCaptures', 'objectiveNeutralizations', 'objectiveContests'];
@@ -34,21 +35,21 @@ export class MatchHistory {
  record({ roomId = 'local', mapId = 'exchange', config = {}, time = 0, actors = [], teamScores = null, winner = null, endingReason = null, result = null } = {}) {
    const fragLimit = Number.isFinite(config.fragLimit) ? config.fragLimit : 0;
    const mode = config.mode ?? 'deathmatch';
-   const teamMode = ['ctf', 'teamdeathmatch', 'koth', 'domination'].includes(mode);
+   const isTeamMode = teamMode(mode);
    const scores = teamScores ?? result?.teamScores;
     let normalizedScores = scores && typeof scores === 'object' ? { 0: Number(scores[0]), 1: Number(scores[1]) } : null;
     if (normalizedScores) {
      normalizedScores[0] = Number.isFinite(normalizedScores[0]) ? normalizedScores[0] : 0;
      normalizedScores[1] = Number.isFinite(normalizedScores[1]) ? normalizedScores[1] : 0;
     }
-   if (teamMode && !normalizedScores && mode === 'teamdeathmatch') {
+   if (isTeamMode && !normalizedScores && mode === 'teamdeathmatch') {
     normalizedScores = { 0: 0, 1: 0 };
     for (const actor of actors) if (actor.team === 0 || actor.team === 1) normalizedScores[actor.team] += Number(actor.frags) || 0;
    }
    const scoreWinner = normalizedScores && normalizedScores[0] !== normalizedScores[1]
     ? (normalizedScores[0] > normalizedScores[1] ? 0 : 1) : null;
    const scoreReached = normalizedScores && fragLimit > 0 && [0, 1].some(team => normalizedScores[team] >= fragLimit);
-   const reason = endingReason ?? result?.endingReason ?? (teamMode
+   const reason = endingReason ?? result?.endingReason ?? (isTeamMode
     ? (scoreReached ? (mode === 'ctf' ? 'capture' : mode === 'teamdeathmatch' ? 'frag' : 'objective') : 'time')
     : (fragLimit > 0 && actors.some(a => a.frags >= fragLimit) ? 'frag' : 'time'));
    const entry = {
@@ -67,7 +68,7 @@ export class MatchHistory {
     })(),
     players: actors.map(a => ({ name: a.name, character: a.character, harness: a.harness, frags: a.frags, deaths: a.deaths, ...(scoreStatsOf(a) ? { scoreStats: scoreStatsOf(a) } : {}) }))
    };
-   if (teamMode && normalizedScores) {
+   if (isTeamMode && normalizedScores) {
     entry.teamScores = normalizedScores;
     entry.winner = winner ?? result?.winner ?? scoreWinner;
    }
@@ -77,12 +78,29 @@ export class MatchHistory {
   return entry;
  }
  persist() {
-  if (!this.file) return;
+  if (!this.file) return true;
   const dir = path.dirname(this.file);
-  fs.mkdirSync(dir, { recursive: true });
   const tmp = `${this.file}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(this.matches, null, 1));
-  fs.renameSync(tmp, this.file);
+  try {
+   fs.mkdirSync(dir, { recursive: true });
+   fs.writeFileSync(tmp, JSON.stringify(this.matches, null, 1));
+   fs.renameSync(tmp, this.file);
+   this._dirty = false; this._retryAt = 0; this._failures = 0; this.lastPersistError = null;
+   return true;
+  } catch (error) {
+   // Keep the newest in-memory record and retry later instead of throwing out
+   // of the room tick (which would take the whole server process down).
+   this._dirty = true; this.lastPersistError = error;
+   this._failures = (this._failures ?? 0) + 1;
+   this._retryAt = Date.now() + Math.min(30000, 1000 * 2 ** Math.min(this._failures - 1, 5));
+   try { fs.unlinkSync(tmp); } catch {}
+   return false;
+  }
+ }
+ flush() {
+  if (!this.file || !this._dirty) return true;
+  if (this._retryAt && Date.now() < this._retryAt) return false;
+  return this.persist();
  }
   all() { return this.matches.map(m => ({ ...m, ...(m.teamScores ? { teamScores: { ...m.teamScores } } : {}), players: m.players.map(p => ({ ...p, ...(p.scoreStats ? { scoreStats: { ...p.scoreStats } } : {}) })) })); }
 }

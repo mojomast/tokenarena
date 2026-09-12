@@ -208,3 +208,70 @@ test('renderState interpolates remote actors using the adaptive delay',t=>{
  const s=client.renderState(now);
  assert.ok(Math.abs(s.actors[0].x-5)<0.01,`remote actor interpolates to the midpoint, got ${s.actors[0].x}`);
 });
+test('prediction clock stays bounded by authoritative time across delayed acks',()=>{
+ const config={humanCount:1,botCount:0,timeLimit:60};
+ const client=new NetClient();client.createShadow('crosswire',config);client.actorId=0;
+ client.resync({...client.shadow.actors[0],id:0,x:0,y:0,z:5,vx:0,vy:0,vz:0,grounded:true,protection:0,health:100,ammo:[Infinity]});
+ const dt=1/60,lag=6;let serverTime=0,snapshot=0;
+ for(let tick=0;tick<30*60;tick++){
+  const input={x:1,z:0,yaw:tick*.001,pitch:0};
+  const sent=client.input(input);
+  client.predict(input);
+  serverTime+=dt;
+  if(tick%2===1){
+   snapshot++;
+   const ack=Math.max(0,sent-lag);
+   client.push({seq:snapshot,acks:{0:ack},state:{time:serverTime,over:false,actors:[{...client.shadow.actors[0]}],rockets:[],pickups:[],feed:[],config:{},mapId:'crosswire',mapName:'',modeName:'',projectiles:0,stats:{},leaders:[]}});
+  }
+ }
+ assert.equal(client.shadow.over,false,'an active match must not time out the prediction shadow');
+ assert.ok(client.shadow.time<serverTime+lag*dt+.25,`shadow clock ${client.shadow.time.toFixed(2)} should track server ${serverTime.toFixed(2)}`);
+ const before=client.shadow.actors[0].yaw;
+ client.predict({x:0,z:0,yaw:before+1,pitch:0});
+ assert.equal(client.shadow.actors[0].yaw,before+1,'prediction must stay responsive');
+});
+test('an authoritative over state still stops prediction',()=>{
+ const config={humanCount:1,botCount:0,timeLimit:60};
+ const client=new NetClient();client.createShadow('crosswire',config);client.actorId=0;
+ client.resync({...client.shadow.actors[0],id:0,x:0,y:0,z:5,protection:0,health:100,ammo:[Infinity]});
+ client.push({seq:1,acks:{0:0},state:{time:60,over:true,actors:[{...client.shadow.actors[0]}],rockets:[],pickups:[],feed:[],config:{},mapId:'crosswire',mapName:'',modeName:'',projectiles:0,stats:{},leaders:[]}});
+ assert.equal(client.shadow.over,true);
+ assert.equal(client.shadow.time,60);
+});
+test('reconnecting disposes the previous socket and ignores stale events',async t=>{
+ const sockets=[];
+ class Socket{
+  constructor(){this.readyState=0;this.closed=false;sockets.push(this);}
+  close(){this.closed=true;this.readyState=3;}
+  open(){this.readyState=1;this.onopen?.();}
+  message(data){this.onmessage?.({data});}
+  remoteClose(){this.readyState=3;this.onclose?.();}
+ }
+ t.mock.method(globalThis,'WebSocket',function(){return new Socket();});
+ const client=new NetClient();
+ const first=client.connect(),a=sockets[0];a.open();await first;
+ const stale={onopen:a.onopen,onerror:a.onerror,onclose:a.onclose,onmessage:a.onmessage};
+ const second=client.connect(),b=sockets[1];b.open();await second;
+ assert.equal(a.closed,true,'the superseded socket is closed');
+ assert.equal(client.connected,true);
+ stale.onclose();
+ assert.equal(client.connected,true,'a stale close must not drop the live connection');
+ stale.onmessage({data:JSON.stringify({type:'welcome',peerId:999,host:true})});
+ assert.notEqual(client.peerId,999,'a stale message must not overwrite the current peer');
+ const rooms={type:'rooms',rooms:[{roomId:'live'}]};client.ws.onmessage({data:JSON.stringify(rooms)});
+ assert.deepEqual(client.rooms,rooms.rooms,'the current socket still delivers messages');
+ client.close();
+});
+test('a superseded connect promise rejects instead of hanging',async t=>{
+ const sockets=[];
+ class Socket{constructor(){this.readyState=0;sockets.push(this);}close(){this.readyState=3;}}
+ t.mock.method(globalThis,'WebSocket',function(){return new Socket();});
+ const client=new NetClient();
+ const first=client.connect();
+ const second=client.connect();
+ await assert.rejects(first,/superseded/);
+ const b=sockets[1];b.readyState=1;b.onopen?.();
+ await second;
+ assert.equal(client.connected,true);
+ client.close();
+});

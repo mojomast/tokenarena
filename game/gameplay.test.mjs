@@ -137,6 +137,41 @@ test('descending from above lands on a solid top',()=>{
  assert.equal(a.y,5);assert.equal(a.grounded,true);clear(a,arena);
 });
 
+test('an airborne actor above cover is not snapped down onto its top',()=>{
+ const arena={id:'reactor-hover',raised:false,blocks:[{kind:'reactor',x:0,z:0,w:3,d:3,h:5}],spawns:[[0,0]],pickups:[],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}};
+ const a=actor(arena,{x:0,y:20,z:0,vy:0});
+ moveActor(a,{},1/60,arena,{speed:1,gravity:1});
+ assert.ok(a.y>18,`expected to stay near the drop height, got ${a.y}`);
+ for(let i=0;i<200&&!a.grounded;i++)moveActor(a,{},1/60,arena,{speed:1,gravity:1});
+ assert.equal(a.y,5,'gravity should still land it on the block top');
+ assert.equal(a.grounded,true);
+});
+
+test('jumping from a solid top reaches a positive apex',()=>{
+ const arena={id:'reactor-jump',raised:false,blocks:[{kind:'reactor',x:0,z:0,w:6,d:6,h:2}],spawns:[[0,0]],pickups:[],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}};
+ const a=actor(arena,{x:0,y:2,z:0,grounded:true,vy:0});
+ let apex=a.y;
+ for(let i=0;i<30;i++){moveActor(a,{jump:i===0},1/60,arena,{speed:1,gravity:1});apex=Math.max(apex,a.y);}
+ assert.ok(apex>2.3,`expected a jump above the block, apex ${apex}`);
+});
+
+test('a grounded actor crossing a solid top stays supported',()=>{
+ const arena={id:'reactor-walk',raised:false,blocks:[{kind:'reactor',x:0,z:0,w:6,d:6,h:2}],spawns:[[0,0]],pickups:[],bounds:{minX:-10,maxX:10,minZ:-10,maxZ:10}};
+ const a=actor(arena,{x:-2,y:2,z:0,grounded:true});
+ for(let i=0;i<12;i++){moveActor(a,{x:1},1/60,arena,{speed:1.5,gravity:1});if(Math.abs(a.x)<3-RULES.radius-.1){assert.equal(a.y,2,`stayed on top at x=${a.x}`);assert.equal(a.grounded,true);}}
+});
+
+test('team-only maps still give teamless modes valid, multiple spawns',()=>{
+ for(const map of MAPS){
+  const m=new Match('chatgpt','openclaw',rng(),map.id,{mode:'deathmatch',botCount:0,humanCount:1});
+  assert.ok(m.spawns.length>=2,`${map.id}: teamless spawn pool (${m.spawns.length})`);
+  if(!map.spawns.length){
+   const a=m.actors[0];
+   assert.equal(obstructed(a.x,a.y,a.z,RULES.radius,m.arena),false,`${map.id}: actor ${a.id} spawns clear`);
+  }
+ }
+});
+
 test('bot engagement range scales with map size and difficulty then stays cached',()=>{
  const small=new Match('chatgpt','openclaw',rng(),'exchange',{botCount:1,difficulty:'easy'}).actors[0].botScan;
  const big=new Match('chatgpt','openclaw',rng(),'frostline',{botCount:1,difficulty:'easy'}).actors[0].botScan;

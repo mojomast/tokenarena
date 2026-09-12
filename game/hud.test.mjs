@@ -134,6 +134,10 @@ test('killBanner derives kill, death and self text with age', () => {
   close(killBanner({time:10, feed:[{killer:'Grok', victim:'ChatGPT', self:false, time:9.4}]}, player), {kind:'death', text:'Grok ELIMINATED YOU'});
   close(killBanner({time:10, feed:[{killer:'The void', victim:'ChatGPT', self:true, time:9.4}]}, player), {kind:'self', text:'ELIMINATED'});
   assert.equal(killBanner({time:10, feed:[{killer:'Grok', victim:'Llama', self:false, time:9.4}]}, player), null);
+  // Another actor's suicide or fall must not show the local ELIMINATED banner.
+  assert.equal(killBanner({time:10, feed:[{killer:'The void', victim:'Llama', self:true, time:9.4}]}, player), null);
+  assert.equal(killBanner({time:10, feed:[{killer:'Grok', victim:'Grok', self:true, time:9.4}]}, player), null);
+  close(killBanner({time:10, feed:[{killer:'ChatGPT', victim:'ChatGPT', self:true, time:9.4}]}, player), {kind:'self', text:'ELIMINATED'});
   assert.equal(killBanner({time:10, feed:[{killer:'ChatGPT', victim:'Grok', self:false}]}, player), null);
   assert.equal(killBanner({}, player), null);
 });

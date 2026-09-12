@@ -33,7 +33,16 @@ export class NetClient {
   this.onVoiceSignal = null;
   this.onVoiceConfig = null;
   this.baseRenderDelay = clamp(Number(options.renderDelay) || RENDER_DELAY_DEFAULT, RENDER_DELAY_MIN, RENDER_DELAY_MAX);
+  this._pendingReject = null;
   this.reset();
+ }
+ _disposeSocket() {
+  if (this._pendingReject) { const reject = this._pendingReject; this._pendingReject = null; try { reject(new Error('superseded')); } catch {} }
+  const ws = this.ws;
+  if (!ws) return;
+  try { ws.onopen = ws.onerror = ws.onclose = ws.onmessage = null; } catch {}
+  try { ws.close(); } catch {}
+  if (this.ws === ws) this.ws = null;
  }
  reset() {
   this.ws = null;
@@ -73,19 +82,25 @@ export class NetClient {
  }
  connect(url = this.url) {
   if (url) this.url = url;
+  // A reconnect supersedes any existing socket: close it and detach its
+  // handlers before installing the replacement so stale events cannot corrupt
+  // the new connection's state.
+  this._disposeSocket();
   this.reset();
   this.closedByUser = false;
   return new Promise((resolve, reject) => {
    let ws;
    try { ws = new WebSocket(this.url); } catch (e) { reject(e); return; }
+   const current = () => this.ws === ws;
    this.ws = ws;
-   ws.onopen = () => { this.connected = true; resolve(); };
-   ws.onerror = () => { if (!this.connected) reject(new Error('connection failed')); };
-   ws.onclose = () => { this.connected = false; if (this.onClose && !this.closedByUser) this.onClose(); };
-   ws.onmessage = e => this.onMessage(e.data);
+   this._pendingReject = reject;
+   ws.onopen = () => { if (!current()) return; this._pendingReject = null; this.connected = true; resolve(); };
+   ws.onerror = () => { if (!current()) return; this._pendingReject = null; if (!this.connected) reject(new Error('connection failed')); };
+   ws.onclose = () => { if (!current()) return; this._pendingReject = null; this.connected = false; if (this.onClose && !this.closedByUser) this.onClose(); };
+   ws.onmessage = e => { if (!current()) return; this.onMessage(e.data); };
   });
  }
- close() { this.closedByUser = true; try { this.ws?.close(); } catch {} this.ws = null; this.connected = false; }
+ close() { this.closedByUser = true; this._disposeSocket(); this.connected = false; }
  send(msg) {
   if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return false;
   const text = JSON.stringify(msg);
@@ -189,10 +204,17 @@ export class NetClient {
   this.state = msg.state;
   if (this.shadow && this.actorId !== null) {
    const own = msg.state.actors.find(a => a.id === this.actorId);
-     if (own) {
-      this.resync(own);
-      this.resyncVehicles(msg.state.vehicles);
-      const ack=Number.isInteger(msg.acks?.[this.actorId])?msg.acks[this.actorId]:null;
+    if (own) {
+     this.resync(own);
+     this.resyncVehicles(msg.state.vehicles);
+     // Prediction runs on a shadow match, so restore its clock and terminal
+     // state before replaying pending inputs; otherwise each replay counts the
+     // same elapsed time again until the shadow times out and freezes.
+     if (this.shadow) {
+      if (Number.isFinite(msg.state.time)) this.shadow.time = msg.state.time;
+      if (typeof msg.state.over === 'boolean') this.shadow.over = msg.state.over;
+     }
+     const ack=Number.isInteger(msg.acks?.[this.actorId])?msg.acks[this.actorId]:null;
      if(ack!==null){this.pendingInputs=this.pendingInputs.filter(item=>item.seq>ack);for(const item of this.pendingInputs)this.shadow.step(RULES.dt,{inputs:{[this.shadow.actors[0].id]:item.input}});}
      this.resynced = true;
     }

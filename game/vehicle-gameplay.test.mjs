@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {Match, floorAt, obstructed} from './core.mjs';
-import {GUNTRUCK} from './vehicles.mjs';
+import {GUNTRUCK, vehicleSeatFor, takeVehicleSeat} from './vehicles.mjs';
 
 const match=()=>new Match('chatgpt','openclaw',()=>.5,'blood-gulch',{mode:'ctf',botCount:0,respawn:1});
 
@@ -105,4 +105,38 @@ test('team modes keep friendly fire off against vehicles but let mounted guns ki
   const armour=enemy.health;
   m.fireVehicle(v,a,0,0);
   assert.ok(enemy.health<armour,`mounted chaingun should damage enemy armour (${armour} -> ${enemy.health})`);
+});
+
+test('a mounted gunner does not double the chaingun timer progression',()=>{
+  const timers=(mount)=>{
+    const m=new Match('chatgpt','openclaw',()=>.5,'blood-gulch',{mode:'ctf',botCount:0,humanCount:3,respawn:1});
+    const v=m.vehicles[0],[driver,gunner]=m.actors;
+    v.heat=.5;v.fireCooldown=5;v.overheated=false;v.overheatTimer=0;
+    Object.assign(driver,{x:v.position.x,y:v.position.y,z:v.position.z,grounded:true,protection:0});
+    Object.assign(gunner,{x:v.position.x,y:v.position.y,z:v.position.z,grounded:true,protection:0});
+    if(mount==='driver'||mount==='driver+gunner')m.enterVehicle(driver);
+    if(mount==='driver+gunner')m.enterVehicle(gunner);
+    if(mount==='gunner'){takeVehicleSeat(v,gunner.id,'gunner',0);m.syncVehicleActor(gunner,v);}
+    for(let i=0;i<60;i++)m.step(1/60);
+    return {heat:v.heat,cooldown:v.fireCooldown};
+  };
+  const reference=timers('none');
+  assert.ok(reference.cooldown>3.9&&reference.cooldown<4.01,`single progression should leave ~4s cooldown, got ${reference.cooldown}`);
+  for(const mount of ['driver','driver+gunner','gunner']){
+    const result=timers(mount);
+    assert.ok(Math.abs(result.cooldown-reference.cooldown)<1e-9,`${mount} cooldown advanced twice (${result.cooldown} vs ${reference.cooldown})`);
+    assert.ok(Math.abs(result.heat-reference.heat)<1e-9,`${mount} heat cooled twice (${result.heat} vs ${reference.heat})`);
+  }
+});
+
+test('destroyed or respawning vehicles reject entry until they respawn',()=>{
+  const m=match(),a=m.actors[0],v=m.vehicles[0];
+  Object.assign(a,{x:v.position.x,y:v.position.y,z:v.position.z,grounded:true,protection:0});
+  v.health=0;v.respawnTimer=1;
+  assert.equal(vehicleSeatFor(v),null,'a wreck exposes no seats');
+  assert.equal(m.enterVehicle(a),false);
+  assert.equal(a.vehicleId,null);
+  v.health=v.maxHealth;v.respawnTimer=0;
+  assert.ok(vehicleSeatFor(v));
+  assert.equal(m.enterVehicle(a),true);
 });

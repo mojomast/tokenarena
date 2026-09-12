@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {Match,eye} from './core.mjs';
 import {RULES,WEAPONS} from './data.mjs';
+import {createVehicle} from './vehicles.mjs';
 
 const fresh=(mode='deathmatch')=>{
  const m=new Match('chatgpt','openclaw',()=>.5,'exchange',{mode,botCount:0,humanCount:3});
@@ -40,9 +41,40 @@ test('team splash damages and boosts shooter and enemies, never teammates',()=>{
 });
 
 test('self splash uses normal protection, armor and suicide scoring',()=>{
- const m=fresh('teamdeathmatch'),a=m.actors[0],r={owner:a.id,weapon:1,pos:eye(a)};
- a.protection=1;m.explode(r,null);close(a.health,100);
- a.protection=0;a.armor=50;m.explode(r,null);close(a.health,76);close(a.armor,14);
- a.health=1;a.armor=0;m.explode(r,null);
- assert.equal(a.deaths,1);assert.equal(a.frags,-1);assert.deepEqual(m.teamScores,{0:0,1:0});
+  const m=fresh('teamdeathmatch'),a=m.actors[0],r={owner:a.id,weapon:1,pos:eye(a)};
+  a.protection=1;m.explode(r,null);close(a.health,100);
+  a.protection=0;a.armor=50;m.explode(r,null);close(a.health,76);close(a.armor,14);
+  a.health=1;a.armor=0;m.explode(r,null);
+  assert.equal(a.deaths,1);assert.equal(a.frags,-1);assert.deepEqual(m.teamScores,{0:0,1:0});
+});
+
+test('rockets strike vehicle bodies instead of passing through them',()=>{
+  const m=fresh(),vehicle=createVehicle('puma',{x:0,y:0,z:0,heading:0});
+  m.vehicles=[vehicle];
+  m.rockets=[{owner:0,weapon:1,pos:{x:-5,y:1,z:0},dir:{x:1,y:0,z:0},vy:0,life:4,bounces:0}];
+  const before=vehicle.health;
+  m.step(.5);
+  assert.ok(vehicle.health<before,`rocket should damage the Puma (${before} -> ${vehicle.health})`);
+  assert.equal(m.rockets.length,0,'impact should consume the rocket');
+});
+
+test('rockets never damage their own or a friendly vehicle',()=>{
+  const own=fresh(),ownVehicle=createVehicle('puma',{x:0,y:0,z:0,heading:0});
+  own.vehicles=[ownVehicle];ownVehicle.driver=0;own.actors[0].vehicleId=ownVehicle.id;
+  own.rockets=[{owner:0,weapon:1,pos:{x:-5,y:1,z:0},dir:{x:1,y:0,z:0},vy:0,life:4,bounces:0}];
+  const ownHealth=ownVehicle.health;
+  own.step(.5);
+  assert.equal(ownVehicle.health,ownHealth,'a driver rocket must not hit its own vehicle');
+
+  const friendly=fresh('ctf'),friendlyVehicle=createVehicle('puma',{x:0,y:0,z:0,heading:0});
+  friendly.vehicles=[friendlyVehicle];friendlyVehicle.driver=0;friendly.actors[0].vehicleId=friendlyVehicle.id;
+  friendly.rockets=[{owner:2,weapon:1,pos:{x:-5,y:1,z:0},dir:{x:1,y:0,z:0},vy:0,life:4,bounces:0}];
+  const friendlyHealth=friendlyVehicle.health;
+  friendly.step(.5);
+  assert.equal(friendlyVehicle.health,friendlyHealth,'friendly fire must not damage a team vehicle');
+  assert.equal(friendly.actors[0].team,friendly.actors[2].team,'fixture keeps shooter and driver on one team');
+
+  friendly.rockets=[{owner:1,weapon:1,pos:{x:-5,y:1,z:0},dir:{x:1,y:0,z:0},vy:0,life:4,bounces:0}];
+  friendly.step(.5);
+  assert.ok(friendlyVehicle.health<friendlyHealth,'an enemy rocket should still damage the vehicle');
 });

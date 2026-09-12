@@ -87,3 +87,22 @@ test('melee registers as a provided one-shot control', () => {
   assert.equal(controlsFromState({ melee: true }).melee, true);
   assert.equal(controlsFromState({}).melee, undefined);
 });
+test('an idle joystick does not suppress keyboard movement', () => {
+  // The runtime always supplies a touch vector shaped like this, so a centered
+  // joystick must fall back to WASD instead of zeroing local and online input.
+  const touchMove = touch => ({ x: touch.moveX || 0, y: touch.moveY || 0 });
+  const idle = touchMove({moveX: 0, moveY: 0, sprint: false, crouch: false});
+  const forward = controlsFromState({keys: ['KeyW'], look: {yaw: 0}, move: idle});
+  assert.equal(forward.z, -1, 'W moves forward with an idle joystick');
+  const right = controlsFromState({keys: ['KeyD'], look: {yaw: 0}, move: idle});
+  assert.ok(Math.abs(right.x - 1) < 1e-9, 'D strafes right with an idle joystick');
+  const still = controlsFromState({keys: [], look: {yaw: 0}, move: idle});
+  assert.ok(Math.abs(still.x) < 1e-9 && Math.abs(still.z) < 1e-9, 'idle stays still');
+});
+test('an active joystick still drives analog movement', () => {
+  const pushed = controlsFromState({keys: ['KeyW'], look: {yaw: 0}, move: {x: 0, y: .5}});
+  assert.ok(Math.abs(pushed.z - (-.5)) < 1e-9, 'analog forward wins over keys');
+  const released = controlsFromState({keys: ['KeyW'], look: {yaw: 0}, move: {x: 0, y: 0}, sprint: true});
+  assert.equal(released.z, -1, 'keyboard resumes after the stick returns to center');
+  assert.equal(released.sprint, true);
+});

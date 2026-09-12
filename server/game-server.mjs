@@ -23,7 +23,7 @@ export const HEARTBEAT_MS = 15000;
 export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1000 / 60, graceMs, snapshotHz, historyPath = null, progressionPath = null } = {}) {
  const history = new MatchHistory(historyPath);
  const progression = new ProgressionStore(progressionPath);
- const registry = new RoomRegistry({ random, graceMs, history, progression, snapshotHz });
+ const registry = new RoomRegistry({ random, graceMs, history, progression, snapshotHz, onError: (error, room) => console.error(`room ${room?.id ?? '?'} tick failed`, error) });
  const sockets = new Map();
  const socketPeer = new WeakMap();
  const peerRoom = new Map();
@@ -33,14 +33,41 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   res.end(JSON.stringify({ service: 'token-arena-game-server', rooms: registry.rooms.size, players, port: server.address()?.port ?? port }));
  });
   const wss = new WebSocketServer({ server, maxPayload: 64 * 1024 });
- let nextPeer = 1;
- function sendTo(peerId, msg) {
-  const ws = sockets.get(peerId);
-  if (!ws || ws.readyState !== ws.OPEN) return;
-  const text = JSON.stringify(msg);
-  if (ws.bufferedAmount + Buffer.byteLength(text) > TRAFFIC_BUFFER_LIMIT) { if (msg?.type === 'voice-config') ws.terminate(); return; }
-  ws.send(text);
- }
+  let nextPeer = 1;
+  // Snapshots and voice traffic are replaceable; protocol transitions
+  // (welcome/start/results/lobby/errors) are not. Essential messages that hit a
+  // congested socket are retained in a small per-socket queue and pumped once
+  // the buffer drains, rather than being silently dropped.
+  const REPLACEABLE = new Set(['snapshot', 'events', 'voice-signal', 'voice-config']);
+  function queueEssential(ws, text) {
+   const queue = ws.pendingEssential || (ws.pendingEssential = []);
+   if (queue.length >= 64) queue.shift();
+   queue.push(text);
+  }
+  function pumpEssential(ws) {
+   const queue = ws.pendingEssential;
+   if (!queue?.length || ws.readyState !== ws.OPEN) return;
+   while (queue.length && ws.bufferedAmount < TRAFFIC_BUFFER_LIMIT) {
+    const text = queue[0];
+    if (ws.bufferedAmount + Buffer.byteLength(text) > TRAFFIC_BUFFER_LIMIT) break;
+    queue.shift();
+    ws.send(text);
+   }
+  }
+  function deliver(ws, msg, text = JSON.stringify(msg)) {
+   if (!ws || ws.readyState !== ws.OPEN) return false;
+   const voice = msg?.type === 'voice-signal' || msg?.type === 'voice-config';
+   const limit = voice ? VOICE_BUFFER_LIMIT : TRAFFIC_BUFFER_LIMIT;
+   if (ws.bufferedAmount + Buffer.byteLength(text) <= limit) { ws.send(text); return true; }
+   if (REPLACEABLE.has(msg?.type)) { if (msg?.type === 'voice-config') ws.terminate(); return false; }
+   queueEssential(ws, text);
+   return false;
+  }
+  function sendTo(peerId, msg) {
+   const ws = sockets.get(peerId);
+   if (!ws) return;
+   deliver(ws, msg);
+  }
  function releaseSeat(peerId) {
   const old = peerRoom.get(peerId);
   if (old) { old.leave(peerId); registry.removeIfEmpty(old); }
@@ -98,22 +125,16 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
       sockets.get(msg.from)?.readyState !== 1)) continue;
       const text = JSON.stringify(msg);
      if (to === null) {
-      const bytes = Buffer.byteLength(text);
-      for (const ws of wss.clients) if (ws.readyState === ws.OPEN && peerRoom.get(socketPeer.get(ws)) === room && ws.bufferedAmount + bytes <= TRAFFIC_BUFFER_LIMIT) ws.send(text);
+      for (const ws of wss.clients) if (ws.readyState === ws.OPEN && peerRoom.get(socketPeer.get(ws)) === room) deliver(ws, msg, text);
      } else {
        const ws = sockets.get(to);
        if (msg.type === 'voice-config' && peerRoom.get(to) !== room) continue;
        if (!ws || ws.readyState !== ws.OPEN) continue;
-       if (msg.type === 'voice-signal' || msg.type === 'voice-config') {
-        if (ws.bufferedAmount + Buffer.byteLength(text) > VOICE_BUFFER_LIMIT) {
-         if (msg.type === 'voice-config') ws.terminate();
-         continue;
-        }
-       } else if (ws.bufferedAmount + Buffer.byteLength(text) > TRAFFIC_BUFFER_LIMIT) continue;
-       ws.send(text);
+       deliver(ws, msg, text);
      }
-   }
+    }
   }
+  for (const ws of wss.clients) if (ws.pendingEssential?.length) pumpEssential(ws);
  }
  wss.on('connection', ws => {
   const peerId = nextPeer++;
@@ -121,10 +142,13 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   sockets.set(peerId, ws);
   socketPeer.set(ws, peerId);
   ws.on('pong', () => { ws.isAlive = true; });
+  ws.protocolErrors = 0;
   ws.on('message', data => {
    let msg;
-   try { msg = JSON.parse(data.toString()); } catch { ws.send(JSON.stringify({ type: 'error', message: 'invalid JSON' })); return; }
-   try { dispatch(peerId, msg); } catch (e) { ws.send(JSON.stringify({ type: 'error', message: String(e?.message ?? e) })); }
+   try { msg = JSON.parse(data.toString()); }
+   catch { if (++ws.protocolErrors > 20) { ws.terminate(); return; } sendTo(peerId, { type: 'error', message: 'invalid JSON' }); return; }
+   try { dispatch(peerId, msg); }
+   catch (e) { if (++ws.protocolErrors > 20) { ws.terminate(); return; } sendTo(peerId, { type: 'error', message: String(e?.message ?? e) }); }
    flush();
   });
   ws.on('close', () => {
@@ -135,7 +159,13 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   });
   ws.on('error', () => {});
  });
- const timer = setInterval(() => { registry.tickAll(tickDt); registry.expireAll(); flush(); }, tickMs);
+ const timer = setInterval(() => {
+  try { registry.tickAll(tickDt); registry.expireAll(); }
+  catch (error) { console.error('server tick failed', error); }
+  try { history.flush?.(); } catch (error) { console.error('history flush failed', error); }
+  try { progression.flush?.(); } catch (error) { console.error('progression flush failed', error); }
+  try { flush(); } catch (error) { console.error('outbound flush failed', error); }
+ }, tickMs);
  const heartbeat = setInterval(() => { for (const ws of wss.clients) { if (ws.isAlive === false) { ws.terminate(); continue; } ws.isAlive = false; try { ws.ping(); } catch {} } }, HEARTBEAT_MS);
  function close() {
   clearInterval(timer);

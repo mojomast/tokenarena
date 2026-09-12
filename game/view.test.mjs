@@ -315,3 +315,12 @@ test('death pool bounds flung pieces and lingering splats',()=>{
  pool.dispose();
  assert.equal(pool.slots.length,0);assert.equal(pool.splats.length,0);assert.equal(scene.children.length,0);
 });
+test('the app Reduce Motion preference drives view effects as well as the OS query',t=>{
+ const {view}=fixture(t);
+ view.motionQuery={matches:false};view.display={...DEFAULT_DISPLAY,reducedMotion:true};
+ assert.equal(view.reduced(),true,'app preference alone reduces motion');
+ view.display={...DEFAULT_DISPLAY,reducedMotion:false};view.motionQuery={matches:true};
+ assert.equal(view.reduced(),true,'OS preference alone reduces motion');
+ view.motionQuery={matches:false};view.display={...DEFAULT_DISPLAY,reducedMotion:false};
+ assert.equal(view.reduced(),false,'neither preference reduces motion');
+});

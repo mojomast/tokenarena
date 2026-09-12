@@ -92,3 +92,25 @@ test('progression eviction prefers the least recently used player',()=>{
  assert.equal(store.get('player-0002'),null,'least recently used player should be evicted');
  assert.ok(store.get('player-0003'));
 });
+test('team-mode awards follow the authoritative winner, not individual frags',()=>{
+ for(const mode of ['assault','payload','teamdeathmatch']){
+  const store=new ProgressionStore(null),room=new Room('r',()=>.5,{progression:store});
+  room.join(1,'Winner','chatgpt','openclaw','',false,'player-0001-test');
+  room.join(2,'Loser','claude','claudecode','',false,'player-0002-test');
+  room.host(1,{mode,botCount:0,timeLimit:60,fragLimit:5},'crosswire');
+  room.start(1);room.drain();
+  const [a,b]=room.match.actors;
+  a.frags=1;b.frags=9;
+  room.match.teamScores={0:0,1:0};
+  room.match.teamScores[a.team]=room.match.config.fragLimit;
+  room.match.over=true;
+  const calls=[];
+  const original=store.award.bind(store);
+  store.award=(id,result)=>{calls.push({id,win:result.win,team:result.actor?.team});return original(id,result);};
+  room.tick(1/60);
+  const winner=calls.find(call=>call.team===a.team),loser=calls.find(call=>call.team===b.team);
+  assert.ok(winner&&loser,`${mode}: both players awarded`);
+  assert.equal(winner.win,true,`${mode}: winning team player`);
+  assert.equal(loser.win,false,`${mode}: losing team frag leader`);
+ }
+});

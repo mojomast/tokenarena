@@ -1,5 +1,25 @@
 # COCS verification report
 
+## Correctness pass 2.37 - 2026-09-12
+
+- **Movement/spawns:** team-only maps derive FFA spawns from the nav graph (ten
+  reachable points); airborne actors no longer snap onto cover; idle joysticks no
+  longer override WASD.
+- **Vehicles:** independent gunner aim, projectile vehicle impacts, single-owner
+  gun timers, wreck entry rejection.
+- **Networking:** socket disposal/stale-callback gating, prediction-clock rebasing.
+- **Server:** retried persistence, bounded malformed-message replies, retained
+  lifecycle messages under backpressure.
+- **Results/history:** authoritative team wins for Assault/Payload/Combined Arms,
+  and accurate timed-vs-score-limit endings.
+- **Rendering:** collision-aligned cavern openings, post-processing disposal and
+  single-DPR composer sizing, app-preference reduced motion.
+
+Verification: `npm test` exit 0 — game 589/589, server 107/107, SSR 1/1;
+`tsc --noEmit` clean; build succeeds. Every regression test was confirmed to fail
+against the pre-fix modules. Browser/GPU visual checks remain outstanding (no
+WebGL/browser in the build environment).
+
 ## Clean cavern tunnels 2.36 - 2026-09-11
 
 - **Bug:** tunnels rendered as full `TubeGeometry` pipes centred ~1.2m above the

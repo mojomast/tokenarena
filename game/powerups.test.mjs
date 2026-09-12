@@ -24,10 +24,25 @@ test('powerups apply, refresh without stacking, expire, and reset on respawn',()
 });
 
 test('overshield absorbs before armor and health and expires deterministically',()=>{
-  const m=quiet(),[a,b]=m.actors;a.protection=0;b.protection=0;
-  m.collect(a,{kind:'overshield',x:a.x,z:a.z,y:a.y,wait:0});a.armor=20;assert.equal(m.damage(a,50,b),50);assert.equal(a.temporaryShield,10);assert.equal(a.armor,20);assert.equal(a.health,100);
-  for(let i=0;i<481;i++)m.step(1/60);assert.equal(a.temporaryShield,0);a.health=0;a.dead=0;m.step(1/60);assert.equal(a.temporaryShield,0);
+ const m=quiet(),[a,b]=m.actors;a.protection=0;b.protection=0;
+ m.collect(a,{kind:'overshield',x:a.x,z:a.z,y:a.y,wait:0});a.armor=20;assert.equal(m.damage(a,50,b),50);assert.equal(a.temporaryShield,10);assert.equal(a.armor,20);assert.equal(a.health,100);
+ for(let i=0;i<481;i++)m.step(1/60);assert.equal(a.temporaryShield,0);a.health=0;a.dead=0;m.step(1/60);assert.equal(a.temporaryShield,0);
 });
+
+test('unrelated powerups never refill a depleted overshield',()=>{
+ const m=quiet(),[a,b]=m.actors;a.protection=0;b.protection=0;
+ m.collect(a,{kind:'overshield',x:a.x,z:a.z,y:a.y,wait:0});assert.equal(a.temporaryShield,60);
+ m.damage(a,50,b);assert.equal(a.temporaryShield,10);
+ m.collect(a,{kind:'haste',x:a.x,z:a.z,y:a.y,wait:0});assert.equal(a.speedMultiplier,1.35);
+ assert.equal(a.temporaryShield,10,'collecting haste must not refill overshield');
+ m.refreshPowerups(a);assert.equal(a.temporaryShield,10,'recomputing multipliers must not refill overshield');
+ a.powerups.haste=.001;m.step(1/60);
+ assert.equal(a.powerups.haste,undefined);assert.equal(a.temporaryShield,10,'haste expiry must not refill overshield');
+ m.collect(a,{kind:'overshield',x:a.x,z:a.z,y:a.y,wait:0});assert.equal(a.temporaryShield,60,'collecting overshield again refreshes it');
+ a.powerups.overshield=.001;m.step(1/60);
+ assert.equal(a.temporaryShield,0,'overshield expiry clears the shield');
+});
+
 
 test('red and blue CTF metadata normalizes into numeric teams',()=>{
   const m=new Match('chatgpt','openclaw',rng(),'launchpad',{mode:'ctf',botCount:0});

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {CAVERN_SEGMENTS,cavernArcs,cavernOpening,cavernShell} from './structures.mjs';
+import * as T from 'three';
+import {CAVERN_SEGMENTS,cavernArcs,cavernOpening,cavernShell,cavernRenderArcs} from './structures.mjs';
 
 test('a cavern leaves two opposite entrances open', () => {
   assert.equal(CAVERN_SEGMENTS, 16);
@@ -34,6 +35,27 @@ test('cavern shell dimensions stay positive and finite', () => {
   assert.ok(shell.wallHeight > 0 && Number.isFinite(shell.wallHeight));
   assert.ok(shell.domeHeight > 0 && Number.isFinite(shell.domeHeight));
   assert.equal(shell.arcs.length, 2);
+  assert.equal(shell.renderArcs.length, 2);
   const fallback = cavernShell();
   assert.ok(fallback.wallHeight > 0 && fallback.domeHeight > 0);
+});
+
+test('rendered cavern arcs put solid walls and openings where collision does', () => {
+  for (const radius of [8, 12, 20]) {
+    const shell = cavernShell(radius, 8);
+    const meshes = shell.renderArcs.map(arc => {
+      const mesh = new T.Mesh(new T.CylinderGeometry(radius, radius, 1, 28, 1, true, arc.thetaStart, arc.thetaLength), new T.MeshBasicMaterial({ side: T.DoubleSide }));
+      mesh.scale.set(1, shell.wallHeight, 1);
+      mesh.updateMatrixWorld(true);
+      return mesh;
+    });
+    const blocked = angle => {
+      const raycaster = new T.Raycaster(new T.Vector3(0, 0, 0), new T.Vector3(Math.cos(angle), 0, Math.sin(angle)), .01, radius * 4);
+      return meshes.some(mesh => raycaster.intersectObject(mesh, false).length > 0);
+    };
+    const span = (Math.PI * 2) / CAVERN_SEGMENTS;
+    for (let i = 0; i < CAVERN_SEGMENTS; i++) {
+      assert.equal(blocked(i * span), !cavernOpening(i), `segment ${i} at radius ${radius} should ${cavernOpening(i) ? 'be open' : 'be walled'}`);
+    }
+  }
 });

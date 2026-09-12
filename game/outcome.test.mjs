@@ -1,0 +1,58 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {actorWon} from './outcome.mjs';
+import {Match} from './core.mjs';
+
+const result = (winner, actors) => ({ winner, actors });
+const actor = (team, frags) => ({ team, frags });
+const rng = () => { let n = 31; return () => ((n = (Math.imul(n, 1664525) + 1013904223) >>> 0) / 4294967296); };
+
+test('every team mode awards the authoritative winner, not the frag leader', () => {
+  for (const mode of ['ctf', 'teamdeathmatch', 'koth', 'domination', 'assault', 'payload', 'combined-arms']) {
+    const winner = actor(0, 1), loser = actor(1, 9);
+    const state = result(0, [winner, loser]);
+    assert.equal(actorWon(state, mode, winner), true, `${mode}: winning team with fewer frags`);
+    assert.equal(actorWon(state, mode, loser), false, `${mode}: frag leader on the losing team`);
+  }
+});
+
+test('a team draw or missing winner awards nobody', () => {
+  assert.equal(actorWon(result(null, [actor(0, 3), actor(1, 3)]), 'assault', actor(0, 3)), false);
+  assert.equal(actorWon({ winner: null, actors: [actor(0, 3)] }, 'teamdeathmatch', actor(0, 3)), false);
+});
+
+test('frag modes award the highest frag count including ties', () => {
+  const a = actor(undefined, 5), b = actor(undefined, 5), c = actor(undefined, 2);
+  const state = result(null, [a, b, c]);
+  assert.equal(actorWon(state, 'deathmatch', a), true);
+  assert.equal(actorWon(state, 'deathmatch', b), true);
+  assert.equal(actorWon(state, 'deathmatch', c), false);
+  assert.equal(actorWon(result(null, [actor(undefined, 0), actor(undefined, 3)]), 'instagib', actor(undefined, 0)), false);
+  assert.equal(actorWon(result(null, [actor(undefined, 3), actor(undefined, 1)]), 'rockets', actor(undefined, 3)), true);
+});
+
+test('missing inputs never award a win', () => {
+  assert.equal(actorWon(null, 'ctf', actor(0, 1)), false);
+  assert.equal(actorWon(result(0, []), 'ctf', null), false);
+});
+
+test('a score-limit team finish is reported as a frag ending', () => {
+  const m = new Match('chatgpt', 'openclaw', rng(), 'crosswire', { mode: 'teamdeathmatch', botCount: 0, humanCount: 2, fragLimit: 5, timeLimit: 60 });
+  m.actors[0].team = 0; m.actors[1].team = 1;
+  m.teamScores[0] = m.config.fragLimit - 1;
+  m.actors[0].protection = 0; m.actors[1].protection = 0;
+  m.damage(m.actors[1], 1000, m.actors[0]);
+  assert.equal(m.over, true);
+  assert.equal(m.snapshot().overReason, 'frag');
+});
+
+test('a timed team finish is reported as a time ending even with a winner', () => {
+  const m = new Match('chatgpt', 'openclaw', rng(), 'crosswire', { mode: 'teamdeathmatch', botCount: 0, humanCount: 2, fragLimit: 30, timeLimit: 60 });
+  m.teamScores[0] = 3; m.teamScores[1] = 1;
+  m.config.timeLimit = 1;
+  for (let i = 0; i < 70; i++) m.step(1 / 60);
+  const state = m.snapshot();
+  assert.equal(state.over, true);
+  assert.equal(state.overReason, 'time');
+  assert.equal(state.winner, 0);
+});

@@ -76,3 +76,31 @@ test('an auto-gunner harness fires the turret when driving without a gunner', ()
   assert.ok(m.events.some(event => event.type === 'vehicle-shot'), 'auto-gunner should fire the mounted gun');
   assert.ok(enemy.health < 100 || enemy.deaths > 0, 'auto-gunner shots should connect');
 });
+
+test('a gunner keeps independent aim perpendicular to the chassis', () => {
+  const m = new Match('chatgpt', 'openclaw', () => .5, 'blood-gulch', {mode: 'ctf', botCount: 0, humanCount: 3, respawn: 1});
+  const [driver, gunner, enemy] = m.actors, v = m.vehicles[0];
+  Object.assign(driver, {x: -46, y: 0, z: 0, grounded: true, protection: 0});
+  Object.assign(gunner, {x: -45.6, y: 0, z: 0, grounded: true, protection: 0, shotWait: 0});
+  assert.ok(m.enterVehicle(driver));
+  assert.ok(m.enterVehicle(gunner));
+  Object.assign(v.position, {x: -46, y: 0, z: 0});
+  v.heading = 0; v.turretYaw = 0; v.velocity = {x: 0, z: 0};
+  Object.assign(enemy, {x: -40, y: 0, z: 0, health: 200, armor: 0, protection: 0, grounded: true, shotWait: 999});
+  const aimYaw = -Math.PI / 2;
+  for (let i = 0; i < 40; i++) m.step(1 / 60, {inputs: {1: {fire: true, yaw: aimYaw, pitch: 0}}});
+  assert.equal(gunner.yaw, aimYaw, 'the seat sync must not overwrite the gunner aim');
+  assert.ok(enemy.health < 200 || enemy.deaths > 0, 'perpendicular gunner fire should connect');
+});
+
+test('seat sync still orients passengers to the chassis', () => {
+  const m = new Match('chatgpt', 'openclaw', () => .5, 'blood-gulch', {mode: 'ctf', botCount: 0, humanCount: 4, respawn: 1});
+  const [driver, gunner, passenger] = m.actors, v = m.vehicles[0];
+  for (const a of [driver, gunner, passenger]) Object.assign(a, {x: -46, y: 0, z: 0, grounded: true, protection: 0});
+  assert.ok(m.enterVehicle(driver));
+  assert.ok(m.enterVehicle(gunner));
+  assert.ok(m.enterVehicle(passenger));
+  assert.equal(passenger.vehicleSeat, 'passenger');
+  m.syncVehicleActor(passenger, v);
+  assert.equal(passenger.yaw, v.heading - Math.PI, 'passengers keep the seat yaw');
+});

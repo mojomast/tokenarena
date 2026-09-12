@@ -35,8 +35,11 @@ export function posture(keys) {
 export function controlsFromState(state = {}) {
   const codes = codeSet(state.keys), look = state.look || {};
   const move = state.move && Number.isFinite(state.move.x) && Number.isFinite(state.move.y) ? state.move : null;
-  const forward = move ? Math.max(-1, Math.min(1, move.y)) : (codes.has('KeyW') ? 1 : 0) - (codes.has('KeyS') ? 1 : 0);
-  const right = move ? Math.max(-1, Math.min(1, move.x)) : (codes.has('KeyD') ? 1 : 0) - (codes.has('KeyA') ? 1 : 0);
+  // An idle joystick reports (0,0); treat it as "no override" so desktop and
+  // hybrid keyboard movement still works when touch controls are present.
+  const analog = Boolean(move) && (move.x !== 0 || move.y !== 0);
+  const forward = analog ? Math.max(-1, Math.min(1, move.y)) : (codes.has('KeyW') ? 1 : 0) - (codes.has('KeyS') ? 1 : 0);
+  const right = analog ? Math.max(-1, Math.min(1, move.x)) : (codes.has('KeyD') ? 1 : 0) - (codes.has('KeyA') ? 1 : 0);
   const yaw = Number.isFinite(state.yaw) ? state.yaw : Number.isFinite(look.yaw) ? look.yaw : 0;
   const pitch = Number.isFinite(state.pitch) ? state.pitch : Number.isFinite(look.pitch) ? look.pitch : 0;
   const controls = { x: -Math.sin(yaw) * forward + Math.cos(yaw) * right, z: -Math.cos(yaw) * forward - Math.sin(yaw) * right, yaw, pitch, fire: state.fire === true || state.fireTap === true };

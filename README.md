@@ -252,6 +252,15 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.37 is a correctness pass:
+
+- **Movement and spawns.** Team-only maps (Riverbend, Convoy Line, Titan Valley and friends) no longer collapse teamless modes onto a single origin — free-for-all spawns are derived from the navigation graph, so Deathmatch/Instagib/Rockets/Arsenal start with ten valid spawns and stay mobile. Airborne actors no longer snap down onto solid cover (jumps keep their apex), and an idle touch joystick no longer suppresses WASD.
+- **Vehicles.** Gunners keep independent aim, rockets strike vehicle bodies (respecting own/friendly-vehicle rules), the mounted gun no longer advances heat/cooldown twice with a gunner aboard, and destroyed or respawning wrecks reject entry.
+- **Networking.** Reconnects dispose the previous socket and ignore stale callbacks, and the prediction shadow rebases its clock to the server so prediction no longer times out mid-match.
+- **Server resilience.** Persistence failures retry with backoff instead of aborting the round, malformed-message replies are bounded and repeat offenders dropped, and essential lobby/start/results messages survive backpressure.
+- **Results and history.** Assault, Payload and Combined Arms award and record by the authoritative winner, and a timed team match records `time` instead of a score-limit ending.
+- **Rendering.** Cavern openings line up with collision, post-processing disposes its passes and applies device pixel ratio once, and the in-app Reduce Motion toggle drives the renderer and menu showcase.
+
 Version 2.36 cleans up the cavern tunnels:
 
 - **Arches, not buried pipes.** Tunnels were full tubes centred above the terrain, so their lower half sank into the ground (z-fighting and shimmer along the length) and their tops poked through the dome shells. They now render as open stone arches that follow the terrain — the path is resampled against the heightfield and a semicircular cross-section is extruded along it — resting on the ground and tucking under the dome walls. Tunnel self-shadowing is disabled to remove shadow acne on the double-sided surface.
