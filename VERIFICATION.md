@@ -1,5 +1,23 @@
 # COCS verification report
 
+## Steady arena tour 2.33 - 2026-09-11
+
+- **Bug:** the menu camera kept zooming in and out. Three stacked causes: the
+  flyover path's radius wove ±26% (a ~30s dolly), the tour FOV oscillated ±4°, and
+  the occlusion pull-in engaged on cover near the action, dollying the camera a
+  long way toward the fight.
+- **Fix** (`game/director.mjs`, `game/view.mjs`): the tour orbit radius is now
+  nearly constant (a gentle ±12% weave), the tour FOV is fixed at 72°, and the
+  occlusion pull-in is skipped entirely for tours (`director.tour`) — the high
+  flyover does not need it. Non-tour playback keeps a smoothed, asymmetric pull-in
+  (fast tuck-in, slow held recovery) for genuine camera-behind-cover cases.
+- **Tests**: director and camera suites still pass, including the tour no-cut and
+  ease-toward-action cases.
+
+Verification: `game/director.test.mjs` + `game/camera.test.mjs` pass, `tsc --noEmit`
+clean, `npm run build` succeeds, SSR `tests/*.test.mjs` 1/1. GPU-browser
+confirmation remains the honest final check.
+
 ## Arena-tour demo camera 2.32 - 2026-09-11
 
 - **Change** (`game/director.mjs`, `app/page.tsx`, `game/view.mjs`): the menu

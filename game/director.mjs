@@ -156,7 +156,7 @@ export class CinematicDirector{
   const pitch=clamp(fin(basePitch+this._lookPitch,basePitch),-MAX_PITCH,MAX_PITCH);
   const roll=this.reduced?0:clamp(fin(this._roll),-.15,.15);
   const speed=target?Math.hypot(num(target.vx),num(target.vz)):0;
-  let want=this.tour?71+4*Math.sin(time*.31):target?66+4*clamp(speed/6,0,1):70;
+  let want=this.tour?72:target?66+4*clamp(speed/6,0,1):70;
   if(!this.tour&&target&&(target.sprinting===true||speed>6.5))want+=8*clamp(Math.max(target.sprinting===true?1:0,(speed-6.5)/2),0,1);
   want=clamp(want,55,85);
   this._fov+=(want-this._fov)*(1-Math.exp(-3*step));
@@ -208,9 +208,9 @@ export class CinematicDirector{
   const rig=this._rig;
   let x=base.x,y=base.y,z=base.z,h=heading,roll=0;
   if(rig==='flyover'){
-   const R=this.tourRadius,a=time*.32,w=.72+.26*Math.sin(time*.21);
+   const R=this.tourRadius,a=time*.28,w=.85+.12*Math.sin(time*.13);
    x=this.center.x+Math.cos(a)*R*w;z=this.center.z+Math.sin(a)*R*w;
-   y=10+3.5*Math.sin(time*.27)+2*Math.sin(time*.51);
+   y=12+3*Math.sin(time*.19)+1.5*Math.sin(time*.43);
    h=Math.atan2(-(this.aim.x-x),-(this.aim.z-z));
    roll=Math.sin(time*.37)*.045;
   }else if(rig==='orbit'||!target){

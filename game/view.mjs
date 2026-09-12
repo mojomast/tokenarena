@@ -495,7 +495,7 @@ export class ArenaView{
    // whatever blocks the view. Evaluated every frame and smoothed so the camera
    // never alternates between two poses or pops across an obstruction.
    _clearCamera(player,delta,snap){
-    if(this.renderer?.isSoftware===true||!this.worldGroup||!player)return;
+    if(this.renderer?.isSoftware===true||!this.worldGroup||!player||this.director?.tour)return;
     const aim=this.director?.aim,cam=this.camera.position;
     const head=aim&&Number.isFinite(aim.x)?new T.Vector3(aim.x,aim.y,aim.z):new T.Vector3(player.x||0,(player.y||0)+1.35,player.z||0);
     const dx=head.x-cam.x,dy=head.y-cam.y,dz=head.z-cam.z,dist=Math.hypot(dx,dy,dz);
@@ -507,8 +507,10 @@ export class ArenaView{
     for(const h of hits){if(h.distance<=.05||h.object?.userData?.objective)continue;block=h;break;}
     const want=occlusionDistance(head,cam,block?block.distance:Infinity);
     if(!Number.isFinite(want))return;
-    if(snap||!Number.isFinite(this._camWant))this._camWant=want;
-    else this._camWant+=(want-this._camWant)*(1-Math.exp(-16*Math.min(Math.max(Number(delta)||0,0),.1)));
+    const dt=Math.min(Math.max(Number(delta)||0,0),.1);
+    if(snap||!Number.isFinite(this._camWant)){this._camWant=want;this._camHold=0;}
+    else if(want<this._camWant-.05){this._camWant+=(want-this._camWant)*(1-Math.exp(-14*dt));this._camHold=.7;}
+    else{this._camHold=Math.max(0,(this._camHold||0)-dt);if(this._camHold<=0)this._camWant+=(want-this._camWant)*(1-Math.exp(-1.5*dt));}
     if(Math.abs(this._camWant-dist)<.05)return;
     cam.set(head.x+out.x*this._camWant,head.y+out.y*this._camWant,head.z+out.z*this._camWant);
     this.camera.rotation.set(Math.max(-1.45,Math.min(1.45,Math.asin(Math.max(-1,Math.min(1,dy/dist))))),Math.atan2(-dx,-dz),0,'YXZ');
