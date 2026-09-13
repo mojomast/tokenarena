@@ -1,5 +1,13 @@
 # COCS verification report
 
+## First-run coach 2.54 - 2026-09-12
+
+- New pure `onboarding.mjs` (`ONBOARDING_STEPS`, `clampOnboardingStep`,
+  `shouldShowOnboarding`) and a dismissible selection-screen overlay persisted
+  to `token-arena-onboarded`. Unit tests cover step completeness and the
+  show-once/clamp logic. Full game 640/640, server 109/109, SSR 1/1, build and
+  `tsc` clean.
+
 ## Arms Race mode 2.53 - 2026-09-12
 
 - New `armsrace` mode and `proving-grounds` map (`config.mjs`,

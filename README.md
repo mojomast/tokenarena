@@ -252,6 +252,8 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.54 adds a first-run **coach**: a short, dismissible walkthrough of movement, combat, objectives and settings. It is shown once and remembered on the device.
+
 Version 2.53 adds **Arms Race** — a gun-game mode where every kill promotes you to the next weapon in the rack and finishing the last gun wins. It ships with a new compact map, **Proving Grounds**, and locks the weapon so the ladder is the only way forward (bots included).
 
 Version 2.52 adds the **Recon Pulse** radar powerup: while active it reveals every enemy on your team radar regardless of distance, shown as a rim-clamped blip.
