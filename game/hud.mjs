@@ -235,6 +235,7 @@ export function nextSpectateTarget(actors, currentId, step = 1) {
   const live = (Array.isArray(actors) ? actors : []).filter(a => a.health > 0);
   if (!live.length) return null;
   const cur = live.findIndex(a => a.id === currentId);
-  const index = ((cur < 0 ? 0 : cur) + (step >= 0 ? 1 : -1) + live.length) % live.length;
+  if (cur < 0) return live[step >= 0 ? 0 : live.length - 1].id;
+  const index = ((cur + (step >= 0 ? 1 : -1)) + live.length) % live.length;
   return live[index].id;
 }

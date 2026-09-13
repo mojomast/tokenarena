@@ -252,6 +252,15 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.48 is a broad integrity pass across simulation, bots, rendering and networking:
+
+- **Payload routes are honest.** A route waypoint can no longer collapse onto the start (which awarded a checkpoint — and score — with zero push, trivially winnable on some maps), and every path point sits on the terrain so the cart is not buried underground.
+- **Mode resolution is correct.** An assault objective win on the final tick is no longer overwritten by the clock; a same-frame KOTH/Domination score-limit tie now awards the higher score; capture zones are placed on unobstructed, navigable ground with a finer search.
+- **Vehicle crews behave.** An orphaned bot gunner dismounts instead of freezing for the rest of the match; mounted bots no longer fire their personal weapon; a mounted actor cannot carry the flag; exiting a flying vehicle keeps the actor aloft instead of teleporting to the ground; empty vehicles keep their crew team for friendly-fire protection.
+- **Rendering lifecycle.** CTF flag geometry is no longer reused after disposal across map changes; flags follow the colourblind palette; the low-health overlay is disposed exactly once; the cinematic director honours the in-app Reduce Motion setting.
+- **Networking.** A reconnect racing the old socket now reattaches the seat (newest connection wins); the client tolerates malformed protocol frames; the reload edge is cleared on every lifecycle transition; match history records the map actually played; backpressure queues are room-tagged; per-room expiry is isolated.
+- **HUD/animation.** Spectator cycling no longer skips the first live actor; turn banking twists the chest.
+
 Version 2.47 puts capture points where players can actually reach them:
 
 - **No more stranded hills.** Next-gen bridges and catwalks are solid, unclimbable columns (there is no step-up), so capture points authored on them could never be taken — King of the Hill on Frost Gate, Slagworks, The Forge and Convoy Line had no scoring at all. Capture zones are now nudged onto clear ground and snapped to the nearest navigation node when a match starts.

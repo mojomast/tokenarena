@@ -262,3 +262,10 @@ test('spectator helpers follow a live target and cycle through live actors', () 
   assert.equal(nextSpectateTarget(actors, 1, -1), 2, 'reverse wraps');
   assert.equal(nextSpectateTarget([{id: 0, health: 0}], null, 1), null);
 });
+
+test('spectator cycling starts at the first live actor when the current target is gone',()=>{
+  const actors=[{id:0,health:0},{id:1,health:80},{id:2,health:60}];
+  assert.equal(nextSpectateTarget(actors,0,1),1,'forward from a dead target picks the first live actor');
+  assert.equal(nextSpectateTarget(actors,9,1),1,'unknown target forward picks the first live actor');
+  assert.equal(nextSpectateTarget(actors,9,-1),2,'unknown target reverse picks the last live actor');
+});

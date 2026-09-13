@@ -42,17 +42,23 @@ export function createGameServer({ port = 0, random, tickDt = 1 / 60, tickMs = 1
   function queueEssential(ws, text) {
    const queue = ws.pendingEssential || (ws.pendingEssential = []);
    if (queue.length >= 64) queue.shift();
-   queue.push(text);
+   // Tag with the peer's room so messages queued for one room are never
+   // delivered after the peer has switched to another.
+   queue.push({ text, room: peerRoom.get(socketPeer.get(ws)) ?? null });
   }
   function pumpEssential(ws) {
    const queue = ws.pendingEssential;
    if (!queue?.length || ws.readyState !== ws.OPEN) return;
+   const current = peerRoom.get(socketPeer.get(ws)) ?? null;
    while (queue.length && ws.bufferedAmount < TRAFFIC_BUFFER_LIMIT) {
-    const text = queue[0];
+    const entry = queue[0];
+    if ((entry.room ?? null) !== current) { queue.shift(); continue; }
+    const text = entry.text;
     if (ws.bufferedAmount + Buffer.byteLength(text) > TRAFFIC_BUFFER_LIMIT) break;
     queue.shift();
     ws.send(text);
    }
+   if (!queue.length) ws.pendingEssential = null;
   }
   function deliver(ws, msg, text = JSON.stringify(msg)) {
    if (!ws || ws.readyState !== ws.OPEN) return false;

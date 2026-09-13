@@ -275,3 +275,19 @@ test('a superseded connect promise rejects instead of hanging',async t=>{
  assert.equal(client.connected,true);
  client.close();
 });
+
+test('malformed protocol frames never throw or corrupt client state',()=>{
+ const client=new NetClient();
+ client.peerId=1;
+ assert.doesNotThrow(()=>client.onMessage(JSON.stringify({type:'lobby',players:null})));
+ assert.deepEqual(client.players,[]);
+ const events=client.events.length;
+ assert.doesNotThrow(()=>client.onMessage(JSON.stringify({type:'events'})));
+ assert.equal(client.events.length,events);
+ assert.doesNotThrow(()=>client.onMessage(JSON.stringify({type:'rooms',rooms:null})));
+ assert.deepEqual(client.rooms,[]);
+ assert.doesNotThrow(()=>client.onMessage(JSON.stringify({type:'history',matches:'nope'})));
+ assert.deepEqual(client.matches,[]);
+ client.createShadow('crosswire',config);
+ assert.doesNotThrow(()=>client.push({seq:99,state:{time:0}}));
+});

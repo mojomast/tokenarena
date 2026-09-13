@@ -156,7 +156,7 @@ export function characterPose(state = {}) {
   const focusYaw = clamp(state.focusYaw ?? 0, -0.9, 0.9);
   const focusPitch = clamp(state.focusPitch ?? 0, -0.6, 0.6);
   pose.head.y = focusYaw * 0.65;
-  pose.chest.y = focusYaw * 0.2;
+  pose.chest.y = focusYaw * 0.2 - bank * 0.08;
   pose.torso.y = focusYaw * 0.12;
   pose.head.x = focusPitch * 0.6 - pose.torso.x * 0.35;
 

@@ -204,16 +204,22 @@ for(const lifecycle of ['start','disconnect','reconnect','leave','expireGrace'])
  const peer=room.peers.get(1);
  assert.equal(peer.edgeFire,false);
  room.input(1,{fire:true});
+ room.input(1,{reload:true});
  assert.equal(peer.edgeFire,true);
+ assert.equal(peer.edgeReload,true);
  if(lifecycle==='reconnect'||lifecycle==='expireGrace')room.disconnect(1);
  if(lifecycle==='reconnect')room.join(2,'','','',peer.token);
  else if(lifecycle==='expireGrace')room.expireGrace(peer.disconnectedAt+1001);
  else room[lifecycle](1);
  assert.equal(peer.edgeFire,false);
+ assert.equal(peer.edgeReload,false,'one-shot reload edge is cleared');
+ assert.equal(peer.lastReload,false,'held reload is cleared');
  assert.equal(peer.latest,null);
  if(lifecycle==='disconnect'){
   room.input(1,{fire:true});
+  room.input(1,{reload:true});
   assert.equal(peer.edgeFire,false,'late disconnected input cannot rearm fire');
+  assert.equal(peer.edgeReload,false,'late disconnected input cannot rearm reload');
   assert.equal(peer.latest,null);
  }
  if(lifecycle!=='leave'&&lifecycle!=='expireGrace'){
@@ -349,7 +355,17 @@ test('final results and history preserve cloned scoreStats',()=>{
  assert.equal(result.actors[0].scoreStats.captures,2);
  assert.equal(history.all()[0].players[0].scoreStats.captures,2);
  room.disconnect(1);room.join(2,'ignored','','',token);
-  assert.deepEqual(find(room.drain(),'results',2).state.actors[0].scoreStats,{...stats,captures:99});
+   assert.deepEqual(find(room.drain(),'results',2).state.actors[0].scoreStats,{...stats,captures:99});
+});
+test('history records the map actually played, not a pending mid-match change',()=>{
+ const history=new MatchHistory();
+ const room=new Room('r',rng(),{history});
+ room.join(1,'A');room.host(1,{botCount:0,timeLimit:30},'crosswire');room.start(1);room.drain();
+ assert.equal(room.match.arena.id,'crosswire');
+ room.host(1,{botCount:0,timeLimit:30},'exchange');
+ assert.equal(room.match.arena.id,'crosswire','the running match keeps its arena');
+ room.match.over=true;room.tick(1/60);room.drain();
+ assert.equal(history.all()[0].mapId,'crosswire','history records the map that was played');
 });
 test('snapshot broadcast rate defaults to 30 Hz and is configurable',()=>{
  const count=(options,steps)=>{

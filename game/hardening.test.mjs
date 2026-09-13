@@ -163,3 +163,66 @@ test('a blocked spawn point is nudged to clear ground', () => {
   m.spawn(actor);
   assert.equal(obstructed(actor.x, actor.y, actor.z, RULES.radius, m.arena), false, 'spawn is nudged clear');
 });
+
+test('a bot gunner dismounts from a vehicle whose driver has left', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'blood-gulch', {mode: 'ctf', botCount: 3, humanCount: 1, timeLimit: 30});
+  const tank = m.vehicles[0], bots = m.actors.filter(a => a.bot);
+  const driver = bots[0], gunner = bots[1];
+  for (const a of [driver, gunner]) Object.assign(a, {x: tank.position.x, y: tank.position.y, z: tank.position.z, grounded: true});
+  assert.ok(m.enterVehicle(driver));
+  assert.ok(m.enterVehicle(gunner));
+  assert.equal(gunner.vehicleSeat, 'gunner', 'setup: gunner boarded');
+  m.releaseVehicle(driver, tank, 'exit');
+  driver.bot.vehicleCooldown = 99;
+  for (let i = 0; i < 60 && gunner.vehicleId !== null; i++) m.step(1 / 60);
+  assert.equal(gunner.vehicleId, null, 'orphaned gunner must dismount instead of freezing');
+});
+
+test('a mounted bot does not fire its personal weapon', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'blood-gulch', {mode: 'ctf', botCount: 1, humanCount: 1, timeLimit: 30});
+  const tank = m.vehicles[0], bot = m.actors.find(a => a.bot), human = m.actors[0];
+  Object.assign(bot, {x: tank.position.x, y: tank.position.y, z: tank.position.z, grounded: true});
+  assert.ok(m.enterVehicle(bot));
+  assert.equal(bot.vehicleSeat, 'driver');
+  Object.assign(human, {x: tank.position.x + 8, y: tank.position.y, z: tank.position.z, health: 100, protection: 0});
+  bot.bot.target = human.id;
+  bot.bot.memory = 2;
+  let personal = 0;
+  const emit = m.emit.bind(m);
+  m.emit = (type, data) => { if (type === 'shot' && data.actor === bot.id) personal++; return emit(type, data); };
+  for (let i = 0; i < 120; i++) m.step(1 / 60);
+  assert.equal(personal, 0, 'mounted bot fired its personal weapon');
+});
+
+test('a mounted actor cannot pick up the flag', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'blood-gulch', {mode: 'ctf', botCount: 0, humanCount: 2, timeLimit: 30});
+  const a = m.actors[0], flag = m.flags[1], tank = m.vehicles[0];
+  Object.assign(a, {x: tank.position.x, y: tank.position.y, z: tank.position.z, grounded: true});
+  assert.ok(m.enterVehicle(a));
+  Object.assign(a, {x: flag.x, y: flag.y ?? tank.position.y, z: flag.z});
+  m.objective(a);
+  assert.equal(flag.state, 'at-base', 'mounted actor must not carry the flag');
+  assert.equal(flag.carrier, null);
+});
+
+test('exiting a flying vehicle keeps the actor aloft instead of teleporting down', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'titan-valley', {mode: 'combined-arms', botCount: 0, humanCount: 1, timeLimit: 30});
+  const a = m.actors[0], hornet = m.vehicles.find(v => v.config?.flight === true);
+  assert.ok(hornet, 'map has a flying vehicle');
+  Object.assign(a, {x: hornet.position.x, y: hornet.position.y, z: hornet.position.z, grounded: true});
+  assert.ok(m.enterVehicle(a));
+  hornet.position.y = 40;
+  m.syncVehicleActor(a, hornet);
+  m.releaseVehicle(a, hornet, 'exit');
+  assert.ok(a.y > 15, `exit should keep altitude, got ${a.y}`);
+  assert.equal(a.grounded, false);
+});
+
+test('an empty vehicle keeps its crew team for friendly-fire protection', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'blood-gulch', {mode: 'ctf', botCount: 0, humanCount: 2, timeLimit: 30});
+  const a = m.actors[0], tank = m.vehicles[0];
+  tank.lastTeam = a.team;
+  const before = tank.health;
+  assert.equal(m.damageVehicle(tank, 60, a), 0, 'friendly fire must not damage an owned empty vehicle');
+  assert.equal(tank.health, before);
+});

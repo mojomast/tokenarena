@@ -1,5 +1,36 @@
 # COCS verification report
 
+## Integrity pass 2.48 - 2026-09-12
+
+Six parallel read-only audits (modes/objectives, bots/vehicles, net/server,
+render/HUD/UI, plus two feature-idea passes) produced the findings below. Every
+fix has a regression test confirmed failing against the pre-fix source.
+
+- **Payload** (`payload.mjs`): anchor-seeded waypoint selection rejects duplicates
+  by distance, so checkpoints have strictly increasing positive distances and
+  award nothing while idle; route y comes from terrain support. New test
+  `payload checkpoints never sit at zero distance or score while idle`.
+- **Modes** (`core.mjs`, `mode-data.mjs`): time-limit block guarded by `!over`;
+  score-limit tie-break awards the higher score; `clearZone` uses a nearest-clear
+  search at player-scale clearance (fixes the catacombs hill test); authored
+  objective data is finite-guarded with a `candidatePoints` fallback.
+- **Vehicles/bots** (`core.mjs`, `vehicles.mjs`): orphaned gunners dismount;
+  mounted bots skip personal fire; mounted actors skip flag interaction; flight
+  exits keep altitude and clear `grounded`; empty vehicles remember `lastTeam`
+  for friendly-fire; occupant count ignores trailing nulls.
+- **Rendering/HUD** (`view.mjs`, `hud.mjs`, `character-anim.mjs`, `director.mjs`,
+  `app/page.tsx`): flag geometries live in a reset-per-arena cache and model
+  disposal runs before arena rebuild; flags recolor with the active palette; the
+  low-health overlay is disposed once; cinematic directors receive the app
+  Reduce Motion preference and update live; spectator cycling off-by-one fixed;
+  chest bank preserved alongside focus.
+- **Net/server** (`net.mjs`, `room.mjs`, `game-server.mjs`, `rooms.mjs`):
+  malformed frames are tolerated; racing reconnects adopt the existing seat;
+  reload reset on all lifecycles; history records `match.arena.id`; essential
+  backpressure entries are room-tagged; `expireAll` isolates per room.
+- Suites: full game **617/617**, server **109/109**, `tsc --noEmit` clean, SSR
+  1/1. All new tests were run against `git stash`ed pre-fix sources and failed.
+
 ## Reachable capture points 2.47 - 2026-09-12
 
 - A sweep of King of the Hill across every map found Frost Gate, Slagworks,

@@ -151,7 +151,7 @@ export class NetClient {
     if (msg.profile) { this.progression = msg.profile; this.onProgression?.({ profile: msg.profile, reconnected: msg.reconnected === true }); }
     break;
    case 'lobby':
-    this.players = msg.players;
+    this.players = Array.isArray(msg.players) ? msg.players : [];
     this.hostId = msg.hostId;
     this.isHost = this.peerId === msg.hostId;
     this.config = msg.config;
@@ -161,8 +161,8 @@ export class NetClient {
     this.actorId = this.players.find(p => p.peerId === this.peerId)?.actorId ?? null;
     this.onLobby?.(msg);
     break;
-   case 'rooms': this.rooms = msg.rooms ?? []; this.onRooms?.(msg); break;
-   case 'history': this.matches = msg.matches ?? []; this.onHistory?.(msg); break;
+   case 'rooms': this.rooms = Array.isArray(msg.rooms) ? msg.rooms : []; this.onRooms?.(msg); break;
+   case 'history': this.matches = Array.isArray(msg.matches) ? msg.matches : []; this.onHistory?.(msg); break;
    case 'start':
     this.started = true;
     this.roundOver = false;
@@ -177,7 +177,7 @@ export class NetClient {
     this.onStart?.(msg);
     break;
    case 'events':
-    for (const item of msg.items) this.events.push(item);
+    for (const item of (Array.isArray(msg.items) ? msg.items : [])) this.events.push(item);
     if (this.events.length > 300) this.events.splice(0, this.events.length - 300);
     break;
     case 'snapshot': this.push(msg); break;
@@ -202,8 +202,9 @@ export class NetClient {
    this._adapt();
    while (this.buffer.length > this.bufferTarget) this.buffer.shift();
   this.state = msg.state;
+  const actors = Array.isArray(msg.state?.actors) ? msg.state.actors : [];
   if (this.shadow && this.actorId !== null) {
-   const own = msg.state.actors.find(a => a.id === this.actorId);
+   const own = actors.find(a => a.id === this.actorId);
     if (own) {
      this.resync(own);
      this.resyncVehicles(msg.state.vehicles);

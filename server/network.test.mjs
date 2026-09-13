@@ -510,3 +510,24 @@ test('chat is room-scoped, reaches every peer and spectator, and errors outside 
   a?.close(); b?.close(); c?.close(); d?.close(); e?.close(); s?.close(); close();
  }
 });
+
+test('a reconnect racing the old socket reattaches the seat with the newest connection', async () => {
+ const { server, close } = createGameServer({});
+ await new Promise(resolve => server.listen(0, resolve));
+ const port = server.address().port;
+ const a = await connect(`ws://127.0.0.1:${port}`);
+ let b;
+ try {
+  await queue(a);
+  send(a, { type: 'create', name: 'A', playerName: 'A', character: 'chatgpt', harness: 'openclaw' });
+  const first = await until(a, 'welcome');
+  assert.ok(first.token, 'first connection gets a session token');
+  assert.ok(first.roomId, 'first connection gets a room');
+  b = await connect(`ws://127.0.0.1:${port}`);
+  await queue(b);
+  send(b, { type: 'join', name: 'A', character: 'chatgpt', harness: 'openclaw', roomId: first.roomId, token: first.token });
+  const second = await until(b, 'welcome');
+  assert.equal(second.reconnected, true, 'the racing reconnection adopts the existing seat');
+  await until(b, 'lobby');
+ } finally { try { a.close(); } catch {} try { b?.close(); } catch {} close(); }
+});

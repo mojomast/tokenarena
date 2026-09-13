@@ -80,3 +80,8 @@ test('rig smooths speed and converges stance without popping', () => {
   assert.ok(Number.isFinite(joints.legUpperL.rotation.x));
   assert.ok(clamp(rig.crouch, 0, 1) >= 0);
 });
+
+test('turn banking twists the chest alongside aim focus',()=>{
+  assert.ok(Math.abs(characterPose({bank:1,focusYaw:0}).chest.y+0.08)<1e-9,'bank alone twists the chest');
+  assert.ok(Math.abs(characterPose({bank:1,focusYaw:.5}).chest.y-(0.1-0.08))<1e-9,'bank and focus combine');
+});

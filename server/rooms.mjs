@@ -48,7 +48,10 @@ export class RoomRegistry {
   }
  }
  expireAll(now = Date.now()) {
-  for (const room of this.rooms.values()) room.expireGrace(now);
+  for (const room of this.rooms.values()) {
+   try { room.expireGrace(now); }
+   catch (error) { this.lastExpireError = error; this.onError?.(error, room); }
+  }
   for (const room of [...this.rooms.values()]) this.removeIfEmpty(room);
  }
  drainAll() {

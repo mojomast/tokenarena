@@ -324,3 +324,31 @@ test('the app Reduce Motion preference drives view effects as well as the OS que
  view.motionQuery={matches:false};view.display={...DEFAULT_DISPLAY,reducedMotion:false};
  assert.equal(view.reduced(),false,'neither preference reduces motion');
 });
+
+test('flags recolor with the team palette and rebuild their geometry after an arena swap',t=>{
+ const previous=Object.getOwnPropertyDescriptor(globalThis,'document');
+ const ctx={fillRect(){},fillText(){},beginPath(){},moveTo(){},lineTo(){},closePath(){},stroke(){},fill(){}};
+ Object.defineProperty(globalThis,'document',{configurable:true,value:{createElement:()=>({getContext:()=>ctx})}});
+ t.after(()=>{if(previous)Object.defineProperty(globalThis,'document',previous);else delete globalThis.document;});
+ const renderer=new SoftwareRenderer({width:160,height:90,getContext:()=>ctx}),view=Object.create(ArenaView.prototype);
+ Object.assign(view,{scene:new T.Scene(),renderResources:new Set(),renderer,flagModels:new Map(),display:{...DEFAULT_DISPLAY}});
+ view.scene.add(new T.HemisphereLight(),new T.DirectionalLight());
+ const arena=MAPS[0];
+ view.buildArena(arena);
+ const flags={time:1,flags:[{team:0,x:1,y:0,z:2}]};
+ view.updateFlags(flags,arena);
+ const material=view.flagModels.get('0').userData.material;
+ assert.equal(material.color.getHexString(),'ed514b');
+ view.display.teamPalette='colorblind';
+ view.updateFlags(flags,arena);
+ assert.equal(material.color.getHexString(),'ff9d2e','flag recolors with the active palette');
+ const firstPole=view.flagAssets.pole,disposes=[];
+ firstPole.addEventListener('dispose',()=>disposes.push(1));
+ view.flagModels.clear();
+ view.buildArena(arena);
+ assert.equal(disposes.length,1,'old flag geometry disposed exactly once');
+ assert.equal(view.flagAssets,null,'flag geometry cache resets on rebuild');
+ view.updateFlags(flags,arena);
+ assert.notEqual(view.flagAssets.pole,firstPole,'flag geometry recreated after a rebuild');
+ renderer.dispose();
+});

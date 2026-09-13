@@ -92,6 +92,23 @@ test('payload matches run to completion on supported arenas and publish a payloa
  }
 });
 
+test('payload checkpoints never sit at zero distance or score while idle',()=>{
+ for(const id of ['launchpad','colosseum','citadel','warfront','convoy-line','riverbend']){
+  const map=getMap(id);
+  if(!map||!map.teamSpawns)continue;
+  for(const segments of [1,3,6]){
+   const state=payloadTemplate(map,{segments});
+   const distances=state.checkpoints.map(checkpoint=>checkpoint.distance);
+   assert.ok(distances.every(distance=>distance>1e-6),`${id} seg${segments} positive distances`);
+   assert.ok(distances.every((distance,index)=>index===0||distance>distances[index-1]),`${id} seg${segments} increasing distances`);
+   const scores={0:0,1:0};
+   stepPayload(state,[],1/60,{teamScores:scores,scoreLimit:99});
+   assert.equal(state.checkpointsReached,0,`${id} seg${segments} idle must not reach a checkpoint`);
+   assert.equal(scores[0]+scores[1],0,`${id} seg${segments} idle must not score`);
+  }
+ }
+});
+
 test('a payload timeout hands the round to the defenders',()=>{
  const match=new Match('chatgpt','openclaw',rng,'warfront',{mode:'payload',botCount:0,timeLimit:60,fragLimit:3});
  for(let i=0;i<3601&&!match.over;i++)match.step(1/60);

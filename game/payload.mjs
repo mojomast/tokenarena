@@ -1,8 +1,12 @@
 // Payload: one team escorts a cart along an authored route while the other
 // stalls and rolls it back. Pure and engine-free, like assault.mjs, so the sim,
 // replay, network and tests share the same rules.
+import {terrainSupportAt} from './terrain.mjs';
 export const PAYLOAD_MODE_ID='payload';
 const boundsOf=arena=>arena.bounds||{minX:-13.55,maxX:13.55,minZ:-13.55,maxZ:13.55};
+// Route points must sit on the ground so the cart and checkpoint rings are not
+// buried on terrain maps (titan-valley, riverbend, convoy-line).
+const groundAt=(arena,x,z,fallback)=>{const safe=Number.isFinite(fallback)?fallback:0;if(!arena.terrain)return safe;const support=terrainSupportAt(x,z,arena.terrain,arena.terrain.maxSlope??.9);return support?support.y:safe;};
 const insideBlock=(arena,x,z,y=0)=>(arena.blocks||[]).some(block=>Math.abs(x-block.x)<=block.w/2&&Math.abs(z-block.z)<=block.d/2&&y<block.h-1e-6);
 const inBounds=(arena,x,z)=>{const b=boundsOf(arena);return x>=b.minX&&x<=b.maxX&&z>=b.minZ&&z<=b.maxZ;};
 const pair=value=>Array.isArray(value)?(Number.isFinite(value[0])&&Number.isFinite(value[1])?{x:value[0],z:value[1]}:null):value&&Number.isFinite(value.x)&&Number.isFinite(value.z)?{x:value.x,z:value.z}:null;
@@ -16,7 +20,7 @@ export function payloadPath(arena,segments=3){
  let end=blue[0]||spawns[spawns.length-1]||{x:b.maxX-(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};
  if(!Number.isFinite(start.x)||!Number.isFinite(start.z))start={x:b.minX+(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};
  if(!Number.isFinite(end.x)||!Number.isFinite(end.z)||Math.hypot(end.x-start.x,end.z-start.z)<1){const centreX=(b.minX+b.maxX)/2;end={x:start.x<=centreX?b.maxX-(b.maxX-b.minX)*.12:b.minX+(b.maxX-b.minX)*.12,y:0,z:(b.minZ+b.maxZ)/2};}
- const push=(candidate,used)=>{const point=candidate?pair(candidate):null;if(!point)return;const x=point.x,z=point.z,y=Number.isFinite(candidate.y)?candidate.y:0;if(!Number.isFinite(x)||!Number.isFinite(z)||!inBounds(arena,x,z)||insideBlock(arena,x,z,y))return;if(used.some(other=>Math.hypot(other.x-x,other.z-z)<1.5))return;used.push({x,y,z});};
+ const push=(candidate,used)=>{const point=candidate?pair(candidate):null;if(!point)return;const x=point.x,z=point.z,rawY=Number.isFinite(candidate.y)?candidate.y:(Number.isFinite(candidate.topY)?candidate.topY:0),y=groundAt(arena,x,z,rawY);if(!Number.isFinite(x)||!Number.isFinite(z)||!inBounds(arena,x,z)||insideBlock(arena,x,z,y))return;if(used.some(other=>Math.hypot(other.x-x,other.z-z)<1.5))return;used.push({x,y,z});};
  const candidates=[];
  for(const zone of arena.objectiveZones||[])push(zone,candidates);
  for(const node of arena.navNodes||[])push({x:node.x,z:node.z,y:node.y},candidates);
@@ -24,18 +28,22 @@ export function payloadPath(arena,segments=3){
  for(const pickup of arena.pickups||[])push({x:pickup[1],z:pickup[2],y:0},candidates);
  for(const platform of arena.platforms||[])push({x:platform.x,z:platform.z,y:platform.y??platform.topY??0},candidates);
  const count=Math.max(1,Math.min(6,Math.round(segments)||1))+1;
- const anchors=[{x:start.x,y:Number.isFinite(start.y)?start.y:0,z:start.z},{x:end.x,y:Number.isFinite(end.y)?end.y:0,z:end.z}];
+ const anchors=[{x:start.x,y:groundAt(arena,start.x,start.z,start.y),z:start.z},{x:end.x,y:groundAt(arena,end.x,end.z,end.y),z:end.z}];
  const path=[anchors[0]];
- const used=[];
+ // Seed the anchors so no interior waypoint can collapse onto the start/end and
+ // produce a zero-length segment (which would award a checkpoint with no push).
+ const used=[{x:anchors[0].x,z:anchors[0].z},{x:anchors[1].x,z:anchors[1].z}];
  for(let i=1;i<count-1;i++){
-  const t=i/(count-1),lx=anchors[0].x+(anchors[1].x-anchors[0].x)*t,lz=anchors[0].z+(anchors[1].z-anchors[0].z)*t,ly=anchors[0].y+(anchors[1].y-anchors[0].y)*t;
+  const t=i/(count-1),lx=anchors[0].x+(anchors[1].x-anchors[0].x)*t,lz=anchors[0].z+(anchors[1].z-anchors[0].z)*t,ly=anchors[0].y+(anchors[1].y-anchors[0].y)*t,previous=path[path.length-1];
   let best=null,bestDistance=Infinity;
   for(const candidate of candidates){
    if(used.includes(candidate))continue;
+   if(used.some(other=>Math.hypot(other.x-candidate.x,other.z-candidate.z)<1.5))continue;
    const distance=(candidate.x-lx)**2+(candidate.z-lz)**2;
    if(distance<bestDistance){bestDistance=distance;best=candidate;}
   }
-  if(best){used.push(best);path.push({x:best.x,y:best.y,z:best.z});}else path.push({x:lx,y:ly,z:lz});
+  if(best){used.push(best);path.push({x:best.x,y:best.y,z:best.z});}
+  else if(Math.hypot(lx-previous.x,lz-previous.z)>=1)path.push({x:lx,y:groundAt(arena,lx,lz,ly),z:lz});
  }
  path.push(anchors[1]);
  return path;

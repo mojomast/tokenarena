@@ -21,7 +21,7 @@ const authoredObjectivePoints={
   'longreach-plateau':[[-52,-10,3.5,0],[0,0,3.5,0],[52,10,3.5,0]],
 };
 const terrainHeight=(arena,x,z)=>{if(!arena.terrain)return null;const support=terrainSupportAt(x,z,arena.terrain,arena.terrain.maxSlope??.9);return support?support.y:null;};
-const toPoints=(values,ids,rules,arena)=>values?.map(([x,z,radius,y=0],i)=>{const ground=arena?terrainHeight(arena,x,z):null;return point(x,z,ids[i],rules,radius,ground===null?y:ground);});
+const toPoints=(values,ids,rules,arena)=>{if(!Array.isArray(values)||values.length<ids.length)return null;return values.map(([x,z,radius,y=0],i)=>{if(!Number.isFinite(x)||!Number.isFinite(z))return null;const ground=arena?terrainHeight(arena,x,z):null;return point(x,z,ids[i],rules,radius,ground===null?y:ground);}).filter(Boolean);};
 const obstructedByBlocks=(arena,x,z,y,radius)=> (arena.blocks||[]).some(block=>Math.abs(x-block.x)<block.w/2+radius&&Math.abs(z-block.z)<block.d/2+radius&&y<block.h-1e-6);
 const onPlatform=(arena,x,z,radius)=> (arena.platforms||[]).some(platform=>Math.abs(x-platform.x)<=platform.w/2-radius&&Math.abs(z-platform.z)<=platform.d/2-radius);
 const spreadPoints=(pool,count)=>{
@@ -54,20 +54,30 @@ const candidatePoints=(arena,ids,rules)=>{
 // any obstructed zone to the nearest clear ground within the map.
 const clearZone=(arena,zone)=>{
   if(!arena.terrain)return zone;
-  const radius=Math.max(.6,(zone.radius??3.5)*.5);
-  for(let ring=0;ring<=20;ring++)for(let a=0;a<(ring===0?1:8);a++){
-    const angle=a/(ring===0?1:8)*Math.PI*2,nx=zone.x+Math.cos(angle)*ring,nz=zone.z+Math.sin(angle)*ring;
+  const radius=.6;
+  const clearAt=(x,z)=>{const ground=terrainHeight(arena,x,z);return ground===null||obstructedByBlocks(arena,x,z,ground,radius)?null:ground;};
+  const center=clearAt(zone.x,zone.z);
+  if(center!==null)return {...zone,y:center};
+  let best=null,bestDistance=Infinity;
+  for(let r=.5;r<=20;r+=.5)for(let a=0;a<48;a++){
+    const angle=a/48*Math.PI*2,nx=zone.x+Math.cos(angle)*r,nz=zone.z+Math.sin(angle)*r;
     if(!Number.isFinite(nx)||!Number.isFinite(nz))continue;
-    const ground=terrainHeight(arena,nx,nz);
-    if(ground===null||obstructedByBlocks(arena,nx,nz,ground,radius))continue;
-    return {...zone,x:nx,z:nz,y:ground};
+    const ground=clearAt(nx,nz);
+    if(ground===null)continue;
+    const distance=Math.hypot(nx-zone.x,nz-zone.z);
+    if(distance<bestDistance){bestDistance=distance;best={...zone,x:nx,z:nz,y:ground};}
   }
-  return zone;
+  return best||zone;
 };
-const authoredPoints=(arena,ids,rules)=>toPoints(authoredObjectivePoints[arena.id],ids,rules,arena)||(
-  Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length
-    ? ids.map((id,index)=>{const source=arena.objectiveZones[index];return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);})
-    : candidatePoints(arena,ids,rules));
+const authoredPoints=(arena,ids,rules)=>{
+  const authored=toPoints(authoredObjectivePoints[arena.id],ids,rules,arena);
+  if(authored&&authored.length>=ids.length)return authored;
+  if(Array.isArray(arena.objectiveZones)&&arena.objectiveZones.length>=ids.length){
+    const mapped=ids.map((id,index)=>{const source=arena.objectiveZones[index];if(!source||!Number.isFinite(source.x)||!Number.isFinite(source.z))return null;return point(source.x,source.z,id,rules,source.radius??3.5,source.y??0);}).filter(Boolean);
+    if(mapped.length>=ids.length)return mapped;
+  }
+  return candidatePoints(arena,ids,rules);
+};
 export function objectiveTemplate(mode,arena,config){
  const rules=modeRule(mode),kind=rules.objective?.kind,authored=authoredPoints(arena,['alpha','bravo','charlie'],rules);
  if(kind==='koth'){
