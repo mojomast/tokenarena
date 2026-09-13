@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, killstreakCallout, audioCaption, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, killstreakCallout, ladderStatus, streakStatus, audioCaption, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -297,4 +297,13 @@ test('audio captions describe events and ignore silent ones',()=>{
  assert.equal(audioCaption({type:'melee'}).text,'Melee');
  assert.equal(audioCaption({type:'spawn'}),null);
  assert.equal(audioCaption(null),null);
+});
+
+test('ladder and streak status describe arms race and killstreaks',()=>{
+ assert.deepEqual(ladderStatus({ladder:3},10),{rung:3,total:10,label:'LADDER 4/10'});
+ assert.equal(ladderStatus({ladder:99},10).label,'LADDER 10/10');
+ assert.equal(ladderStatus({},10).label,'LADDER 1/10');
+ assert.deepEqual(streakStatus({streak:4}),{streak:4,label:'4 STREAK'});
+ assert.equal(streakStatus({streak:1}),null);
+ assert.equal(streakStatus(undefined),null);
 });

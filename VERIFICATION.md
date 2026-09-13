@@ -1,5 +1,11 @@
 # COCS verification report
 
+## Ladder and streak HUD chips 2.55 - 2026-09-12
+
+- `ladderStatus` and `streakStatus` in `hud.mjs` drive Arms Race and killstreak
+  chips; unit-tested. Full game 641/641, server 109/109, SSR 1/1, build and
+  `tsc` clean.
+
 ## First-run coach 2.54 - 2026-09-12
 
 - New pure `onboarding.mjs` (`ONBOARDING_STEPS`, `clampOnboardingStep`,

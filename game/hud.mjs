@@ -131,6 +131,17 @@ export function suddenDeathBanner(hud) {
 }
 
 const CAPTION_EVENTS = Object.freeze({shot:'Gunfire',explosion:'Explosion','vehicle-shot':'Vehicle gunfire',grenade:'Grenade out',melee:'Melee',reload:'Reloading',pickup:'Pickup',powerup:'Powerup','vehicle-destroyed':'Vehicle destroyed','zone-capture':'Zone captured','zone-score':'Objective scoring','zone-neutralized':'Zone neutralized','flag-pickup':'Flag taken','flag-return':'Flag returned','flag-drop':'Flag dropped',capture:'Flag captured','assault-breach':'Sector breached','payload-checkpoint':'Checkpoint reached','payload-delivered':'Payload delivered','killstreak':'Killstreak',death:'Elimination'});
+export function ladderStatus(player, total = 10) {
+  const rung = Math.max(0, Math.floor(Number(player?.ladder) || 0));
+  const size = Math.max(1, Math.floor(Number(total) || 10));
+  return { rung, total: size, label: `LADDER ${Math.min(size, rung + 1)}/${size}` };
+}
+
+export function streakStatus(player) {
+  const streak = Math.max(0, Math.floor(Number(player?.streak) || 0));
+  return streak >= 2 ? { streak, label: `${streak} STREAK` } : null;
+}
+
 export function audioCaption(event) {
   const text = CAPTION_EVENTS[event?.type];
   return text ? { text } : null;
