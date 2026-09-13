@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Match, obstructed} from './core.mjs';
+import {Match, obstructed, floorAt} from './core.mjs';
 import {MAPS} from './maps.mjs';
 import {arenaMeta} from './arenas.mjs';
 import {RULES} from './data.mjs';
@@ -249,4 +249,19 @@ test('a decisive timed match still ends on the clock', () => {
   assert.equal(m.over, true);
   assert.equal(m.overReason, 'time');
   assert.equal(m.suddenDeath, false);
+});
+
+test('bots do not acquire cloaked enemies at range', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'proving-grounds', {mode: 'deathmatch', botCount: 1, humanCount: 2, timeLimit: 60});
+  const bot = m.actors.find(a => a.bot), enemy = m.actors.find(a => a !== bot && !a.bot);
+  const put = (a, x, z) => { a.x = x; a.z = z; a.y = floorAt(x, z, m.arena) ?? 0; };
+  put(bot, -6, 0); put(enemy, 6, 0);
+  enemy.powerups = {};
+  bot.bot.target = -1;
+  for (let i = 0; i < 30; i++) { bot.bot.think = 0; m.step(1 / 60); }
+  assert.equal(bot.bot.target, enemy.id, 'a visible enemy is acquired');
+  put(bot, -6, 0); put(enemy, 6, 0);
+  enemy.powerups = {cloak: 10}; bot.bot.target = -1;
+  for (let i = 0; i < 12; i++) { bot.bot.think = 0; m.step(1 / 60); }
+  assert.notEqual(bot.bot.target, enemy.id, 'a cloaked enemy is not acquired at range');
 });

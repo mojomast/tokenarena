@@ -29,6 +29,11 @@ export function radarContacts(hud, player, {range = DEFAULT_RANGE} = {}) {
   };
   for (const actor of Array.isArray(hud.actors) ? hud.actors : []) {
     const teammate = player?.team !== null && player?.team !== undefined && actor.team === player.team;
+    const cloaked = (Number(actor?.powerups?.cloak) || 0) > 0;
+    if (cloaked && actor.id !== player.id && !teammate && !reveal) {
+      const rawDist = Math.hypot(Number(actor.x) - px, Number(actor.z) - pz);
+      if (!(rawDist <= 8)) continue;
+    }
     const point = place(actor?.x, actor?.z, reveal && actor.id !== player.id && !teammate);
     if (!point) continue;
     contacts.push({kind: 'actor', id: actor.id, x: point.x, y: point.y, team: actor.team, self: actor.id === player.id, dead: !(Number(actor.health) > 0), vehicle: actor.vehicleId != null, revealed: point.clamped === true});

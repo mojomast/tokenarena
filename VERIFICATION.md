@@ -1,5 +1,13 @@
 # COCS verification report
 
+## Cloak powerup 2.57 - 2026-09-12
+
+- New `cloak` powerup and `cloak` effect key; bot target selection skips
+  cloaked enemies beyond 4m and radar hides them beyond 8m unless Recon is
+  active. Procedural maps include a cloak pickup. Tests: radar hide/reveal,
+  timed expiry, and bot non-acquisition. Full game 646/646, server 109/109,
+  SSR 1/1, build/`tsc` clean.
+
 ## Bounty and Berserk mutators 2.56 - 2026-09-12
 
 - `bounty` heals + bonuses ending a 3+ streak; `berserk` adds +20% damage at

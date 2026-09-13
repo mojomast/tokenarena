@@ -39,6 +39,7 @@ export const POWERUPS=[
   {id:'overcharge',name:'Overcharge',duration:5,color:'#ff8f70',description:'More damage per shot. The invoice arrives later, and that lag is acceptable.',effect:{damageMultiplier:1.35}},
   {id:'overshield',name:'Overshield',duration:8,color:'#75baff',description:'A slab of temporary armor. Pop-up ads sold separately.',effect:{armor:60}},
   {id:'recon',name:'Recon Pulse',duration:10,color:'#7fe7ff',description:'Reveals every enemy on your team radar, no matter the distance. The map, unmapped.',effect:{reveal:true}},
+  {id:'cloak',name:'Cloak',duration:7,color:'#c8b6ff',description:'Bends light around you: bots cannot acquire you at range and you drop off enemy radar except up close.',effect:{cloak:true}},
 ];
 // Short tongue-in-cheek weapon blurbs, kept separate so the combat tuning above
 // stays one continuous, diff-friendly table. Shown in settings and the arsenal.

@@ -56,3 +56,13 @@ test('recon reveals distant enemies while it is active',()=>{
   assert.equal(revealed.revealed,true);
   assert.ok(revealed.x>=-1.01&&revealed.x<=1.01&&revealed.y>=-1.01&&revealed.y<=1.01,'revealed contact is clamped to the radar rim');
 });
+
+test('cloaked enemies drop off radar except up close',()=>{
+  const player={id:0,x:0,z:0,team:0,yaw:0};
+  const near={actors:[{id:0,x:0,z:0,health:100,team:0},{id:1,x:5,z:0,health:100,team:1,powerups:{cloak:5}}]};
+  assert.ok(radarContacts(near,player,{range:55}).contacts.some(c=>c.id===1),'a close cloak stays visible');
+  const far={actors:[{id:0,x:0,z:0,health:100,team:0},{id:1,x:30,z:0,health:100,team:1,powerups:{cloak:5}}]};
+  assert.equal(radarContacts(far,player,{range:55}).contacts.some(c=>c.id===1),false,'a distant cloak is hidden');
+  player.powerups={recon:5};
+  assert.ok(radarContacts(far,player,{range:55}).contacts.some(c=>c.id===1),'recon reveals cloaked enemies');
+});

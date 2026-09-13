@@ -250,7 +250,7 @@ export function createLevel(spec) {
   // powerups) and place any missing spawn points on supported ground.
   const anchors = [...ctx.objectiveZones.map(z => [z.x, z.z]).sort((a, b) => Math.hypot(a[0], a[1]) - Math.hypot(b[0], b[1])), ...ctx.spawns, ...Object.values(ctx.teamSpawns).flat()];
   const anchor = (i) => anchors.length ? anchors[i % anchors.length] : [0, 0];
-  const required = ['rocket', 'rail', 'scatter', 'plasma', 'health', 'armor', 'haste', 'overcharge', 'overshield', 'recon'];
+  const required = ['rocket', 'rail', 'scatter', 'plasma', 'health', 'armor', 'haste', 'overcharge', 'overshield', 'recon', 'cloak'];
   for (const kind of required) {
     if (ctx.pickups.some(([existing]) => existing === kind)) continue;
     const [ax, az] = anchor(ctx.pickups.length);
