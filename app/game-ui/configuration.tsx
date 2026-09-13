@@ -16,6 +16,7 @@ const SCORE_RULES:any={
  zoneTime:{label:'Zone time target',objective:'CONTROL ZONES',min:30,max:300,step:10},
  sectors:{label:'Sector count',objective:'SECTORS',min:1,max:9,step:1},
  payload:{label:'Checkpoint count',objective:'CHECKPOINTS',min:1,max:6,step:1},
+ ladder:{label:'Weapons in the rack',objective:'WEAPON LADDER',min:10,max:10,step:1},
 };
 const scoreRule=(mode:any)=>SCORE_RULES[mode?.rules?.score]||SCORE_RULES.frags;
 const objectiveCopy=(score:string)=>({

@@ -236,6 +236,7 @@ const arenaLooks={
   forge:['#4a4030','#2f281d','#c4a86a','#ffe9b0','#1c150c',.012,.62],
   'titan-valley':['#556b52','#3a4a38','#a9c09a','#e8f6dc','#22301f',.0055,.2],
   'convoy-line':['#5a4a34','#332a1e','#d0b276','#ffeccb','#1f170d',.011,.48],
+  'proving-grounds':['#33513d','#213528','#93c79a','#dcffdf','#13251a',.015,.55],
   };
 export class ArenaView{
  constructor(canvas){const context=canvas.getContext('webgl2',{antialias:true,alpha:false});this.renderer=context?new T.WebGLRenderer({canvas,context,antialias:true,alpha:false,powerPreference:'high-performance'}):new SoftwareRenderer(canvas);this.display=normalizeDisplay();this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.2;this.composer=null;this._postW=0;this._postH=0;this.motionQuery=typeof window!=='undefined'?window.matchMedia?.('(prefers-reduced-motion: reduce)'):undefined;

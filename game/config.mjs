@@ -9,6 +9,7 @@ export const GAME_MODES = [
   {id:'instagib',name:'Instagib',description:'Rail only, unlimited ammo. One unprotected hit eliminates. No supplies, no powers, no mercy.'},
   {id:'rockets',name:'Rocket Arena',description:'Unlimited rockets for everyone. Health and armor stay on the menu.'},
   {id:'arsenal',name:'Full Arsenal',description:'Every weapon unlocked with unlimited ammo from the first spawn. Choose violence, repeatedly.'},
+  {id:'armsrace',name:'Arms Race',description:'Every kill promotes you to the next weapon in the rack. Finish the last gun to win.',rules:{team:false,score:'ladder',fragLimit:10,minFragLimit:10,maxFragLimit:10}},
   {id:'combined-arms',name:'Combined Arms',description:'Command infantry, armour and aircraft across the largest battlefields. Hold the zones together.',rules:{team:true,score:'zoneTime',fragLimit:200,minFragLimit:50,maxFragLimit:900,objective:{kind:'domination',captureSeconds:6},maxBots:16}},
   {id:'payload',name:'Payload',description:'Escort the payload cart down the track to the final point. Checkpoints bank progress; defenders stall it and roll it back. Attackers win on delivery, defenders on the clock.',rules:{team:true,score:'payload',fragLimit:3,minFragLimit:1,maxFragLimit:6,objective:{kind:'payload',captureSeconds:5}}},
 ];

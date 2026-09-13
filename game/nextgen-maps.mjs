@@ -211,4 +211,19 @@ const convoyLine = createLevel({
   },
 });
 
-export const NEXTGEN_MAPS = [colosseum, frostGate, sunkenHill, riverbend, fortress, atrium, catacombs, slagworks, forge, titanValley, convoyLine];
+// 12. Arms Race — a compact live-fire course where every kill climbs the weapon ladder.
+const provingGrounds = createLevel({
+  id: 'proving-grounds', name: 'Proving Grounds', tag: 'ARMS RACE / COMPACT', color: '#9fe0a0', background: '#0b1410', seed: 1212,
+  group: 'arena', scale: 'skirmish', mode: 'armsrace', size: { w: 82, d: 82 }, biome: 'urban', amplitude: 1.4, relief: .5,
+  description: 'A compact live-fire course. Every kill promotes you to the next weapon in the rack; finish the last gun to win.',
+  layout(ctx, rng) {
+    ring(ctx, 0, 0, 14, 8, (c, x, z) => c.addColumn({ x, z, radius: .7, height: 5 }));
+    for (const [x, z, rot] of [[-24, -24, 0], [24, 24, 0], [-24, 24, Math.PI], [24, -24, Math.PI]]) ctx.addBuilding({ x, z, w: 12, d: 10, h: 5, rot, roof: 'gable', door: 'south', floors: 1 });
+    scatter(ctx, 10, rng, 8, (c, x, z) => c.addCrate({ x, z, scale: .8 }));
+    ctx.addObjective(0, 0, 4); ctx.addObjective(-24, 0, 3.5); ctx.addObjective(24, 0, 3.5);
+    for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.addSpawn(Math.cos(a) * 30, Math.sin(a) * 30); }
+    ctx.addPickup('health', -30, 0); ctx.addPickup('armor', 30, 0); ctx.addPickup('rocket', 0, -30); ctx.addPickup('rail', 0, 30);
+  },
+});
+
+export const NEXTGEN_MAPS = [colosseum, frostGate, sunkenHill, riverbend, fortress, atrium, catacombs, slagworks, forge, provingGrounds, titanValley, convoyLine];

@@ -1,5 +1,14 @@
 # COCS verification report
 
+## Arms Race mode 2.53 - 2026-09-12
+
+- New `armsrace` mode and `proving-grounds` map (`config.mjs`,
+  `nextgen-maps.mjs`, `arenas.mjs`): `ladder` per actor, promoted on each kill,
+  weapon forced to the ladder rung, win on a kill with the final weapon.
+  Tests cover promotion, ammo on promote, the final-rung win, ignored manual
+  switches, and bots keeping their rung. Full game 638/638, server 109/109,
+  SSR 1/1, `tsc` clean.
+
 ## Recon Pulse 2.52 - 2026-09-12
 
 - New `recon` powerup (`data.mjs`) with a `reveal` effect key; `radarContacts`
