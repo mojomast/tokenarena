@@ -263,6 +263,10 @@ export function spectateActor(actors, targetId) {
   return list.find(a => a.id === targetId && a.health > 0) || list.find(a => a.health > 0) || list[0] || null;
 }
 
+export function spectatorBoard(actors, targetId) {
+  return (Array.isArray(actors) ? actors : []).filter(a => a && a.health > 0).map(a => ({id: a.id, name: a.name || `A${a.id}`, team: a.team, health: a.health, current: a.id === targetId}));
+}
+
 export function nextSpectateTarget(actors, currentId, step = 1) {
   const live = (Array.isArray(actors) ? actors : []).filter(a => a.health > 0);
   if (!live.length) return null;

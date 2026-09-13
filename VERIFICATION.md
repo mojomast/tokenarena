@@ -1,5 +1,12 @@
 # COCS verification report
 
+## Spectator controls 2.59 - 2026-09-12
+
+- `spectatorBoard` pure helper plus a target board, **P** first/third person
+  (`setSpectatorThird` offsets the camera behind the target) and **H** hides
+  the HUD. Unit test for the board. Full game 650/650, server 109/109, SSR
+  1/1, build/`tsc` clean.
+
 ## Loadout presets 2.58 - 2026-09-12
 
 - Pure `presets.mjs` (`normalizePreset(s)`, `addPreset`, `removePreset`,

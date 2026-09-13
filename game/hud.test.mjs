@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, killstreakCallout, ladderStatus, streakStatus, audioCaption, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, killstreakCallout, ladderStatus, streakStatus, audioCaption, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, spectatorBoard, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -306,4 +306,10 @@ test('ladder and streak status describe arms race and killstreaks',()=>{
  assert.deepEqual(streakStatus({streak:4}),{streak:4,label:'4 STREAK'});
  assert.equal(streakStatus({streak:1}),null);
  assert.equal(streakStatus(undefined),null);
+});
+
+test('the spectator board lists live actors and marks the followed one',()=>{
+ const actors=[{id:0,name:'A',health:100,team:0},{id:1,name:'B',health:0,team:1},{id:2,health:50,team:1}];
+ assert.deepEqual(spectatorBoard(actors,2),[{id:0,name:'A',team:0,health:100,current:false},{id:2,name:'A2',team:1,health:50,current:true}]);
+ assert.deepEqual(spectatorBoard(null,0),[]);
 });

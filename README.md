@@ -252,6 +252,8 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.59 improves spectating: a target board lists every live actor for one-tap following, **P** switches between first- and third-person, and **H** hides the HUD for a clean view.
+
 Version 2.58 adds **loadout presets**: save your operator, harness, arena and match rules by name, then recall or delete them with one tap. Presets persist on the device and validate against the current roster.
 
 Version 2.57 adds the **Cloak** powerup: for a few seconds bots cannot acquire you at range and you drop off enemy radar except up close (Recon still reveals you).

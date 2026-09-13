@@ -303,6 +303,18 @@
 .ladder-chip b, .streak-chip b { color: #9fe0a0; }
 .onboarding-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
 .onboarding-actions .deploy-button { flex: 0 0 auto; }
+.presets-configuration .preset-save { display: flex; gap: 8px; margin-bottom: 10px; }
+.presets-configuration .preset-save input { flex: 1 1 auto; min-width: 0; }
+.preset-list { display: flex; flex-direction: column; gap: 6px; }
+.preset-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; border: 1px solid #ffffff14; border-radius: 6px; }
+.preset-row span { display: flex; flex-direction: column; font-weight: 600; }
+.preset-row small { opacity: .65; font-weight: 400; }
+.preset-actions { display: flex; gap: 8px; }
+.game-hud.hide-hud .match-top, .game-hud.hide-hud .command-panel, .game-hud.hide-hud .kill-feed, .game-hud.hide-hud .radar, .game-hud.hide-hud .damage-numbers, .game-hud.hide-hud .hud-lower, .game-hud.hide-hud .weapon-hud, .game-hud.hide-hud .ability-hud, .game-hud.hide-hud .grenade-chip, .game-hud.hide-hud .ladder-chip, .game-hud.hide-hud .streak-chip { display: none; }
+.spectator-board { position: absolute; left: 50%; top: 92px; transform: translateX(-50%); display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; max-width: min(760px, 92vw); z-index: 5; }
+.spectator-board button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 5px 10px; border: 1px solid #ffffff22; border-radius: 6px; background: #0a1b1acc; color: #d7f7ff; font: 600 12px/1.1 var(--font-ui, system-ui); cursor: pointer; }
+.spectator-board button.current { border-color: #83f4d5aa; box-shadow: 0 0 0 1px #83f4d555 inset; }
+.spectator-board button small { opacity: .6; font-weight: 400; }
 .kill-feed { top: 300px; }
 @keyframes radar-sweep { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @media (max-width: 600px) { .radar { width: 118px; height: 118px; top: 104px; right: 14px; } .kill-feed { top: 236px; } }
