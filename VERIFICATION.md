@@ -1,5 +1,11 @@
 # COCS verification report
 
+## Frag HUD chip 2.50 - 2026-09-12
+
+- `grenadeStatus` in `hud.mjs` reports readiness/cooldown; a HUD chip renders
+  beside the ability HUD. New unit test `grenade status reports readiness and
+  remaining cooldown`. HUD/view/SSR suites 65/65, `tsc` clean.
+
 ## Grenade, sudden death and look controls 2.49 - 2026-09-12
 
 - **Thrown frag grenade** (`core.mjs`, `input.mjs`, `server/room.mjs`, `touch.mjs`,

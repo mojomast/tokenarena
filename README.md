@@ -252,6 +252,8 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.50 polishes the new frag with a HUD chip on **G** that reads FRAG READY or counts down the cooldown.
+
 Version 2.49 adds new ways to play and to aim:
 
 - **Thrown frag grenade.** Every operator carries a cooldown-gated frag on **G** (and a touch button). It arcs, bounces, and detonates on a fuse; bots throw it too, and it cannot be used while driving.

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -274,4 +274,12 @@ test('the sudden death banner shows until the match ends',()=>{
  assert.equal(suddenDeathBanner({suddenDeath:true,over:false})?.text,'SUDDEN DEATH');
  assert.equal(suddenDeathBanner({suddenDeath:true,over:true}),null);
  assert.equal(suddenDeathBanner({}),null);
+});
+
+test('grenade status reports readiness and remaining cooldown',()=>{
+ assert.deepEqual(grenadeStatus({grenadeCooldown:0}),{ready:true,cooldown:0,label:'FRAG READY'});
+ const cooling=grenadeStatus({grenadeCooldown:3.24});
+ assert.equal(cooling.ready,false);
+ assert.equal(cooling.label,'FRAG 3.2s');
+ assert.equal(grenadeStatus(undefined).ready,true);
 });

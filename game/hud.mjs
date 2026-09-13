@@ -130,6 +130,11 @@ export function suddenDeathBanner(hud) {
   return hud?.suddenDeath === true && hud?.over !== true ? { text: 'SUDDEN DEATH', detail: 'NEXT SCORE WINS' } : null;
 }
 
+export function grenadeStatus(player) {
+  const cooldown = Math.max(0, Number(player?.grenadeCooldown) || 0);
+  return { ready: cooldown <= 0, cooldown, label: cooldown <= 0 ? 'FRAG READY' : `FRAG ${cooldown.toFixed(1)}s` };
+}
+
 export function matchStartBanner(hud, duration = 2.6) {
   const time = Number(hud?.time), limit = Number.isFinite(duration) && duration > 0 ? duration : 2.6;
   if (!Number.isFinite(time) || time < 0 || time >= limit) return null;
