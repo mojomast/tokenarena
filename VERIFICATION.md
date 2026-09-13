@@ -1,5 +1,23 @@
 # COCS verification report
 
+## Killstreaks, mutators and accessibility 2.51 - 2026-09-12
+
+- **Killstreaks** (`core.mjs`): `applyKillstreak` rewards 3 kills (heal + ammo),
+  5 (Overcharge) and 7 (Overshield) and emits a `killstreak` event; streaks reset
+  on death and spawn. New test `killstreak rewards land at 3, 5 and 7 kills and
+  reset on death`; `killstreakCallout` shows the reward.
+- **Mutators** (`config.mjs`, `core.mjs`): `randomLoadout` picks a valid spawn
+  weapon with ammo; `oneShot` makes any unprotected hit lethal. Tests cover both
+  and their config defaults.
+- **Captions** (`hud.mjs`, `config.mjs`, `app/page.tsx`): pure `audioCaption`
+  maps the event stream to caption text; an optional strip renders it. Unit test
+  added.
+- **HUD clarity** (`config.mjs`, `app/page.tsx`): `showKillFeed`,
+  `showDamageNumbers` and `showRadar` gate their HUD elements; display defaults
+  and overrides unit-tested.
+- Suites: full game **633/633**, server **109/109**, SSR 1/1, `tsc --noEmit`
+  clean.
+
 ## Frag HUD chip 2.50 - 2026-09-12
 
 - `grenadeStatus` in `hud.mjs` reports readiness/cooldown; a HUD chip renders

@@ -45,3 +45,16 @@ test('display preferences normalize invert and look sensitivities',()=>{
  assert.equal(defaults.adsSensitivity,.85);
  assert.equal(defaults.touchSensitivity,1);
 });
+
+test('display clarity and caption preferences default safely',()=>{
+ const d=normalizeDisplay({});
+ assert.equal(d.captions,false);
+ assert.equal(d.showKillFeed,true);
+ assert.equal(d.showDamageNumbers,true);
+ assert.equal(d.showRadar,true);
+ const on=normalizeDisplay({captions:true,showKillFeed:false,showDamageNumbers:false,showRadar:false});
+ assert.equal(on.captions,true);
+ assert.equal(on.showKillFeed,false);
+ assert.equal(on.showDamageNumbers,false);
+ assert.equal(on.showRadar,false);
+});

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, grenadeStatus, killstreakCallout, audioCaption, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -282,4 +282,19 @@ test('grenade status reports readiness and remaining cooldown',()=>{
  assert.equal(cooling.ready,false);
  assert.equal(cooling.label,'FRAG 3.2s');
  assert.equal(grenadeStatus(undefined).ready,true);
+});
+
+test('killstreak callouts describe the reward',()=>{
+ assert.deepEqual(killstreakCallout({streak:5,reward:'overcharge'}),{kind:'streak',text:'5 KILLSTREAK',detail:'OVERCHARGE'});
+ assert.equal(killstreakCallout({streak:0,reward:'overcharge'}),null);
+ assert.equal(killstreakCallout({streak:5}),null);
+ assert.equal(killstreakCallout(undefined),null);
+});
+
+test('audio captions describe events and ignore silent ones',()=>{
+ assert.equal(audioCaption({type:'explosion'}).text,'Explosion');
+ assert.equal(audioCaption({type:'pickup'}).text,'Pickup');
+ assert.equal(audioCaption({type:'melee'}).text,'Melee');
+ assert.equal(audioCaption({type:'spawn'}),null);
+ assert.equal(audioCaption(null),null);
 });

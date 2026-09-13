@@ -130,6 +130,12 @@ export function suddenDeathBanner(hud) {
   return hud?.suddenDeath === true && hud?.over !== true ? { text: 'SUDDEN DEATH', detail: 'NEXT SCORE WINS' } : null;
 }
 
+const CAPTION_EVENTS = Object.freeze({shot:'Gunfire',explosion:'Explosion','vehicle-shot':'Vehicle gunfire',grenade:'Grenade out',melee:'Melee',reload:'Reloading',pickup:'Pickup',powerup:'Powerup','vehicle-destroyed':'Vehicle destroyed','zone-capture':'Zone captured','zone-score':'Objective scoring','zone-neutralized':'Zone neutralized','flag-pickup':'Flag taken','flag-return':'Flag returned','flag-drop':'Flag dropped',capture:'Flag captured','assault-breach':'Sector breached','payload-checkpoint':'Checkpoint reached','payload-delivered':'Payload delivered','killstreak':'Killstreak',death:'Elimination'});
+export function audioCaption(event) {
+  const text = CAPTION_EVENTS[event?.type];
+  return text ? { text } : null;
+}
+
 export function grenadeStatus(player) {
   const cooldown = Math.max(0, Number(player?.grenadeCooldown) || 0);
   return { ready: cooldown <= 0, cooldown, label: cooldown <= 0 ? 'FRAG READY' : `FRAG ${cooldown.toFixed(1)}s` };
@@ -149,6 +155,12 @@ export function multikillLabel(count) {
   const n = Math.floor(Number(count) || 0);
   if (n < 2) return null;
   return MULTIKILL_LABELS[Math.min(n, MULTIKILL_LABELS.length - 1)];
+}
+
+export function killstreakCallout(event) {
+  const streak = Math.floor(Number(event?.streak) || 0);
+  if (streak <= 0 || !event?.reward) return null;
+  return { kind: 'streak', text: `${streak} KILLSTREAK`, detail: String(event.reward).toUpperCase() };
 }
 
 export function spreeLabel(streak) {

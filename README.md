@@ -252,6 +252,13 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.51 adds a reward loop, two mutators and accessibility options:
+
+- **Killstreaks.** Three kills restores health and ammo (Scavenger), five grants Overcharge, and seven grants an Overshield, announced in the HUD. Dying or respawning resets the streak.
+- **Mutators.** Optional match rules for a **random starting weapon** each spawn and **one-shot kills** (any unprotected hit eliminates).
+- **Audio captions.** A caption strip narrates gunfire, explosions, reloads, pickups, objective events and eliminations for players who cannot rely on audio.
+- **HUD clarity.** Toggle the kill feed, damage numbers and radar independently.
+
 Version 2.50 polishes the new frag with a HUD chip on **G** that reads FRAG READY or counts down the cooldown.
 
 Version 2.49 adds new ways to play and to aim:
