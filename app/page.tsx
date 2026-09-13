@@ -13,7 +13,8 @@ import {NetClient,DEFAULT_SERVER_URL} from '../game/net.mjs';
 import {VoiceChat} from '../game/voice.mjs';
 import {DEFAULT_CONFIG,DEFAULT_DISPLAY,normalizeConfig,normalizeDisplay,GAME_MODES} from '../game/config.mjs';
 import {ONBOARDING_STEPS,ONBOARDING_STORAGE_KEY,shouldShowOnboarding} from '../game/onboarding.mjs';
-import {MatchConfiguration,DisplayConfiguration} from './game-ui/configuration';
+import {PRESET_STORAGE_KEY,addPreset,normalizePreset,normalizePresets,removePreset} from '../game/presets.mjs';
+import {MatchConfiguration,DisplayConfiguration,PresetsConfiguration} from './game-ui/configuration';
 import {shuffleSelection,nextArenaSelection} from '../game/replay.mjs';
 import {CinematicDirector,CAMERA_RIGS} from '../game/director.mjs';
 import {DemoRecorder,DemoPlayer} from '../game/demo.mjs';
@@ -81,8 +82,14 @@ export default function Home(){
   const [chatOpen,setChatOpen]=useState(false),[chatDraft,setChatDraft]=useState(''),[chatLog,setChatLog]=useState<any[]>([]),[setupOpen,setSetupOpen]=useState(false),[legacyMaps,setLegacyMaps]=useState(false);
   const [showcase,setShowcase]=useState(true),[showcaseLive,setShowcaseLive]=useState(false),[profile,setProfile]=useState<any>(defaultProgression()),[unlock,setUnlock]=useState<any>(null),[demos,setDemos]=useState<any[]>([]),[demoNotice,setDemoNotice]=useState(''),[demoPlaying,setDemoPlaying]=useState(false),[demoPaused,setDemoPaused]=useState(false),[demoTime,setDemoTime]=useState(0),[demoSpeed,setDemoSpeed]=useState(1),[demoRig,setDemoRig]=useState('orbit'),[demoInfo,setDemoInfo]=useState<any>(null),[lastDemo,setLastDemo]=useState<any>(null);
   const [onboarding,setOnboarding]=useState<number|null>(null);
+  const [presets,setPresets]=useState<any[]>([]);
   useEffect(()=>{let stored:any=null;try{stored=localStorage.getItem(ONBOARDING_STORAGE_KEY);}catch{}if(shouldShowOnboarding(stored,false))setOnboarding(0);},[]);
   const finishOnboarding=()=>{try{localStorage.setItem(ONBOARDING_STORAGE_KEY,'1');}catch{}setOnboarding(null);};
+  useEffect(()=>{try{setPresets(normalizePresets(JSON.parse(localStorage.getItem(PRESET_STORAGE_KEY)||'[]'),{characters:CHARACTERS.map((c:any)=>c.id),harnesses:HARNESSES.map((h:any)=>h.id),maps:MAPS.map((m:any)=>m.id)} as any,(i:number)=>`p${i}`));}catch{}},[]);
+  useEffect(()=>{try{localStorage.setItem(PRESET_STORAGE_KEY,JSON.stringify(presets));}catch{}},[presets]);
+  const savePreset=(name:string)=>{const preset=normalizePreset({name,character,harness,mapId,config},{characters:CHARACTERS.map((c:any)=>c.id),harnesses:HARNESSES.map((h:any)=>h.id),maps:MAPS.map((m:any)=>m.id)} as any,()=>`p${Date.now().toString(36)}`);if(preset)setPresets(list=>addPreset(list,preset));};
+  const loadPreset=(p:any)=>{if(CHARACTERS.some(c=>c.id===p.character))setCharacter(p.character);if(HARNESSES.some(h=>h.id===p.harness))setHarness(p.harness);if(MAPS.some(m=>m.id===p.mapId))setMapId(p.mapId);setConfig((c:any)=>normalizeConfig({...c,...p.config,playerName:c.playerName}));setSetupOpen(false);};
+  const deletePreset=(id:string)=>setPresets(list=>removePreset(list,id));
   const modalRef=useRef<HTMLElement>(null),previewRef=useRef<HTMLElement>(null),enteredRef=useRef(false),profileRef=useRef<any>(defaultProgression());
   const [voiceState,setVoiceState]=useState<any>({enabled:false,mode:'ptt',status:'off',error:'',talking:false,peers:0}),[voiceVolume,setVoiceVolume]=useState(1),[voiceThreshold,setVoiceThreshold]=useState(.03),[voiceOpen,setVoiceOpen]=useState(false),[newMessages,setNewMessages]=useState(false);
   const voiceGate=useRef({menu:false,blurred:false}),voicePrefs=useRef({volume:1,threshold:.03}),lobbyInputRef=useRef<HTMLInputElement>(null),lobbyChatRef=useRef<HTMLDivElement>(null),chatAtBottom=useRef(true),chatRoom=useRef('');
@@ -261,7 +268,7 @@ export default function Home(){
     <div className="title-start" role="button" aria-label="Press any key or click to enter"><span className="title-pulse"/>PRESS ANY KEY <small>or click to enter</small></div>
     <div className="title-meta"><span>{selectableMaps.length} ARENAS</span><span>{CHARACTERS.length} OPERATORS</span><span>{HARNESSES.length} HARNESSES</span><span>{GAME_MODES.length} MODES</span></div>
    </div>
-   <div className="title-footer"><span>v2.57 · CLOAK</span>{githubLink}</div>
+   <div className="title-footer"><span>v2.58 · PRESETS</span>{githubLink}</div>
   </div>}
   {mode==='selection'&&<div className={`selection-screen${showcaseLive?' has-showcase':''}${entered?'':' awaiting-start'}`}>
   <header className="topbar"><Wordmark sub="CUSTOM MATCH / 03"/><div className="header-right"><button className="icon-button title-return" aria-label="Return to title screen" title="Return to title screen" onClick={exitToTitle}><X size={18}/></button>{settingsButton}<button className="icon-button" aria-label={muted?'Unmute audio':'Mute audio'} onClick={()=>saveSettings(sensitivity,!muted)}>{muted?<VolumeX size={19}/>:<Volume2 size={19}/>}</button>{githubLink}</div></header>
@@ -283,6 +290,7 @@ export default function Home(){
   <div className="section-label"><span>ARENA</span><span>{selectedMap.tag}</span></div>
    <RadioGroup className="map-options" value={mapId} onValueChange={setMapId} aria-label="Arena selection">{selectableMaps.map((map:any)=><label htmlFor={`map-${map.id}`} key={map.id} className={`map-option ${mapId===map.id?'selected':''}`} style={{'--map-color':map.color} as any}><svg className="map-plan" viewBox={mapViewBox(map)} aria-hidden="true"><rect x={map.bounds?.minX??-15} y={map.bounds?.minZ??-15} width={map.bounds?map.bounds.maxX-map.bounds.minX:30} height={map.bounds?map.bounds.maxZ-map.bounds.minZ:30} fill="#0a1218"/>{(map.platforms||[]).map((p:any,i:number)=><rect key={`platform-${i}`} x={p.x-p.w/2} y={p.z-p.d/2} width={p.w} height={p.d} fill={p.route==='north'?'#d5a45c':p.route==='south'?'#b28cff':map.color} opacity=".35"/>)}{(map.jumpLinks||[]).map((link:any,i:number)=><line key={`link-${i}`} x1={link.source.x} y1={link.source.z} x2={link.target.x} y2={link.target.z} stroke={map.color} strokeWidth=".35" opacity=".8"/>)}{map.blocks.map((b:any,i:number)=><rect key={`block-${i}`} x={b.x-b.w/2} y={b.z-b.d/2} width={b.w} height={b.d} fill={b.kind==='wall'?'#4c6469':map.color} opacity={b.kind==='deck'?.25:.8}/> )}</svg><div>{map.nextGen&&<em className="map-nextgen">NEXT-GEN</em>}<strong>{map.name}</strong><small>{map.description}</small></div><RadioGroupItem id={`map-${map.id}`} value={map.id} aria-label={map.name}/></label>)}</RadioGroup>
   <MatchConfiguration config={config} onChange={(v:any)=>setConfig({...normalizeConfig(v),playerName:v.playerName})}/>
+  <PresetsConfiguration presets={presets} onSave={savePreset} onLoad={loadPreset} onDelete={deletePreset}/>
    <button className="deploy-button setup-launch" onClick={()=>{closeSetup();start();}} disabled={!ready||!!error}><span>ENTER ARENA<small>START WITH THIS SETUP</small></span><ArrowUpRight size={26}/></button>
   </section>
  </div>

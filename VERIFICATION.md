@@ -1,5 +1,14 @@
 # COCS verification report
 
+## Loadout presets 2.58 - 2026-09-12
+
+- Pure `presets.mjs` (`normalizePreset(s)`, `addPreset`, `removePreset`,
+  `findPreset`) with validation against the roster, same-name replacement and
+  an 8-entry cap. A `PresetsConfiguration` panel in match setup saves/loads/
+  deletes, persisted to `token-arena-presets`. Unit tests cover validation,
+  replacement, capping and removal. Full game 649/649, server 109/109, SSR
+  1/1, build/`tsc` clean.
+
 ## Cloak powerup 2.57 - 2026-09-12
 
 - New `cloak` powerup and `cloak` effect key; bot target selection skips
