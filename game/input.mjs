@@ -53,6 +53,7 @@ export function controlsFromState(state = {}) {
   if (state.power) controls.power = true;
   if (state.interact) controls.interact = true;
   if (state.melee) controls.melee = true;
+  if (state.grenade) controls.grenade = true;
   if (Number.isInteger(state.weapon) && state.weapon >= 0) controls.weapon = state.weapon;
   return controls;
 }

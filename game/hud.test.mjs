@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
+import {vehicleHud, escapeHint, voiceHint, reloadProgress, dynamicCrosshairGap, lowAmmo, postureLabel, hitMarker, projectToScreen, damageNumberStyle, boundList, damageBearing, killBanner, weaponTag, ammoText, matchStartBanner, suddenDeathBanner, scoreAnnouncer, multikillLabel, spreeLabel, recentKills, killCallout, matchAwards, killFeedWeapon, connectionQuality, spectateActor, nextSpectateTarget, weaponRangeInfo, weaponRangeLabel} from './hud.mjs';
 import {WEAPONS} from './data.mjs';
 
 const player = {id:0, health:100, x:0, z:0, vehicleId:null};
@@ -268,4 +268,10 @@ test('spectator cycling starts at the first live actor when the current target i
   assert.equal(nextSpectateTarget(actors,0,1),1,'forward from a dead target picks the first live actor');
   assert.equal(nextSpectateTarget(actors,9,1),1,'unknown target forward picks the first live actor');
   assert.equal(nextSpectateTarget(actors,9,-1),2,'unknown target reverse picks the last live actor');
+});
+
+test('the sudden death banner shows until the match ends',()=>{
+ assert.equal(suddenDeathBanner({suddenDeath:true,over:false})?.text,'SUDDEN DEATH');
+ assert.equal(suddenDeathBanner({suddenDeath:true,over:true}),null);
+ assert.equal(suddenDeathBanner({}),null);
 });

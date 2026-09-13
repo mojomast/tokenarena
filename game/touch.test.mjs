@@ -30,9 +30,10 @@ test('look steps accumulate yaw and clamp pitch',()=>{
  assert.equal(look.pitch,1.45);
  assert.deepEqual(lookStep(0,0,1),{yaw:0,pitch:0});
  assert.equal(applyLook(null,10,10),null);
- assert.equal(TOUCH_BUTTONS.length,10);
+ assert.equal(TOUCH_BUTTONS.length,11);
  assert.ok(TOUCH_BUTTONS.includes('voice'));
  assert.ok(TOUCH_BUTTONS.includes('melee'));
+ assert.ok(TOUCH_BUTTONS.includes('grenade'));
 });
 
 test('applyTouchAction tracks held buttons and latches one-shot actions',()=>{
@@ -68,4 +69,16 @@ test('applyTouchAction tracks held buttons and latches one-shot actions',()=>{
  assert.equal(runtime.touch.crouch,false);
  assert.deepEqual(runtime.voice.talking,[true,false]);
  assert.equal(applyTouchAction(null,'fire',true),null);
+});
+
+test('inverted touch look flips pitch without touching yaw',()=>{
+ const normal=lookStep(12,10,1,false),inverted=lookStep(12,10,1,true);
+ assert.equal(normal.yaw,inverted.yaw);
+ assert.equal(normal.pitch,-inverted.pitch);
+});
+
+test('grenade is a touch button and a one-shot action',()=>{
+ assert.ok(TOUCH_BUTTONS.includes('grenade'));
+ const runtime={};applyTouchAction(runtime,'grenade',true);
+ assert.equal(runtime.grenade,true);
 });

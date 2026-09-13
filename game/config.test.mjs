@@ -34,3 +34,14 @@ test('display configuration accepts a manual reduce-motion override', () => {
  assert.equal(normalizeDisplay({}).reducedMotion, false);
  assert.equal(normalizeDisplay({ reducedMotion: 'yes' }).reducedMotion, false);
 });
+
+test('display preferences normalize invert and look sensitivities',()=>{
+ const clamped=normalizeDisplay({invertY:true,adsSensitivity:9,touchSensitivity:0});
+ assert.equal(clamped.invertY,true);
+ assert.equal(clamped.adsSensitivity,1.5);
+ assert.equal(clamped.touchSensitivity,.3);
+ const defaults=normalizeDisplay({});
+ assert.equal(defaults.invertY,false);
+ assert.equal(defaults.adsSensitivity,.85);
+ assert.equal(defaults.touchSensitivity,1);
+});

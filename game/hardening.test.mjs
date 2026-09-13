@@ -226,3 +226,27 @@ test('an empty vehicle keeps its crew team for friendly-fire protection', () => 
   assert.equal(m.damageVehicle(tank, 60, a), 0, 'friendly fire must not damage an owned empty vehicle');
   assert.equal(tank.health, before);
 });
+
+test('a tied timed match enters sudden death and the next score decides it', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'colosseum', {mode: 'teamdeathmatch', botCount: 0, humanCount: 2, timeLimit: 5, fragLimit: 50, suddenDeath: true});
+  m.teamScores[0] = 3; m.teamScores[1] = 3;
+  m.time = m.config.timeLimit - 1 / 60;
+  m.step(1 / 60);
+  assert.equal(m.suddenDeath, true, 'a tied clock enters sudden death');
+  assert.equal(m.over, false, 'the match continues');
+  assert.equal(m.snapshot().suddenDeath, true);
+  m.teamScores[0] = 4;
+  m.step(1 / 60);
+  assert.equal(m.over, true);
+  assert.equal(m.overReason, 'sudden-death');
+});
+
+test('a decisive timed match still ends on the clock', () => {
+  const m = new Match('chatgpt', 'openclaw', seeded(), 'colosseum', {mode: 'teamdeathmatch', botCount: 0, humanCount: 2, timeLimit: 5, fragLimit: 50});
+  m.teamScores[0] = 3; m.teamScores[1] = 1;
+  m.time = m.config.timeLimit - 1 / 60;
+  m.step(1 / 60);
+  assert.equal(m.over, true);
+  assert.equal(m.overReason, 'time');
+  assert.equal(m.suddenDeath, false);
+});

@@ -252,6 +252,13 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.49 adds new ways to play and to aim:
+
+- **Thrown frag grenade.** Every operator carries a cooldown-gated frag on **G** (and a touch button). It arcs, bounces, and detonates on a fuse; bots throw it too, and it cannot be used while driving.
+- **Sudden death.** An opt-in match modifier: if the clock runs out level, play continues until the next score decides it (bounded window). Assault and Payload still resolve to the defenders on the clock.
+- **Blast fairness.** Point-blank explosions ignore thin cover so a frag at your feet hurts, while longer-range splash still requires line of sight.
+- **Look controls.** Invert vertical look, a separate ADS sensitivity, and a touch sensitivity slider join the display settings.
+
 Version 2.48 is a broad integrity pass across simulation, bots, rendering and networking:
 
 - **Payload routes are honest.** A route waypoint can no longer collapse onto the start (which awarded a checkpoint — and score — with zero push, trivially winnable on some maps), and every path point sits on the terrain so the cart is not buried underground.

@@ -1,5 +1,26 @@
 # COCS verification report
 
+## Grenade, sudden death and look controls 2.49 - 2026-09-12
+
+- **Thrown frag grenade** (`core.mjs`, `input.mjs`, `server/room.mjs`, `touch.mjs`,
+  `app/page.tsx`): edge-triggered on `G`, 7s cooldown, reuses the grenade
+  projectile spec (arc, bounce, fuse), blocked while mounted. Bots throw when an
+  enemy is visible at 7-20m.
+- **Blast fairness** (`core.mjs`): `explode`/`detonate` lift the line-of-sight
+  origin and ignore cover inside 60% of the radius, so ground-level frags damage
+  nearby targets. New test `the thrown frag grenade arcs, explodes on its life
+  and respects its cooldown`.
+- **Sudden death** (`core.mjs`, `config.mjs`, `hud.mjs`, `app/page.tsx`): opt-in
+  `suddenDeath` modifier (default off) enters overtime on a tie at the time
+  limit, decided by the next score, bounded to 60s. Assault/Payload excluded.
+  Tests cover entry, decision, bounded clock, and that decisive matches still end.
+- **Look controls** (`config.mjs`, `touch.mjs`, `app/page.tsx`, settings UI):
+  `invertY`, `adsSensitivity` (0.2-1.5), `touchSensitivity` (0.3-3), normalized
+  and clamped; mouse and touch both route through them.
+- Suites: full game **625/625**, server **109/109**, `tsc --noEmit` clean, SSR
+  1/1. New features had no pre-fix baseline (additive); the blast-LOS change was
+  covered by the existing explosion/weapon suites (151/151).
+
 ## Integrity pass 2.48 - 2026-09-12
 
 Six parallel read-only audits (modes/objectives, bots/vehicles, net/server,

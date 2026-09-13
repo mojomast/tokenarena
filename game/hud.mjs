@@ -126,6 +126,10 @@ export function killFeedWeapon(entry, weapons = []) {
 
 const teamLabel = team => Number(team) === 0 ? 'RED' : Number(team) === 1 ? 'BLUE' : `TEAM ${team}`;
 
+export function suddenDeathBanner(hud) {
+  return hud?.suddenDeath === true && hud?.over !== true ? { text: 'SUDDEN DEATH', detail: 'NEXT SCORE WINS' } : null;
+}
+
 export function matchStartBanner(hud, duration = 2.6) {
   const time = Number(hud?.time), limit = Number.isFinite(duration) && duration > 0 ? duration : 2.6;
   if (!Number.isFinite(time) || time < 0 || time >= limit) return null;
