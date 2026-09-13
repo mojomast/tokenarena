@@ -303,6 +303,9 @@
 .ladder-chip b, .streak-chip b { color: #9fe0a0; }
 .onboarding-actions { display: flex; align-items: center; gap: 12px; margin-top: 18px; flex-wrap: wrap; }
 .onboarding-actions .deploy-button { flex: 0 0 auto; }
+.keybind-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 6px; margin-bottom: 8px; }
+.keybind-row { display: flex; align-items: center; justify-content: space-between; gap: 6px; text-transform: capitalize; }
+.keybind-row select { min-width: 84px; }
 .presets-configuration .preset-save { display: flex; gap: 8px; margin-bottom: 10px; }
 .presets-configuration .preset-save input { flex: 1 1 auto; min-width: 0; }
 .preset-list { display: flex; flex-direction: column; gap: 6px; }

@@ -1,5 +1,14 @@
 # COCS verification report
 
+## Remappable keybinds 2.60 - 2026-09-12
+
+- Pure `keybinds.mjs` (`normalizeBindings`, `actionForCode`,
+  `bindingConflicts`, `DEFAULT_BINDINGS`) with validation, duplicate fallback
+  and an 8-entry-safe default set. `controlsFromState`/`posture` accept a
+  binding map; the page loads/saves bindings and edits them from a Controls
+  panel. Tests cover normalization, duplicates, resolution and remapped
+  movement/jump. Full game 654/654, server 109/109, SSR 1/1, build/`tsc` clean.
+
 ## Spectator controls 2.59 - 2026-09-12
 
 - `spectatorBoard` pure helper plus a target board, **P** first/third person

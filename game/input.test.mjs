@@ -106,3 +106,11 @@ test('an active joystick still drives analog movement', () => {
   assert.equal(released.z, -1, 'keyboard resumes after the stick returns to center');
   assert.equal(released.sprint, true);
 });
+
+test('custom keybinds remap movement and one-shot actions', () => {
+  const keys = new Set(['ArrowUp', 'Space']);
+  const remapped = controlsFromState({keys, bindings: {forward: 'ArrowUp', jump: 'Enter'}});
+  assert.ok(remapped.z < 0, 'ArrowUp drives forward after remap');
+  assert.equal(remapped.jump, undefined, 'Space does not jump when jump is remapped');
+  assert.equal(controlsFromState({keys, bindings: {forward: 'ArrowUp', jump: 'Space'}}).jump, true, 'Space jumps when bound');
+});
