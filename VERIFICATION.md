@@ -1,5 +1,11 @@
 # COCS verification report
 
+## Bounty and Berserk mutators 2.56 - 2026-09-12
+
+- `bounty` heals + bonuses ending a 3+ streak; `berserk` adds +20% damage at
+  a 3+ streak. Config defaults and sim behaviour covered in `mutators.test.mjs`.
+  Full game 643/643, server 109/109, SSR 1/1, build/`tsc` clean.
+
 ## Ladder and streak HUD chips 2.55 - 2026-09-12
 
 - `ladderStatus` and `streakStatus` in `hud.mjs` drive Arms Race and killstreak

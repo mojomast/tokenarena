@@ -252,6 +252,8 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.56 adds two more mutators: **Bounty** (ending an enemy on a three-plus streak heals you and grants a bonus frag) and **Berserk** (+20% damage while you are on a three-plus streak).
+
 Version 2.55 adds HUD readouts for the new systems: an Arms Race ladder chip (current rung of the weapon rack) and a killstreak chip from two kills up.
 
 Version 2.54 adds a first-run **coach**: a short, dismissible walkthrough of movement, combat, objectives and settings. It is shown once and remembered on the device.
