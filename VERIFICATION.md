@@ -1,5 +1,13 @@
 # COCS verification report
 
+## Recon Pulse 2.52 - 2026-09-12
+
+- New `recon` powerup (`data.mjs`) with a `reveal` effect key; `radarContacts`
+  clamps out-of-range enemies to the rim while active and flags them
+  `revealed`; procedural maps include a recon pickup and the blip gets a rim
+  stroke. Tests: radar reveal/clamp, timed expiry, content effect-key
+  validation. Full game 635/635, server 109/109, SSR 1/1, `tsc` clean.
+
 ## Killstreaks, mutators and accessibility 2.51 - 2026-09-12
 
 - **Killstreaks** (`core.mjs`): `applyKillstreak` rewards 3 kills (heal + ammo),

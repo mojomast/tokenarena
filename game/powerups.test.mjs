@@ -58,5 +58,13 @@ test('new projectile weapons fire and explode with source overcharge',()=>{
 });
 
 test('instagib and rocket locks keep their original mode invariants',()=>{
-  const i=quiet({mode:'instagib'}),r=quiet({mode:'rockets'});assert.equal(i.actors[0].weapon,2);assert.equal(i.pickups.length,0);assert.equal(r.actors[0].weapon,1);assert.ok(r.actors[0].ammo.every((n,index)=>index===1?n===Infinity:n===0));assert.equal(POWERUPS.length,3);assert.equal(WEAPONS.length,10);
+  const i=quiet({mode:'instagib'}),r=quiet({mode:'rockets'});assert.equal(i.actors[0].weapon,2);assert.equal(i.pickups.length,0);assert.equal(r.actors[0].weapon,1);assert.ok(r.actors[0].ammo.every((n,index)=>index===1?n===Infinity:n===0));assert.equal(POWERUPS.length,4);assert.equal(WEAPONS.length,10);
+});
+
+test('the recon pickup applies a timed reveal effect',()=>{
+ const m=quiet(),a=m.actors[0];
+ assert.equal(m.collect(a,{kind:'recon',x:a.x,z:a.z,y:a.y,wait:0}),true);
+ assert.ok(a.powerups.recon>0);
+ for(let i=0;i<601;i++)m.step(1/60);
+ assert.equal(a.powerups.recon,undefined);
 });

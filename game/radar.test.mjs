@@ -45,3 +45,14 @@ test('radarPalette swaps hostile reds for colorblind amber and blip colors follo
   assert.equal(radarBlipColor({kind: 'zone', owner: 0, contested: true}, player), RADAR_COLORS.default.contested);
   assert.equal(radarBlipColor({kind: 'flag', team: 1}, player), RADAR_COLORS.default.blue);
 });
+
+test('recon reveals distant enemies while it is active',()=>{
+  const hud={actors:[{id:0,x:0,z:0,health:100,team:0},{id:1,x:200,z:0,health:100,team:1}]};
+  const player={id:0,x:0,z:0,team:0,yaw:0};
+  assert.equal(radarContacts(hud,player,{range:55}).contacts.some(c=>c.kind==='actor'&&c.id===1),false,'far enemy hidden by default');
+  player.powerups={recon:5};
+  const revealed=radarContacts(hud,player,{range:55}).contacts.find(c=>c.kind==='actor'&&c.id===1);
+  assert.ok(revealed,'far enemy revealed');
+  assert.equal(revealed.revealed,true);
+  assert.ok(revealed.x>=-1.01&&revealed.x<=1.01&&revealed.y>=-1.01&&revealed.y<=1.01,'revealed contact is clamped to the radar rim');
+});

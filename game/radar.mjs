@@ -18,17 +18,20 @@ export function radarContacts(hud, player, {range = DEFAULT_RANGE} = {}) {
   if (!hud || !Number.isFinite(px) || !Number.isFinite(pz)) return {contacts, range: DEFAULT_RANGE};
   const span = Number(range) > 0 ? Number(range) : DEFAULT_RANGE;
   const yaw = Number(player.yaw) || 0, cos = Math.cos(yaw), sin = Math.sin(yaw);
-  const place = (x, z) => {
+  const reveal = (Number(player?.powerups?.recon) || 0) > 0;
+  const place = (x, z, always = false) => {
     const dx = Number(x) - px, dz = Number(z) - pz;
     if (!Number.isFinite(dx) || !Number.isFinite(dz)) return null;
     const right = dx * cos - dz * sin, forward = -dx * sin - dz * cos, dist = Math.hypot(right, forward);
-    if (dist > span) return null;
-    return {x: right / span, y: forward / span, dist};
+    if (dist <= span) return {x: right / span, y: forward / span, dist};
+    if (always && dist > 1e-6) return {x: right / dist, y: forward / dist, dist, clamped: true};
+    return null;
   };
   for (const actor of Array.isArray(hud.actors) ? hud.actors : []) {
-    const point = place(actor?.x, actor?.z);
+    const teammate = player?.team !== null && player?.team !== undefined && actor.team === player.team;
+    const point = place(actor?.x, actor?.z, reveal && actor.id !== player.id && !teammate);
     if (!point) continue;
-    contacts.push({kind: 'actor', id: actor.id, x: point.x, y: point.y, team: actor.team, self: actor.id === player.id, dead: !(Number(actor.health) > 0), vehicle: actor.vehicleId != null});
+    contacts.push({kind: 'actor', id: actor.id, x: point.x, y: point.y, team: actor.team, self: actor.id === player.id, dead: !(Number(actor.health) > 0), vehicle: actor.vehicleId != null, revealed: point.clamped === true});
   }
   for (const zone of Array.isArray(hud.objectives?.zones) ? hud.objectives.zones : []) {
     const point = place(zone?.x, zone?.z);

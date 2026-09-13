@@ -252,6 +252,8 @@ Version 2.0 adds progression, unlocks and gear:
 - **Gear for Combined Arms.** Equip one item per slot (weapon kit, armour, utility) to tweak health, armour, speed, damage and spread. Gear is applied to your actor on solo and hosted matches.
 - **Server persistence.** A stable local player id is sent on join; `server/progression.mjs` stores XP, levels, unlocks and saved gear to a JSON store (like match history), awarding results authoritatively at match end and pushing a `progression` update to each player.
 
+Version 2.52 adds the **Recon Pulse** radar powerup: while active it reveals every enemy on your team radar regardless of distance, shown as a rim-clamped blip.
+
 Version 2.51 adds a reward loop, two mutators and accessibility options:
 
 - **Killstreaks.** Three kills restores health and ammo (Scavenger), five grants Overcharge, and seven grants an Overshield, announced in the HUD. Dying or respawning resets the streak.

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {HARNESSES,POWERUPS,WEAPONS} from './data.mjs';
 
 const originalWeapons=['Pulse Rifle','Rocket Launcher','Rail Lance','Scattergun','Plasma Driver'];
-const effectKeys=new Set(['speedMultiplier','damageMultiplier','armor','cooldownMultiplier']);
+const effectKeys=new Set(['speedMultiplier','damageMultiplier','armor','cooldownMultiplier','reveal']);
 const color=/^#[0-9a-f]{6}$/i;
 
 test('weapon IDs and original order remain stable while new slots append',()=>{
